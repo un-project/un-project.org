@@ -1,0 +1,48 @@
+{% extends "auth/profile.html" %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+
+{% block profile-content %}
+<div class="profile-declarations paginated">
+{% for declaration in declarations %}
+    <div class="declaration-stats">
+        <h2><a href="{{ declaration.resolution.get_absolute_url }}">{{ declaration.resolution.title }}</a></h2>
+        <div class="declaration-content {{ declaration.declaration_class }}">
+            <a href="{{ declaration.get_absolute_url }}">{{ declaration.text }}</a>
+
+            {% if declaration.related_resolution %}
+            <div class="related-resolution">
+                <a href="{{ declaration.absolute_url }}">{{ declaration.related_resolution.title }}</a>
+            </div>
+            {% endif %}
+        </div>
+        {% if declaration.supporters.exists %}
+        <div class="supporter-count">
+        {{ declaration.supporters.count }} {% trans "supporter." %}
+        </div>
+        {% endif %}
+        {% if declaration.reports.exists %}
+            <div class="reported_as_fallacy">
+            {{ declaration.reports.count }} {% trans "fallacy report." %}
+
+            {% if declaration.fallacies %}
+                {% for fallacy in declaration.fallacies %}
+                <div class="fallacy">{{ fallacy.label }}</div>
+                {% endfor %}
+            {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% empty %}
+    <div class="empty">
+    {% trans "No data." %}
+    </div>
+{% endfor %}
+{% if has_next_page %}
+<div class="load-more">
+    <a class="next" href="{{ next_page_url }}">{% trans "Load more" %}</a>
+</div>
+{% endif %}
+</div>
+{% endblock %}

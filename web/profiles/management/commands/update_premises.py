@@ -1,11 +1,11 @@
 from django.core.management import BaseCommand
-from premises.models import Premise
+from declarations.models import Declaration
 
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        premises = Premise.objects.all()
+        declarations = Declaration.objects.all()
 
-        for premise in premises:
+        for declaration in declarations:
             # denormalizes sibling counts
-            premise.save()
+            declaration.save()

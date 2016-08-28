@@ -6,7 +6,7 @@ from django.utils.translation import get_language
 
 from i18n.utils import normalize_language_code
 from nouns.models import Noun, Keyword, Relation, Channel
-from premises.models import Contention
+from declarations.models import Resolution
 
 
 class KeywordInline(admin.TabularInline):
@@ -14,10 +14,10 @@ class KeywordInline(admin.TabularInline):
     extra = 0
 
 
-class ContentionInline(admin.TabularInline):
-    model = Contention.nouns.through
+class ResolutionInline(admin.TabularInline):
+    model = Resolution.nouns.through
     extra = 0
-    raw_id_fields = ('contention',)
+    raw_id_fields = ('resolution',)
 
 
 class RelationInline(admin.TabularInline):
@@ -37,7 +37,7 @@ class ActionInChangeFormMixin(object):
         if isinstance(response, HttpResponseRedirect):
             response['Location'] = request.META.get(
                                 'HTTP_REFERER', response.url)
-        return response  
+        return response
 
     def change_view(self, request, object_id, extra_context=None):
         actions = self.get_actions(request)
@@ -45,7 +45,7 @@ class ActionInChangeFormMixin(object):
             action_form = self.action_form(auto_id=None)
             choices = self.get_action_choices(request)
             action_form.fields['action'].choices = choices
-        else: 
+        else:
             action_form = None
         extra_context=extra_context or {}
         extra_context['action_form'] = action_form
@@ -56,8 +56,8 @@ class ActionInChangeFormMixin(object):
 class NounAdmin(ActionInChangeFormMixin, admin.ModelAdmin):
     list_display = ('__unicode__', 'is_active', 'hypernyms_as_text')
     list_filter = ('is_active', )
-    inlines = [KeywordInline, ContentionInline, RelationInline]
-    actions = ['update_contentions', 'reset_contentions',
+    inlines = [KeywordInline, ResolutionInline, RelationInline]
+    actions = ['update_resolutions', 'reset_resolutions',
                'update_with_wordnet', 'make_active', 'make_passive']
     search_fields = ['text', 'keywords__text']
     actions_on_top = True
@@ -73,7 +73,7 @@ class NounAdmin(ActionInChangeFormMixin, admin.ModelAdmin):
         qs = super(NounAdmin, self).get_queryset(request)
         return qs.prefetch_related('out_relations', 'keywords')
 
-    def update_contentions(self, request, qs):
+    def update_resolutions(self, request, qs):
         q = Q()
 
         for noun in qs:
@@ -81,14 +81,14 @@ class NounAdmin(ActionInChangeFormMixin, admin.ModelAdmin):
             for keyword in noun.keywords.all():
                 q |= Q(title__icontains=keyword.text)
 
-        contentions = Contention.objects.filter(q)
-        for contention in contentions:
-            contention.save_nouns()
+        resolutions = Resolution.objects.filter(q)
+        for resolution in resolutions:
+            resolution.save_nouns()
 
-    def reset_contentions(self, request, qs):
-        contentions = Contention.objects.filter(nouns=qs)
-        for contention in contentions:
-            contention.nouns.clear()
+    def reset_resolutions(self, request, qs):
+        resolutions = Resolution.objects.filter(nouns=qs)
+        for resolution in resolutions:
+            resolution.nouns.clear()
 
     def update_with_wordnet(self, request, qs):
         for noun in qs:

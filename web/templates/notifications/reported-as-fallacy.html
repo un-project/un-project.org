@@ -1,10 +1,10 @@
 {% load i18n %}
-{% with contention=target_object.premise.argument %}
-{% if contention %}
+{% with resolution=target_object.declaration.resolution %}
+{% if resolution %}
     {% blocktrans trimmed with label=target_object.get_fallacy_type_display %}
-    Your premise reported as <strong>{{ label }}</strong> 
+    Your declaration reported as <strong>{{ label }}</strong>
     {% endblocktrans %}
     <br>
-    <a href="{{ contention.get_absolute_url }}/{{ target_object.id }}" class="contention-link">{{ contention.title }}</a>
+    <a href="{{ resolution.get_absolute_url }}/{{ target_object.id }}" class="resolution-link">{{ resolution.title }}</a>
 {% endif %}
 {% endwith %}

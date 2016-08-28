@@ -7,11 +7,11 @@
 <div class="fallacy-list">
     {% for fallacy in fallacies %}
         <div class="fallacy-report">
-            <div class="premise-stats">
-            <h2><a href="{{ fallacy.contention.get_absolute_url }}">{{ fallacy.contention.title }}</a></h2>
+            <div class="declaration-stats">
+            <h2><a href="{{ fallacy.resolution.get_absolute_url }}">{{ fallacy.resolution.title }}</a></h2>
 
-                <div class="premise-content {{ fallacy.premise.premise_class }}">
-                    {{ fallacy.premise.text }}
+                <div class="declaration-content {{ fallacy.declaration.declaration_class }}">
+                    {{ fallacy.declaration.text }}
                 </div>
                 <div class="fallacy-reason">
                     <h4>{{ fallacy.get_fallacy_type_display }}</h4>

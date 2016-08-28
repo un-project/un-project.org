@@ -3,21 +3,21 @@
 
 {% block tab_content %}
 <div class="search-content">
-    <form action="{% url "contentions_search" %}" class="search-form">
+    <form action="{% url "resolutions_search" %}" class="search-form">
         <label for="id_q">{% trans "Keywords:" %} </label>
         <input type="text" class="searchfield" value="{{ request.GET.keywords }}" name="keywords" id="id_q"/>
     </form>
     <div class="search-list">
 
         <ul class="time-filter">
-            <li{% if request.GET.type == 'contentions' or not request.GET.type %} class="active"{% endif %}>
-                <a href="?keywords={{ request.GET.keywords }}&type=contentions">{% trans "contentions" %}</a>
+            <li{% if request.GET.type == 'resolutions' or not request.GET.type %} class="active"{% endif %}>
+                <a href="?keywords={{ request.GET.keywords }}&type=resolutions">{% trans "resolutions" %}</a>
             </li>
-            <li{% if request.GET.type == 'users' %} class="active"{% endif %}>
-                <a href="?keywords={{ request.GET.keywords }}&type=users">{% trans "users" %}</a>
+            <li{% if request.GET.type == 'speakers' %} class="active"{% endif %}>
+                <a href="?keywords={{ request.GET.keywords }}&type=speakers">{% trans "speakers" %}</a>
             </li>
-            <li{% if request.GET.type == 'premises' %} class="active"{% endif %}>
-                <a href="?keywords={{ request.GET.keywords }}&type=premises">{% trans "premises" %}</a>
+            <li{% if request.GET.type == 'declarations' %} class="active"{% endif %}>
+                <a href="?keywords={{ request.GET.keywords }}&type=declarations">{% trans "declarations" %}</a>
             </li>
         </ul>
         {% for item in results %}

@@ -8,18 +8,18 @@ from django.utils.translation import get_language
 from i18n.utils import normalize_language_code
 from newsfeed.utils import get_collection
 from main.utils import send_complex_mail
-from premises.models import Contention, Premise, Report
-from premises.signals import (
-    reported_as_fallacy, added_premise_for_premise,
-    added_premise_for_contention)
+from declarations.models import Resolution, Declaration, Report
+from declarations.signals import (
+    reported_as_fallacy, added_declaration_for_declaration,
+    added_declaration_for_resolution)
 from profiles.signals import follow_done, unfollow_done
 from newsfeed.constants import (
-    NEWS_TYPE_CONTENTION, NEWS_TYPE_PREMISE,
+    NEWS_TYPE_RESOLUTION, NEWS_TYPE_DECLARATION,
     NEWS_TYPE_FALLACY, NEWS_TYPE_FOLLOWING)
 
 RELATED_MODELS = {
-    NEWS_TYPE_CONTENTION: Contention,
-    NEWS_TYPE_PREMISE: Premise,
+    NEWS_TYPE_RESOLUTION: Resolution,
+    NEWS_TYPE_DECLARATION: Declaration,
     NEWS_TYPE_FALLACY: Report
 }
 
@@ -50,8 +50,8 @@ class EntryManager(object):
             "news_type": news_type,
             "date_created": date_creation or datetime.now(),
             "sender": {
-                "username": sender.username,
-                "email": sender.email  # it's required for gravatar
+                "first_name": sender.first_name,
+                "last_name": sender.las_name
             },
             "recipients": recipients
         }
@@ -70,7 +70,7 @@ class EntryManager(object):
         followed profile's entries.
         """
         self.collection.update(
-            {"sender.username": following.username},
+            {"sender.last_name": following.last_name},
             {"$push": {"recipients": follower.id}}, multi=True)
 
     def remove_from_recipients(self, following, follower):
@@ -78,7 +78,7 @@ class EntryManager(object):
         Removes follower id from the recipients of followed profile's entries.
         """
         self.collection.update(
-            {"sender.username": following.username},
+            {"sender.last_name": following.last_name},
             {"$pull": {"recipients": follower.id}}, multi=True)
 
     def delete(self, object_type, object_id):
@@ -98,8 +98,8 @@ class EntryManager(object):
                 "$in": [user.id]
             },
             "news_type": {
-                "$in": [NEWS_TYPE_CONTENTION,
-                        NEWS_TYPE_PREMISE,
+                "$in": [NEWS_TYPE_RESOLUTION,
+                        NEWS_TYPE_DECLARATION,
                         NEWS_TYPE_FALLACY,
                         NEWS_TYPE_FOLLOWING]
             }
@@ -125,8 +125,8 @@ class EntryManager(object):
 
         parameters = {
             "news_type": {
-                "$in": [NEWS_TYPE_CONTENTION,
-                        NEWS_TYPE_PREMISE,
+                "$in": [NEWS_TYPE_RESOLUTION,
+                        NEWS_TYPE_DECLARATION,
                         NEWS_TYPE_FALLACY]
             },
             "related_object.language": language
@@ -148,8 +148,8 @@ class EntryManager(object):
         parameters = {
             "sender.username": user.username,
             "news_type": {
-                "$in": [NEWS_TYPE_CONTENTION,
-                        NEWS_TYPE_PREMISE,
+                "$in": [NEWS_TYPE_RESOLUTION,
+                        NEWS_TYPE_DECLARATION,
                         NEWS_TYPE_FOLLOWING]
             }
         }
@@ -180,58 +180,58 @@ class Entry(dict):
 
     def get_template(self):
         return {
-            NEWS_TYPE_CONTENTION: "newsfeed/contention.html",
-            NEWS_TYPE_PREMISE: "newsfeed/premise.html",
+            NEWS_TYPE_RESOLUTION: "newsfeed/resolution.html",
+            NEWS_TYPE_DECLARATION: "newsfeed/declaration.html",
             NEWS_TYPE_FALLACY: "newsfeed/fallacy.html",
             NEWS_TYPE_FOLLOWING: "newsfeed/following.html",
         }.get(self.news_type)
 
     def entry_class(self):
         return {
-            NEWS_TYPE_CONTENTION: "contention_entry",
-            NEWS_TYPE_PREMISE: "premise_entry",
+            NEWS_TYPE_RESOLUTION: "resolution_entry",
+            NEWS_TYPE_DECLARATION: "declaration_entry",
             NEWS_TYPE_FALLACY: "fallacy_entry",
             NEWS_TYPE_FOLLOWING: "following_entry",
         }.get(self.news_type)
 
 
-@receiver(post_save, sender=Contention)
-def create_contention_entry(instance, created, **kwargs):
+@receiver(post_save, sender=Resolution)
+def create_resolution_entry(instance, created, **kwargs):
     """
-    Creates news entries for contentions.
+    Creates news entries for resolutions.
     """
-    if created:
-        Entry.objects.create(
-            object_id=instance.id,
-            news_type=instance.get_newsfeed_type(),
-            sender=instance.get_actor(),
-            related_object=instance.get_newsfeed_bundle()
-        )
+    #if created:
+    #    Entry.objects.create(
+    #        object_id=instance.id,
+    #        news_type=instance.get_newsfeed_type(),
+    #        sender=instance.get_actor(),
+    #        related_object=instance.get_newsfeed_bundle()
+    #    )
 
 
-@receiver(added_premise_for_contention)
-@receiver(added_premise_for_premise)
-def create_premise_entry(premise, **kwargs):
+@receiver(added_declaration_for_resolution)
+@receiver(added_declaration_for_declaration)
+def create_declaration_entry(declaration, **kwargs):
     """
     Creates news entries for the following types:
-        - Premise
+        - Declaration
         - Report
     That models have `get_news_type` method.
     """
-    user_emails = [user.email for user in premise.parent_users
+    user_emails = [user.email for user in declaration.parent_users
                    if user.email and user.notification_email]
-    send_complex_mail('New premise for %s'% premise.argument.title,
-                      'email/premise_notification.txt',
-                      'email/premise_notification.html',
-                      'info@arguman.org',
+    send_complex_mail('New declaration for %s'% declaration.resolution.title,
+                      'email/declaration_notification.txt',
+                      'email/declaration_notification.html',
+                      'info@un-project.org',
                       bcc=user_emails,
-                      context={'premise': premise})
+                      context={'declaration': declaration})
 
     Entry.objects.create(
-        object_id=premise.id,
-        news_type=premise.get_newsfeed_type(),
-        sender=premise.get_actor(),
-        related_object=premise.get_newsfeed_bundle()
+        object_id=declaration.id,
+        news_type=declaration.get_newsfeed_type(),
+        sender=declaration.get_actor(),
+        related_object=declaration.get_newsfeed_bundle()
     )
 
 
@@ -257,8 +257,8 @@ def create_following_entry(follower, following, **kwargs):
         object_id=following.id,
         news_type=NEWS_TYPE_FOLLOWING,
         sender=follower,
-        related_object=dict(username=following.username,
-                            email=following.email)
+        related_object=dict(first_name=following.first_name,
+                            last_name=following.last_name)
     )
 
 
@@ -280,8 +280,8 @@ def remove_from_recipients(follower, following, **kwargs):
                                          follower=follower)
 
 
-@receiver(post_delete, sender=Contention)
-@receiver(post_delete, sender=Premise)
+@receiver(post_delete, sender=Resolution)
+@receiver(post_delete, sender=Declaration)
 def remove_news_entry(instance, **kwargs):
     Entry.objects.delete(
         object_type=instance.get_newsfeed_type(),

@@ -1,5 +1,5 @@
 from django.core.management import BaseCommand
-from premises.models import Report
+from declarations.models import Report
 from newsfeed.models import Entry
 from newsfeed.constants import NEWS_TYPE_FALLACY
 

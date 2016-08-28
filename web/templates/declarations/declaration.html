@@ -1,0 +1,132 @@
+{% load i18n %}
+{% load humanize %}
+{% load static %}
+<div class="declaration tree-node{% if declaration.is_collapsed %} too-many-fallacy{% endif %}"
+    data-id="{{ declaration.id }}" data-type="{{ declaration.declaration_class }}"
+    data-weight="{{ declaration.weight }}">
+    <div class="declaration-type {{ declaration.declaration_class }}">
+        {{ declaration.declaration_type_label }}
+    </div>
+
+    <div class="declaration-type declaration-weight {{ declaration.declaration_class }}">
+        {% trans "score:" %} {{ declaration.weight }}
+    </div>
+
+    <div class="declaration-sources">
+        {% if declaration.sources %}
+            <strong>{% trans "sources:" %}</strong>
+            <p class="links">{{ declaration.sources|urlize }}</p>
+        {% endif %}
+        <div class="declaration-user" style="background-image: url(http://www.geonames.org/flags/m/{{ declaration.speaker.state.iso_3166_alpha2|lower }}.png);">
+            <strong>{% trans "speaker:" %}</strong>
+
+            <p><a href="">
+                {#<p><a href="{% url "auth_profile" declaration.user.username %}">#}
+                {{ declaration.speaker.last_name }}</a></p>
+
+            <!--<p class="time-ago">
+                <a href="#{{ declaration.id }}">
+                    <time datetime="{{ declaration.date_creation }}">{{ declaration.date_creation|naturaltime }}</time>
+                </a>
+            </p>-->
+        </div>
+
+        {% if declaration.fallacies %}
+            <div class="reported_as_fallacy">
+                {% blocktrans trimmed count declaration.fallacy_count as count %}
+                    {{ count }} fallacy reported.
+                    {% plural %}
+                    {{ count }} fallacies reported.
+                {% endblocktrans %}
+                {% if declaration.fallacies %}
+                    {% for fallacy in declaration.fallacies %}
+                        <div class="fallacy">
+                            {{ fallacy.label }}
+                            {% if fallacy.reported_by_authenticated_user %}
+                            <form action="{% url "unreport_declaration" serialized.slug declaration.id %}?type={{ fallacy.type }}"
+                                  method="post">
+                                {% csrf_token %}
+                                <input type="submit"
+                                       value="({% trans "undo" %})" />
+                            </form>
+                            {% endif %}
+                            <div class="fallacy-reasons">
+                                {% for reason in fallacy.reasons %}
+                                    <p>
+                                        {{ reason.reason }}
+                                        <a href="{% url "auth_profile" reason.reporter %}">{{ reason.reporter|lower }}</a>
+                                    </p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if declaration.supporter_count > 0 %}
+            <div class="supporters">
+                {% blocktrans trimmed count declaration.supporter_count as count %}
+                    {{ count }} supporter.
+                {% plural %}
+                    {{ count }} supporters.
+                {% endblocktrans %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="declaration-content {{ declaration.declaration_class }}">
+        {% with text=declaration.formatted_text|safe %}
+            <div class="full">
+                {{text.strip|safe|linebreaksbr}}
+            </div>
+            <div class="compact">
+                {{text.strip|safe|truncatechars:maxlength|linebreaksbr}}
+            </div>
+        {% endwith %}
+        {% if declaration.related_resolution %}
+        <div class="related-resolution">
+            <a href="{{ declaration.related_resolution.absolute_url }}">{{ declaration.related_resolution.title }}</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="declaration-actions">
+            <a class="declaration-action" href="{% url "insert_declaration" serialized.slug declaration.id %}">{% trans "add comment" %}</a>
+
+            {% if user.id == declaration.user.id %}
+                <a class="declaration-action" href="{% url "edit_declaration" serialized.slug declaration.id %}">{% trans "edit" %}</a>
+                <form class="declaration-action" action="{% url "delete_declaration" serialized.slug declaration.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="submit" value="{% trans "remove" %}"
+                           onclick="return confirm('{% trans "Are you sure to remove this declaration?" %}');"
+                           class="delete_declaration"/>
+                </form>
+            {% endif %}
+
+            {% if declaration.user.id != user.id %}
+                {% if declaration.supported_by_authenticated_user %}
+                    <form class="support declaration-action" action="{% url "unsupport_declaration" serialized.slug declaration.id %}"
+                          method="post" data-action="DELETE" data-label-support="{% trans "support" %}" data-label-undo="{% trans "undo" %}">
+                        {% csrf_token %}
+                        <input type="submit" value="{% trans "undo" %}"/>
+                    </form>
+                {% else %}
+                    <form class="support declaration-action" action="{% url "support_declaration" serialized.slug declaration.id %}"
+                          method="post" data-action="POST" data-label-support="{% trans "support" %}" data-label-undo="{% trans "undo" %}">
+                        {% csrf_token %}
+                        <input type="submit" value="{% trans "support" %}"/>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="report">
+            <a href="{% url 'report_declaration' serialized.slug declaration.id %}">{% trans "report fallacy" %}</a>
+        </div>
+    {% endif %}
+    <div class="share">
+        <a target="_blank" href="{{ serialized.full_url }}/{{ declaration.id }}" class="tree-view active"> permalink</a>
+    </div>
+
+</div>

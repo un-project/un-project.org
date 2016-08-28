@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Arguman\n"
+"Project-Id-Version: un-project\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-12-13 15:37+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -37,7 +37,7 @@ msgstr "URL"
 msgid "Content"
 msgstr "Contenu"
 
-#: blog/models.py:26 premises/models.py:480
+#: blog/models.py:26 declarations/models.py:480
 msgid "Published"
 msgstr "Publié"
 
@@ -57,166 +57,166 @@ msgstr "opposé à"
 msgid "whole of"
 msgstr "tout(e)"
 
-#: premises/forms.py:33
-msgid "You should write a premise or link an argument."
-msgstr "Vous devriez écrire une prémisse ou lier un argument."
+#: declarations/forms.py:33
+msgid "You should write a declaration or link a resolution."
+msgstr "Vous devriez écrire une déclaration ou lier une résolution."
 
-#: premises/models.py:40 templates/premises/contention.html:6
-#: templates/premises/contention_list.html:13 templates/premises/thread.html:31
+#: declarations/models.py:40 templates/declarations/resolution.html:6
+#: templates/declarations/resolution_list.html:13 templates/declarations/thread.html:31
 msgid "but"
 msgstr "mais"
 
-#: premises/models.py:41 templates/premises/contention.html:5
-#: templates/premises/contention_list.html:12 templates/premises/thread.html:36
+#: declarations/models.py:41 templates/declarations/resolution.html:5
+#: templates/declarations/resolution_list.html:12 templates/declarations/thread.html:36
 msgid "because"
 msgstr "parce que"
 
-#: premises/models.py:42 templates/premises/contention.html:7
-#: templates/premises/contention_list.html:14 templates/premises/thread.html:41
+#: declarations/models.py:42 templates/declarations/resolution.html:7
+#: templates/declarations/resolution_list.html:14 templates/declarations/thread.html:41
 msgid "however"
 msgstr "cependant"
 
-#: premises/models.py:46
+#: declarations/models.py:46
 msgid "Begging The Question"
 msgstr "Pétition de principe"
 
-#: premises/models.py:47
+#: declarations/models.py:47
 msgid "Irrelevant Conclusion"
 msgstr "Conclusion excessive"
 
-#: premises/models.py:48
+#: declarations/models.py:48
 msgid "Fallacy Of Irrelevant Purpose"
 msgstr ""
 
-#: premises/models.py:49
+#: declarations/models.py:49
 msgid "Fallacy Of Red Herring"
 msgstr "Fausse piste"
 
-#: premises/models.py:50
+#: declarations/models.py:50
 msgid "Argument Against TheMan"
 msgstr "Attaque ad hominem"
 
-#: premises/models.py:51
+#: declarations/models.py:51
 msgid "Poisoning The Well"
 msgstr "Empoisonner le puits"
 
-#: premises/models.py:52
+#: declarations/models.py:52
 msgid "Fallacy Of The Beard"
 msgstr "Sophisme de continuité"
 
-#: premises/models.py:53
+#: declarations/models.py:53
 msgid "Fallacy Of Slippery Slope"
 msgstr "Pente savonneuse"
 
-#: premises/models.py:54
+#: declarations/models.py:54
 msgid "Fallacy Of False Cause"
 msgstr "Raisonnement post hoc"
 
-#: premises/models.py:55
+#: declarations/models.py:55
 msgid "Fallacy Of Previous This"
 msgstr "Appel à la tradition"
 
-#: premises/models.py:56
+#: declarations/models.py:56
 msgid "Joint Effect"
 msgstr "Effet conjoint"
 
-#: premises/models.py:57
+#: declarations/models.py:57
 msgid "Wrong Direction"
 msgstr "Fausse piste"
 
-#: premises/models.py:58
+#: declarations/models.py:58
 msgid "False Analogy"
 msgstr "Fausse analogie"
 
-#: premises/models.py:59
+#: declarations/models.py:59
 msgid "Slothful Induction"
 msgstr "Rejet d'induction"
 
-#: premises/models.py:60
+#: declarations/models.py:60
 msgid "Appeal To Belief"
 msgstr "Raison de majorité"
 
-#: premises/models.py:61
+#: declarations/models.py:61
 msgid "Pragmatic Fallacy"
 msgstr ""
 
-#: premises/models.py:62
+#: declarations/models.py:62
 msgid "Fallacy Of Is To Ought"
 msgstr "Loi de Hume"
 
-#: premises/models.py:63
+#: declarations/models.py:63
 msgid "Argument From Force"
 msgstr "Recours à la force"
 
-#: premises/models.py:64
+#: declarations/models.py:64
 msgid "Argument To Pity"
 msgstr "Recours à la pitié"
 
-#: premises/models.py:65
+#: declarations/models.py:65
 msgid "Prejudicial Language"
 msgstr "Parti pris"
 
-#: premises/models.py:66
+#: declarations/models.py:66
 msgid "Fallacy Of Special Pleading"
 msgstr ""
 
-#: premises/models.py:67
+#: declarations/models.py:67
 msgid "Appeal To Authority"
 msgstr "Recours à l'autorité"
 
-#: premises/models.py:73
+#: declarations/models.py:73
 msgid "Argument"
 msgstr "Argument"
 
-#: premises/models.py:77
+#: declarations/models.py:77
 msgid "Description"
 msgstr "Description"
 
-#: premises/models.py:81
+#: declarations/models.py:81
 msgid "Original Discourse"
 msgstr "Origine du débat"
 
-#: premises/models.py:85 premises/models.py:473
+#: declarations/models.py:85 declarations/models.py:473
 msgid "Sources"
 msgstr "Sources"
 
-#: premises/models.py:460
+#: declarations/models.py:460
 msgid "Parent"
 msgstr "Parent"
 
-#: premises/models.py:461
+#: declarations/models.py:461
 msgid ""
-"The parent of premise. If you don't choose anything, it will be a main "
-"premise."
+"The parent of declaration. If you don't choose anything, it will be a main "
+"declaration."
 msgstr ""
-"La prémisse parente. Si vous n'en choisissez pas, la prémisse sera "
+"La déclaration parente. Si vous n'en choisissez pas, la déclaration sera "
 "créée à la racine."
 
-#: premises/models.py:465
-msgid "Premise Type"
-msgstr "Type de prémisse"
+#: declarations/models.py:465
+msgid "Declaration Type"
+msgstr "Type de déclaration"
 
-#: premises/models.py:469
-msgid "Premise Content"
-msgstr "Contenu de la prémisse"
+#: declarations/models.py:469
+msgid "Declaration Content"
+msgstr "Contenu de la déclaration"
 
-#: premises/models.py:477
+#: declarations/models.py:477
 msgid "Related Argument"
 msgstr "Argument lié"
 
-#: premises/models.py:478
-msgid "You can also associate your premise with an argument."
-msgstr "Vous pouvez aussi lier votre prémisse à un argument."
+#: declarations/models.py:478
+msgid "You can also associate your declaration with a resolution."
+msgstr "Vous pouvez aussi lier votre déclaration à une résolution."
 
-#: premises/models.py:704
+#: declarations/models.py:704
 msgid "Reason"
 msgstr "Raison"
 
-#: premises/models.py:705
-msgid "Please explain that why the premise is a fallacy."
-msgstr "Veuillez expliquer pourquoi cette prémisse est un sophisme."
+#: declarations/models.py:705
+msgid "Please explain why the declaration is a fallacy."
+msgstr "Veuillez expliquer pourquoi cette déclaration est un sophisme."
 
-#: premises/models.py:707
+#: declarations/models.py:707
 msgid "Fallacy Type"
 msgstr "Type de sophisme"
 
@@ -248,9 +248,9 @@ msgstr "Confirmation du nouveau mot de passe"
 msgid "email notification"
 msgstr "Notification par email"
 
-#: templates/auth/fallacies.html:28 templates/auth/premises.html:44
+#: templates/auth/fallacies.html:28 templates/auth/declarations.html:44
 #: templates/fallacies.html:29 templates/newsfeed.html:39
-#: templates/premises/contention_list.html:67
+#: templates/declarations/resolution_list.html:67
 msgid "Load more"
 msgstr "Montrer plus"
 
@@ -271,10 +271,10 @@ msgstr "Mot de passe oublié&nbsp;?"
 #, python-format
 msgid ""
 "<a href=\"%(login_url)s\">Login</a> or <a href=\"%(register_url)s"
-"\">register</a> to add a premise for this argument."
+"\">register</a> to add a declaration for this resolution."
 msgstr ""
 "<a href=\"%(login_url)s\">Connectez vous</a> ou <a "
-"href=\"%(register_url)s\">créez un compte</a> pour ajouter une prémisse ou un argument."
+"href=\"%(register_url)s\">créez un compte</a> pour ajouter une déclaration ou une résolution."
 
 #: templates/auth/password_reset_complete.html:8
 msgid "The password changed successfully."
@@ -304,9 +304,9 @@ msgstr ""
 #: templates/auth/password_reset_email.html:2
 msgid ""
 "You're receiving this email because you requested a password reset for your "
-"user account at arguman.org"
+"user account at un-project.org"
 msgstr ""
-"Vous recevez ce message car vous avez demandé à changer votre mot de passe pour arguman.org"
+"Vous recevez ce message car vous avez demandé à changer votre mot de passe pour un-project.org"
 
 #: templates/auth/password_reset_email.html:4
 msgid "Please go to the following page and choose a new password:"
@@ -323,21 +323,21 @@ msgid "Reset Password"
 msgstr "Changer de mot de passe"
 
 #: templates/auth/password_reset_form.html:10
-#: templates/nouns/new_relation.html:37 templates/premises/new_premise.html:15
+#: templates/nouns/new_relation.html:37 templates/declarations/new_declaration.html:15
 msgid "Submit"
 msgstr "Confirmer"
 
-#: templates/auth/premises.html:22 templates/auth/profile.html:121
-#: templates/search/premise.html:11 templates/stats/premise.html:11
+#: templates/auth/declarations.html:22 templates/auth/profile.html:121
+#: templates/search/declaration.html:11 templates/stats/declaration.html:11
 msgid "supporter."
 msgstr "soutien."
 
-#: templates/auth/premises.html:27 templates/auth/profile.html:126
-#: templates/search/premise.html:16 templates/stats/premise.html:16
+#: templates/auth/declarations.html:27 templates/auth/profile.html:126
+#: templates/search/declaration.html:16 templates/stats/declaration.html:16
 msgid "fallacy report."
 msgstr "safsata bildirimi"
 
-#: templates/auth/premises.html:39 templates/auth/profile.html:82
+#: templates/auth/declarations.html:39 templates/auth/profile.html:82
 #: templates/auth/profile.html.py:101 templates/auth/profile.html:138
 msgid "No data."
 msgstr "No data."
@@ -367,8 +367,8 @@ msgid "Arguments"
 msgstr "Arguments"
 
 #: templates/auth/profile.html:55
-msgid "Premises"
-msgstr "Prémisses"
+msgid "Declarations"
+msgstr "Déclarations"
 
 #: templates/auth/profile.html:56
 msgid "Fallacy Reports"
@@ -395,8 +395,8 @@ msgid "Most discussed users"
 msgstr "Utilisateurs les plus contestés"
 
 #: templates/auth/profile.html:107
-msgid "Most supported premises"
-msgstr "Prémisses les plus plébiscitées"
+msgid "Most supported declarations"
+msgstr "Déclarations les plus plébiscitées"
 
 #: templates/auth/register.html:7 templates/auth/register.html.py:17
 msgid "Register"
@@ -413,14 +413,14 @@ msgstr ""
 msgid "Update Profile"
 msgstr "Modifier le profil"
 
-#: templates/auth/update.html:14 templates/premises/edit_contention.html:11
-#: templates/premises/edit_premise.html:10
+#: templates/auth/update.html:14 templates/declarations/edit_resolution.html:11
+#: templates/declarations/edit_declaration.html:10
 msgid "Update"
 msgstr "Changer"
 
 #: templates/base.html:5
-msgid "Argument Analysis Platform. Create and analyze argument maps online."
-msgstr "Plateforme de débat analytique | Créez et analysez des thèses en ligne."
+msgid "Argument Analysis Platform. Create and analyze resolutions maps online."
+msgstr "Plateforme de débat analytique | Créez et analysez des résolutions en ligne."
 
 #: templates/base.html:7
 msgid "Argument analysis and mapping platform"
@@ -447,8 +447,8 @@ msgid "login"
 msgstr "se connecter"
 
 #: templates/base.html:41
-msgid "new argument"
-msgstr "nouvelle thèse"
+msgid "new resolution"
+msgstr "nouvelle résolution"
 
 #: templates/base.html:43
 msgid "logout"
@@ -480,10 +480,10 @@ msgstr "Suivre sur Twitter&nbsp;:"
 
 #: templates/base.html:72
 msgid ""
-"arguman.org is an open-source project. you can follow the <a href=\"http://"
-"github.com/arguman/arguman.org\">organization</a> on github."
+"un-project.org is an open-source project. you can follow the <a href=\"http://"
+"github.com/un-project/un-project.org\">organization</a> on github."
 msgstr ""
-"arguman.org est un projet open-source. Vous pouvez le suivre sur <a href=\"http://github.com/arguman"
+"un-project.org est un projet open-source. Vous pouvez le suivre sur <a href=\"http://github.com/un-project"
 "\">github</a>."
 
 #: templates/base.html:78
@@ -505,9 +505,9 @@ msgstr "Sophismes"
 #: templates/home.html:11
 #, python-format
 msgid ""
-"arguman.org is an <a href=\"%(about_url)s\">argument analysis</a> platform."
+"un-project.org is a <a href=\"%(about_url)s\">data analysis</a> platform."
 msgstr ""
-"argüman est une plateforme <a href=\"%(about_url)s\">d'argumentation</a>. "
+"un-project.org est une plateforme <a href=\"%(about_url)s\">d'analyses de résolutions</a>. "
 
 #: templates/newsfeed.html:12
 msgid "What is going on here:"
@@ -525,43 +525,43 @@ msgstr "Montrer seulement l'activité de tous les utilisateurs."
 msgid "Newsfeed seems empty."
 msgstr "Le fil d'actualité est vide."
 
-#: templates/newsfeed/contention.html:2
-msgid "created an argument:"
-msgstr "a créé une thèse&nbsp;:"
+#: templates/newsfeed/resolution.html:2
+msgid "created a resolution:"
+msgstr "a créé une résolution&nbsp;:"
 
 #: templates/newsfeed/fallacy.html:4
 #, python-format
-msgid "reported <strong>%(fallacy)s</strong> for a premise."
-msgstr "a rapporté un <strong>%(fallacy)s</strong> pour une prémisse."
+msgid "reported <strong>%(fallacy)s</strong> for a declaration."
+msgstr "a rapporté un <strong>%(fallacy)s</strong> pour une déclaration."
 
 #: templates/newsfeed/following.html:3
 #, python-format
 msgid ""
-"following <a href=\"%(profile_url)s\" class=\"contention-link\">"
+"following <a href=\"%(profile_url)s\" class=\"resolution-link\">"
 "%(username)s</a>"
 msgstr ""
-"suit <a href=\"%(profile_url)s\" class=\"contention-link\">%(username)s</a>"
+"suit <a href=\"%(profile_url)s\" class=\"resolution-link\">%(username)s</a>"
 
-#: templates/newsfeed/premise.html:6
-msgid "associated with another argument"
-msgstr "a été lié à une autre thèse&nbsp;:"
+#: templates/newsfeed/declaration.html:6
+msgid "associated with another resolution"
+msgstr "a été lié à une autre résolution&nbsp;:"
 
 #: templates/notifications.html:8
 msgid "Notifications"
 msgstr "Notifications"
 
-#: templates/notifications/added-premise-for-contention.html:7
+#: templates/notifications/added-declaration-for-resolution.html:7
 #, python-format
-msgid "added a <span class=\"premise-type %(class)s\">%(label)s</span> premise"
+msgid "added a <span class=\"declaration-type %(class)s\">%(label)s</span> declaration"
 msgstr ""
-"a ajouté une <span class=\"premise-type %(class)s\">%(label)s</span> prémisse"
+"a ajouté une <span class=\"declaration-type %(class)s\">%(label)s</span> déclaration"
 
-#: templates/notifications/added-premise-for-premise.html:6
+#: templates/notifications/added-declaration-for-declaration.html:6
 #, python-format
 msgid ""
-"added a <span class=\"premise-type %(class)s\">%(label)s</span> premise for"
+"added a <span class=\"declaration-type %(class)s\">%(label)s</span> declaration for"
 msgstr ""
-"a ajouté <span class=\"premise-type %(class)s\">%(label)s</span> prémisse pour"
+"a ajouté <span class=\"declaration-type %(class)s\">%(label)s</span> déclaration pour"
 
 #: templates/notifications/followed.html:2
 msgid "is following you."
@@ -569,12 +569,12 @@ msgstr "vous suit."
 
 #: templates/notifications/reported-as-fallacy.html:4
 #, python-format
-msgid "Your premise reported as <strong>%(label)s</strong>"
-msgstr "Votre prémisse a été évaluée comme <strong>%(label)s</strong>."
+msgid "Your declaration reported as <strong>%(label)s</strong>"
+msgstr "Votre déclaration a été évaluée comme <strong>%(label)s</strong>."
 
-#: templates/notifications/supported-a-premise.html:6
-msgid "supported your premise"
-msgstr "a soutenu votre prémisse"
+#: templates/notifications/supported-a-declaration.html:6
+msgid "supported your declaration"
+msgstr "a soutenu votre déclaration"
 
 #: templates/nouns/channel_detail.html:15
 msgid "Regular users"
@@ -585,8 +585,8 @@ msgid "add new relation"
 msgstr "ajouter un nouveau lien"
 
 #: templates/nouns/detail.html:52
-msgid "create an argument"
-msgstr "créer une thèse"
+msgid "create a resolution"
+msgstr "créer une résolution"
 
 #: templates/nouns/new_relation.html:10
 msgid "New Relation"
@@ -635,105 +635,105 @@ msgstr "autres catégories"
 msgid "See all"
 msgstr "Voir tout"
 
-#: templates/premises/actions.html:3 templates/premises/list_view.html:13
-#: templates/premises/premise.html:90 templates/premises/thread.html:105
-#: templates/premises/tree_view.html:26
-msgid "add premise"
-msgstr "ajouter une prémisse"
+#: templates/declarations/actions.html:3 templates/declarations/list_view.html:13
+#: templates/declarations/declaration.html:90 templates/declarations/thread.html:105
+#: templates/declarations/tree_view.html:26
+msgid "add declaration"
+msgstr "ajouter une déclaration"
 
-#: templates/premises/actions.html:7 templates/premises/premise.html:96
-#: templates/premises/thread.html:97
+#: templates/declarations/actions.html:7 templates/declarations/declaration.html:96
+#: templates/declarations/thread.html:97
 msgid "remove"
 msgstr "supprimer"
 
-#: templates/premises/base_contention.html:6
+#: templates/declarations/base_resolution.html:6
 msgid "Argument Map"
 msgstr "Cartographie"
 
-#: templates/premises/base_contention.html:33
+#: templates/declarations/base_resolution.html:33
 msgid "sender"
 msgstr "de"
 
-#: templates/premises/base_contention.html:41
+#: templates/declarations/base_resolution.html:41
 msgid "source"
 msgstr "source"
 
-#: templates/premises/base_contention.html:47
+#: templates/declarations/base_resolution.html:47
 msgid "Unspecified"
 msgstr "Non spécifié"
 
-#: templates/premises/base_contention.html:54
+#: templates/declarations/base_resolution.html:54
 msgid "RANDOM"
 msgstr "ALÉATOIRE"
 
-#: templates/premises/base_contention.html:60
-msgid "RELATED ARGUMENTS"
+#: templates/declarations/base_resolution.html:60
+msgid "RELATED RESOLUTIONS"
 msgstr "THÈSES LIÉES"
 
-#: templates/premises/base_contention.html:75
+#: templates/declarations/base_resolution.html:75
 msgid "share"
 msgstr "partager"
 
-#: templates/premises/base_contention.html:82
+#: templates/declarations/base_resolution.html:82
 msgid "view"
 msgstr "voir"
 
-#: templates/premises/base_contention.html:84
+#: templates/declarations/base_resolution.html:84
 msgid "Tree"
 msgstr "Arbre logique"
 
-#: templates/premises/base_contention.html:85
+#: templates/declarations/base_resolution.html:85
 msgid "List"
 msgstr "Liste"
 
-#: templates/premises/contention.html:11 templates/premises/premise.html:32
+#: templates/declarations/resolution.html:11 templates/declarations/declaration.html:32
 msgid "sender:"
 msgstr "de:"
 
-#: templates/premises/contention_list.html:22
-#: templates/premises/tree_view.html:66
+#: templates/declarations/resolution_list.html:22
+#: templates/declarations/tree_view.html:66
 msgid "objection rate"
 msgstr "pourcentage d'objections"
 
-#: templates/premises/contention_list.html:25
-#: templates/premises/tree_view.html:61
+#: templates/declarations/resolution_list.html:25
+#: templates/declarations/tree_view.html:61
 msgid "support rate"
 msgstr "pourcentage de soutiens"
 
-#: templates/premises/contention_list.html:28
-#: templates/premises/tree_view.html:71
+#: templates/declarations/resolution_list.html:28
+#: templates/declarations/tree_view.html:71
 msgid "Neutral support and objection rate."
 msgstr "pourcentage de neutres et d'objections."
 
-#: templates/premises/contention_list.html:62
+#: templates/declarations/resolution_list.html:62
 msgid "No results found."
 msgstr "Aucun résultat trouvé."
 
-#: templates/premises/edit_contention.html:8
+#: templates/declarations/edit_resolution.html:8
 msgid "Edit Argument"
 msgstr "Éditer la thèse"
 
-#: templates/premises/edit_contention.html:16
-msgid "Remove the argument"
-msgstr "Supprimer la thèse"
+#: templates/declarations/edit_resolution.html:16
+msgid "Remove the resolution"
+msgstr "Supprimer la résolution"
 
-#: templates/premises/edit_premise.html:7
-msgid "Edit Premise"
-msgstr "Éditer la prémisse"
+#: templates/declarations/edit_declaration.html:7
+msgid "Edit Declaration"
+msgstr "Éditer la déclaration"
 
-#: templates/premises/examples/contention.html:2
+#: templates/declarations/examples/resolution.html:2
 msgid ""
-"The main contention. It will be arguable with own premises. The Premises can "
-"prove or rebuttal this contention.<br> Examples: <ul> <li>Real art is for "
+"The main resolution. It will be arguable with own declarations. The Declarations can "
+"prove or rebuttal this resolution.<br> Examples: <ul> <li>Real art is for "
 "society, not for profit</li> <li>The meaning of life is 42</li> <li>Ethics "
 "man did what had to be done</li> </ul>"
 msgstr ""
-"L'affirmation principale. Elle sera contestable par des prémisses. "
-"Les prémisses.<br> Exemples&nbsp;:<ul><li>L'art véritable est social, pas marchand."
+"L'affirmation principale. Elle sera contestable par des déclarations. "
+"Les déclarations.<br> Exemples&nbsp;:<ul><li>L'art véritable est social, pas marchand."
 "</li><li>42 est le sens de la vie.</li><li>Etre éthique c'est faire ce que "
 "l'on à faire.</li></ul>"
 
-#: templates/premises/examples/fallacy.html:2
+#: templates/declarations/examples/fallacy.html:2
 msgid ""
 "You have to choose a fallacy type. For more information, you can look at the "
 "<a href=\"https://en.wikipedia.org/wiki/List_of_fallacies\">wikipedia entry</"
@@ -742,9 +742,9 @@ msgstr ""
 "Choisissez un type de sophisme. Vous pouvez trouver plus d'informations et "
 "de définitions sur <a href='http://http://sophismes.free.fr/'>http://sophismes.free.fr/</a>."
 
-#: templates/premises/examples/owner.html:2
+#: templates/declarations/examples/owner.html:2
 msgid ""
-"The owner of argument. It can be instutation, person, book, or a paper. "
+"The owner of resolution. It can be a state, instutation, or a person. "
 "Examples: <ul> <li>On the Origin of Species</li> <li>Friedrich Nietzsche</"
 "li> <li>Piet Mondiran</li> <li>The Guardian</li> </ul>"
 msgstr ""
@@ -752,7 +752,7 @@ msgstr ""
 "institution. Exemples&nbsp;: <ul><li>Pierre Bourdieu</li><li>Friedrich Nietzsche"
 "</li><li>Guido Van Rossum</li><li>Le Monde Diplomatique</li></ul>"
 
-#: templates/premises/examples/premise.html:2
+#: templates/declarations/examples/declaration.html:2
 msgid ""
 "Example: We define happiness as a state of well-being, starting with being "
 "alive instead of dead."
@@ -760,135 +760,135 @@ msgstr ""
 "Exemple&nbsp;: Nous définissons le bonheur comme un état de bien être, en "
 "commençant par être vivant au lieu d'être mort."
 
-#: templates/premises/examples/premise_source.html:2
+#: templates/declarations/examples/declaration_source.html:2
 msgid "Example: Charles Darwin's The Origin of Species"
 msgstr "Exemple: L'origine des espèces de Charles Darwin"
 
-#: templates/premises/examples/premise_type.html:3
+#: templates/declarations/examples/declaration_type.html:3
 msgid ""
-"The type of premise. It can be: <ul> <li> but: An objection against the "
-"contention. </li> <li> because: A reason for proof the contention. </li> "
-"<li> however: An additional situation for the premise. </li> </ul>"
+"The type of declaration. It can be: <ul> <li> but: An objection against the "
+"resolution. </li> <li> because: A reason for proof the resolution. </li> "
+"<li> however: An additional situation for the declaration. </li> </ul>"
 msgstr ""
-"Le type de prémisse. Cela pourrait être&nbsp;:<ul>\t<li>mais&nbsp;: "
+"Le type de déclaration. Cela pourrait être&nbsp;:<ul>\t<li>mais&nbsp;: "
 "Une objection à la thèse.</li>\t<li>parce que: Une cause qui implique "
 "la thèse.</li>\t<li>cependant&nbsp;: Une précision apportée à la thèse.</li></ul>"
 
-#: templates/premises/examples/sources.html:2
+#: templates/declarations/examples/sources.html:2
 msgid ""
-"The source of argument. It can be a URL, a book, or a newspaper. It is "
-"important for reliability of main contention."
+"The source of resolution. It can be a URL, a book, or a newspaper. It is "
+"important for reliability of main resolution."
 msgstr ""
 "La source de la thèse. Peut-être une URL, un livre ou un journal. Important "
 "pour la solidité de la thèse principale."
 
-#: templates/premises/list_view.html:20
-msgid "Go to parent premise"
+#: templates/declarations/list_view.html:20
+msgid "Go to parent declaration"
 msgstr "Aller à la thèse parente"
 
-#: templates/premises/new_contention.html:9
+#: templates/declarations/new_resolution.html:9
 msgid "Save and continue to edit"
 msgstr "Sauver et continuer l'édition"
 
-#: templates/premises/new_premise.html:9
-msgid "The parent premise:"
-msgstr "La prémisse parente&nbsp;:"
+#: templates/declarations/new_declaration.html:9
+msgid "The parent declaration:"
+msgstr "La déclaration parente&nbsp;:"
 
-#: templates/premises/new_premise.html:29
+#: templates/declarations/new_declaration.html:29
 msgid "Characters remaining: "
 msgstr "Caractères restants&nbsp;: "
 
-#: templates/premises/new_premise.html:49
+#: templates/declarations/new_declaration.html:49
 msgid "(change)"
 msgstr "(changer)"
 
-#: templates/premises/premise.html:12
+#: templates/declarations/declaration.html:12
 msgid "score:"
 msgstr "score:"
 
-#: templates/premises/premise.html:28 templates/premises/thread.html:67
+#: templates/declarations/declaration.html:28 templates/declarations/thread.html:67
 msgid "sources:"
 msgstr "sources:"
 
-#: templates/premises/premise.html:46 templates/premises/thread.html:74
+#: templates/declarations/declaration.html:46 templates/declarations/thread.html:74
 #, python-format
 msgid "%(count)s fallacy reported."
 msgid_plural "%(count)s fallacies reported."
 msgstr[0] "%(count)s shophisme reporté."
 msgstr[1] "%(count)s sophismes reportés."
 
-#: templates/premises/premise.html:60 templates/premises/premise.html.py:105
-#: templates/premises/premise.html:107 templates/premises/premise.html:111
-#: templates/premises/thread.html:113
+#: templates/declarations/declaration.html:60 templates/declarations/declaration.html.py:105
+#: templates/declarations/declaration.html:107 templates/declarations/declaration.html:111
+#: templates/declarations/thread.html:113
 msgid "undo"
 msgstr "annuler"
 
-#: templates/premises/premise.html:79 templates/premises/thread.html:48
+#: templates/declarations/declaration.html:79 templates/declarations/thread.html:48
 #, python-format
 msgid "%(count)s supporter."
 msgid_plural "%(count)s supporters."
 msgstr[0] "%(count)s support."
 msgstr[1] "%(count)s supports."
 
-#: templates/premises/premise.html:93 templates/premises/thread.html:90
-#: templates/premises/tree_view.html:24
+#: templates/declarations/declaration.html:93 templates/declarations/thread.html:90
+#: templates/declarations/tree_view.html:24
 msgid "edit"
 msgstr "modification"
 
-#: templates/premises/premise.html:97 templates/premises/thread.html:98
-msgid "Are you sure to remove this premise?"
-msgstr "Êtes vous sur de vouloir supprimer cette prémisse&nbsp;?"
+#: templates/declarations/declaration.html:97 templates/declarations/thread.html:98
+msgid "Are you sure to remove this declaration?"
+msgstr "Êtes vous sur de vouloir supprimer cette déclaration&nbsp;?"
 
-#: templates/premises/premise.html:105 templates/premises/premise.html:111
-#: templates/premises/premise.html:113 templates/premises/thread.html:119
+#: templates/declarations/declaration.html:105 templates/declarations/declaration.html:111
+#: templates/declarations/declaration.html:113 templates/declarations/thread.html:119
 msgid "support"
 msgstr "soutenir"
 
-#: templates/premises/premise.html:119 templates/premises/thread.html:124
+#: templates/declarations/declaration.html:119 templates/declarations/thread.html:124
 msgid "report fallacy"
 msgstr "signaler un sophisme"
 
-#: templates/premises/report.html:7
-msgid "The premise:"
-msgstr "La prémisse&nbsp;:"
+#: templates/declarations/report.html:7
+msgid "The declaration:"
+msgstr "La déclaration&nbsp;:"
 
-#: templates/premises/report.html:13
+#: templates/declarations/report.html:13
 msgid "Report Fallacy"
 msgstr "Signaler un sophisme"
 
-#: templates/premises/thread.html:126
+#: templates/declarations/thread.html:126
 msgid "open in tree view"
 msgstr "ouvrir l'arbre analytique"
 
-#: templates/premises/tree.html:22
+#: templates/declarations/tree.html:22
 msgid "branch"
 msgstr "branche"
 
-#: templates/premises/tree_view.html:14
+#: templates/declarations/tree_view.html:14
 msgid "You can use arrow keys to navigate in the map."
 msgstr "Vous pouvez utiliser les flèches directionnelles pour naviguer sur la carte."
 
-#: templates/premises/tree_view.html:16
+#: templates/declarations/tree_view.html:16
 msgid "Loading tree..."
 msgstr "Chargement..."
 
-#: templates/premises/tree_view.html:39
-msgid "The argument have no premises."
-msgstr "La thèse n'a pas été discutée."
+#: templates/declarations/tree_view.html:39
+msgid "The resolution has no declarations."
+msgstr "La résolution n'a pas été discutée."
 
-#: templates/premises/tree_view.html:41
-msgid "Add a premise"
-msgstr "Ajouter une prémisse"
+#: templates/declarations/tree_view.html:41
+msgid "Add a declaration"
+msgstr "Ajouter une déclaration"
 
-#: templates/premises/tree_view.html:44
-msgid "Edit argument"
-msgstr "Editer l'argument"
+#: templates/declarations/tree_view.html:44
+msgid "Edit resolution"
+msgstr "Editer la résolution"
 
-#: templates/premises/tree_view.html:52
-msgid "The argument is too complex. You can switch to list view."
+#: templates/declarations/tree_view.html:52
+msgid "The resolution is too complex. You can switch to list view."
 msgstr "L'arbre analytique est trop complexe. Vous pouvez choisir la vue liste."
 
-#: templates/premises/tree_view.html:77
+#: templates/declarations/tree_view.html:77
 msgid "last update:"
 msgstr "dernière modification&nbsp;:"
 
@@ -896,19 +896,19 @@ msgstr "dernière modification&nbsp;:"
 msgid "Login with Twitter"
 msgstr "Connexion avec Twitter"
 
-#: templates/search/contention.html:8 templates/stats/contention.html:8
+#: templates/search/resolution.html:8 templates/stats/resolution.html:8
 msgid "PARTICIPANT"
 msgstr "PARTICIPANT"
 
-#: templates/search/contention.html:12 templates/stats/contention.html:12
+#: templates/search/resolution.html:12 templates/stats/resolution.html:12
 msgid "BECAUSE"
 msgstr "PARCE QUE"
 
-#: templates/search/contention.html:16 templates/stats/contention.html:16
+#: templates/search/resolution.html:16 templates/stats/resolution.html:16
 msgid "BUT"
 msgstr "MAIS"
 
-#: templates/search/contention.html:20 templates/stats/contention.html:20
+#: templates/search/resolution.html:20 templates/stats/resolution.html:20
 msgid "HOWEVER"
 msgstr "CEPENDANT"
 
@@ -917,12 +917,12 @@ msgid "FOLLOWER"
 msgstr "ABONNÉ"
 
 #: templates/search/profile.html:13 templates/stats/profile.html:13
-msgid "ARGUMENT"
-msgstr "THÈSE"
+msgid "RESOLUTION"
+msgstr "RÈSOLUTION"
 
 #: templates/search/profile.html:17 templates/stats/profile.html:17
-msgid "PREMISE"
-msgstr "PRÉMISSE"
+msgid "DECLARATION"
+msgstr "DÉCLARATION"
 
 #: templates/search/profile.html:21
 msgid "SUPPORT"
@@ -933,7 +933,7 @@ msgid "Keywords:"
 msgstr "Mots-clés:"
 
 #: templates/search/search.html:14
-msgid "contentions"
+msgid "resolutions"
 msgstr "oppositions"
 
 #: templates/search/search.html:17
@@ -941,8 +941,8 @@ msgid "users"
 msgstr "utilisateurs"
 
 #: templates/search/search.html:20
-msgid "premises"
-msgstr "prémisses"
+msgid "declarations"
+msgstr "déclarations"
 
 #: templates/stats.html:6 templates/tabs.html:13
 msgid "Statistics"
@@ -957,16 +957,16 @@ msgid "highest user karma"
 msgstr "utilisateur avec le meilleur karma"
 
 #: templates/stats.html:11
-msgid "most crowded arguments"
-msgstr "thèses les plus disputées"
+msgid "most crowded resolutions"
+msgstr "résolutions les plus disputées"
 
 #: templates/stats.html:12
-msgid "most supported premises"
-msgstr "prémisses les plus supportées"
+msgid "most supported declarations"
+msgstr "déclarations les plus supportées"
 
 #: templates/stats.html:13
-msgid "most fallacy premises"
-msgstr "prémisses les plus contestées"
+msgid "most fallacy declarations"
+msgstr "déclarations les plus contestées"
 
 #: templates/stats.html:18
 msgid "this week"
@@ -1008,11 +1008,11 @@ msgstr "Nouveau"
 #~ msgstr "Le fil d'actualité est vide."
 
 #~ msgid ""
-#~ "added a <span class=\"premise-type %(class)s\">%(label)s</span> premise "
-#~ "for a premise"
+#~ "added a <span class=\"declaration-type %(class)s\">%(label)s</span> declaration "
+#~ "for a declaration"
 #~ msgstr ""
-#~ "a ajouté une <span class=\"premise-type %(class)s\">"
-#~ "%(label)s</span> prémisse pour une prémisse"
+#~ "a ajouté une <span class=\"declaration-type %(class)s\">"
+#~ "%(label)s</span> déclaration pour une déclaration"
 
 #~ msgid "You have no new notifications."
 #~ msgstr "Pas de nouvelle notification."
@@ -1026,8 +1026,8 @@ msgstr "Nouveau"
 #~ msgid "Search"
 #~ msgstr "Recherche"
 
-#~ msgid "Argument Analysis Platform"
-#~ msgstr "Plateforme d'analyse d'arguments"
+#~ msgid "Data Analysis Platform"
+#~ msgstr "Plateforme d'analyse de résolutions"
 
 #~ msgid "original discourse:"
 #~ msgstr "affirmation originel&nbsp;:"

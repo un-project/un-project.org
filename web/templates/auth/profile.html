@@ -51,8 +51,8 @@
         <div class="user-detail">
         <ul class="tab-headers">
             <li{% if tab_name == "overview" %} class="active"{% endif %}><a href="{% url "auth_profile" profile.username %}">{% trans "Overview" %}</a></li>
-            <li{% if tab_name == "arguments" %} class="active"{% endif %}><a href="{% url "auth_profile_arguments" profile.username %}">{% trans "Arguments" %}</a></li>
-            <li{% if tab_name == "premises" %} class="active"{% endif %}><a href="{% url "auth_profile_premises" profile.username %}">{% trans "Premises" %}</a></li>
+            <li{% if tab_name == "resolutions" %} class="active"{% endif %}><a href="{% url "auth_profile_resolutions" profile.username %}">{% trans "Resolutions" %}</a></li>
+            <li{% if tab_name == "declarations" %} class="active"{% endif %}><a href="{% url "auth_profile_declarations" profile.username %}">{% trans "Declarations" %}</a></li>
             <li{% if tab_name == "fallacies" %} class="active"{% endif %}><a href="{% url "auth_profile_fallacies" profile.username %}">{% trans "Fallacy Reports" %}</a></li>
             <li class="actions-tab">
                 {% ifequal profile user %}
@@ -104,29 +104,29 @@
                 {% endif %}
             </div>
             <div class="overview-block most-loved">
-                <h3>{% trans "Most supported premises" %}</h3>
-                {% for premise in supported_premises %}
-                    <div class="premise-stats">
-                        <h2><a href="{{ premise.argument.get_absolute_url }}">{{ premise.argument.title }}</a></h2>
-                        <div class="premise-content {{ premise.premise_class }}">
-                            <a href="{{ premise.get_absolute_url }}">{{ premise.text }}</a>
-                            {% if premise.related_argument %}
-                            <div class="related-argument">
-                                <a href="{{ premise.get_absolute_url }}">{{ premise.related_argument.title }}</a>
+                <h3>{% trans "Most supported declarations" %}</h3>
+                {% for declaration in supported_declarations %}
+                    <div class="declaration-stats">
+                        <h2><a href="{{ declaration.resolution.get_absolute_url }}">{{ declaration.resolution.title }}</a></h2>
+                        <div class="declaration-content {{ declaration.declaration_class }}">
+                            <a href="{{ declaration.get_absolute_url }}">{{ declaration.text }}</a>
+                            {% if declaration.related_resolution %}
+                            <div class="related-resolution">
+                                <a href="{{ declaration.get_absolute_url }}">{{ declaration.related_resolution.title }}</a>
                             </div>
                             {% endif %}
                         </div>
-                        {% if premise.supporters.exists %}
+                        {% if declaration.supporters.exists %}
                         <div class="supporter-count">
-                        {{ premise.supporters.count }} {% trans "supporter." %}
+                        {{ declaration.supporters.count }} {% trans "supporter." %}
                         </div>
                         {% endif %}
-                        {% if premise.reports.exists %}
+                        {% if declaration.reports.exists %}
                             <div class="reported_as_fallacy">
-                            {{ premise.reports.count }} {% trans "fallacy report." %}
+                            {{ declaration.reports.count }} {% trans "fallacy report." %}
 
-                            {% if premise.fallacies %}
-                                {% for fallacy in premise.fallacies %}
+                            {% if declaration.fallacies %}
+                                {% for fallacy in declaration.fallacies %}
                                 <div class="fallacy">{{ fallacy.label }}</div>
                                 {% endfor %}
                             {% endif %}

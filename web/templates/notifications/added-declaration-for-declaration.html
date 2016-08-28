@@ -1,0 +1,11 @@
+{% load i18n %}
+{% with resolution=target_object.resolution %}
+{% if target_object.user and resolution %}
+<a class="user" href="{{ target_object.user.get_absolute_url }}">
+{{ target_object.user.username }}</a>
+{% blocktrans trimmed with class=target_object.declaration_class label=target_object.get_declaration_type_display %}
+    added a <span class="declaration-type {{ class }}">{{ label }}</span> declaration for
+{% endblocktrans %}
+    <a href="{{ resolution.get_absolute_url }}/{{ target_object.id }}" class="resolution-link">{{ resolution.title|truncatechars:50 }}</a>
+{% endif %}
+{% endwith %}

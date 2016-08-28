@@ -1,23 +1,19 @@
 {% load i18n %}
 {% load gravatar %}
 <div class="user-stats">
-	{% gravatar object.email 90 %}
+    {% gravatar object.email 90 %}
 	<h2><a href="{{ object.get_absolute_url }}">{{ object.username }}</a></h2>
 	<div class="stats-bar">
 		<span>
-			{{ object.followers.count }} <br/>
-			{% trans "FOLLOWER" %}
+			{{ object.resolution_set.count }} <br/>
+			{% trans "RESOLUTION" %}
 		</span>
 		<span>
-			{{ object.contention_set.count }} <br>
-			{% trans "ARGUMENT" %}
+			{{ object.user_declarations.count }} <br>
+			{% trans "DECLARATION" %}
 		</span>
 		<span>
-			{{ object.user_premises.count }} <br>
-			{% trans "PREMISE" %}
-		</span>
-		<span>
-			{{ object.karma }} <br>
+			{{ object.karma }} <br/>
 			{% trans "KARMA" %}
 		</span>
 	</div>

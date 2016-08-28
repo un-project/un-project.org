@@ -12,17 +12,17 @@
 {% endif %}
 </ul>
 
-{% if contentions.exists or indirect_contentions.exists %}
-<h3>{% trans "Arguments" %}</h3>
-<ul class="contentions relations">
-    {% for contention in contentions|slice:":3" %}
-    <li class="argument relation">
-        <a class="contention-link" href="{% url "contention_detail" contention.slug %}">{{ contention.title }}</a>
+{% if resolutions.exists or indirect_resolutions.exists %}
+<h3>{% trans "Resolutions" %}</h3>
+<ul class="resolutions relations">
+    {% for resolution in resolutions|slice:":3" %}
+    <li class="resolution relation">
+        <a class="resolution-link" href="{% url "resolution_detail" resolution.slug %}">{{ resolution.title }}</a>
     </li>
     {% endfor %}
-    {% for contention in indirect_contentions|slice:":3" %}
-    <li class="argument relation">
-        <a class="contention-link" href="{% url "contention_detail" contention.slug %}">{{ contention.title }}</a>
+    {% for resolution in indirect_resolutions|slice:":3" %}
+    <li class="resolution relation">
+        <a class="resolution-link" href="{% url "resolution_detail" resolution.slug %}">{{ resolution.title }}</a>
     </li>
     {% endfor %}
 </ul>

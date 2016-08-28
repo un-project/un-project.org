@@ -7,8 +7,8 @@ from rest_framework.response import Response
 from profiles.models import Profile
 from .serializers import UserProfileSerializer
 from profiles.signals import follow_done, unfollow_done
-from api.v1.arguments.serializers import ContentionSerializer
-from premises.models import Contention
+from api.v1.resolutions.serializers import ResolutionSerializer
+from declarations.models import Declaration
 from profiles.forms import ProfileUpdateForm
 
 
@@ -84,28 +84,28 @@ class UserFollowViewset(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class UserArgumentsView(viewsets.ModelViewSet):
+class UserCommentsView(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
-    serializer_class = ContentionSerializer
+    serializer_class = ResolutionSerializer
     lookup_field = 'username__iexact'
     lookup_url_kwarg = 'username'
 
     @detail_route(methods=['get'])
-    def user_arguments(self, request, username=None):
+    def user_comments(self, request, username=None):
         user = self.get_object()
-        arguments = user.contention_set.filter()
+        comments = user.declaration_set.filter()
         if not(self.request.user.is_authenticated() and
                 user == self.request.user):
-            arguments = arguments.filter(is_published=True)
-        page = self.paginate_queryset(arguments)
+            comments = comments.filter(is_published=True)
+        page = self.paginate_queryset(comments)
         serializer = self.get_pagination_serializer(page)
         return Response(serializer.data)
 
     @detail_route(methods=['get'])
     def user_contributed(self, request, username=None):
         user = self.get_object()
-        page = self.paginate_queryset(Contention.objects.filter(
-            premises__user=user, is_published=True).exclude(user=user))
+        page = self.paginate_queryset(Declaration.objects.filter(
+            resolutions__user=user, is_published=True).exclude(user=user))
         serializer = self.get_pagination_serializer(page)
         return Response(serializer.data)
 
@@ -126,9 +126,9 @@ profile_follow = UserFollowViewset.as_view(
     {'post': 'follow', 'delete': 'unfollow'},
     permission_classes=(permissions.IsAuthenticated,)
 )
-user_arguments = UserArgumentsView.as_view(
-    {'get': 'user_arguments'},
+user_comments = UserCommentsView.as_view(
+    {'get': 'user_comments'},
 )
-user_contributed_arguments = UserArgumentsView.as_view(
+user_contributed_comments = UserCommentsView.as_view(
     {'get': 'user_contributed'}
 )

@@ -1,0 +1,7 @@
+{{ declaration.user }} added a new {{ declaration.get_declaration_type_display }}
+
+{{ declaration.resolution.get_full_url }}#{{ declaration.pk }}
+
+You can turn off email notifications in your profile settings.
+http://un-project.org/auth/profile
+

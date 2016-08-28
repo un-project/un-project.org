@@ -1,0 +1,14 @@
+{% load i18n %}
+<div class="speaker-stats">
+	<h2><a href="{{ object.get_absolute_url }}">{{ object.last_name }}</a></h2>
+	<div class="stats-bar">
+		<span>
+			{{ object.followers.count }} <br/>
+			{% trans "FOLLOWER" %}
+		</span>
+		<span>
+			{{ object.speaker_declarations.count }} <br>
+			{% trans "DECLARATION" %}
+		</span>
+	</div>
+</div>

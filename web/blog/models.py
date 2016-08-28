@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_text
 from django.utils.translation import ugettext_lazy as _
 
 from markitup.fields import MarkupField
@@ -22,7 +22,7 @@ class Post(models.Model):
     slug = models.SlugField(_("Slug"), max_length=255, unique=True)
     content = MarkupField(_("Content"))
     date_created = models.DateTimeField(auto_now_add=True)
-    date_modified = models.DateTimeField(auto_now=True, auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(_("Published"), default=True)
     is_announcement = models.BooleanField(default=False)
 
@@ -33,7 +33,7 @@ class Post(models.Model):
         ordering = ("-date_created", )
 
     def __unicode__(self):
-        return smart_unicode(self.title)
+        return smart_text(self.title)
 
     @models.permalink
     def get_absolute_url(self):

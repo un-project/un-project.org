@@ -1,6 +1,6 @@
 from django.core.management import BaseCommand
 from django.db.models import Count, Sum
-from premises.models import Premise
+from declarations.models import Declaration
 from profiles.models import Profile
 
 

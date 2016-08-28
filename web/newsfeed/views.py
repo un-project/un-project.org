@@ -1,5 +1,5 @@
 from newsfeed.models import Entry
-from premises.views import HomeView
+from declarations.views import HomeView
 
 
 class NewsfeedView(HomeView):
@@ -27,7 +27,7 @@ class NewsfeedView(HomeView):
         # if the page loaded full, probably there are more news
         # entries. if not, returns a single empty page, it's not a problem.
         # it's more effortless instead of get all collection for now.
-        return (len(self.get_news_entries()) == self.paginate_by)
+        return (len(list(self.get_news_entries())) == self.paginate_by)
 
 
 class PublicNewsfeedView(NewsfeedView):

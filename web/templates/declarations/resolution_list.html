@@ -1,0 +1,71 @@
+{% load i18n %}
+{% load humanize %}
+{% load gravatar  %}
+{% load typogrify_tags %}
+
+<ul class="resolution-list">
+    {% for resolution in resolutions %}
+        {% with overview=resolution.overview but=resolution.but.count however=resolution.however.count because=resolution.because.count %}
+        <li>
+            {% if show_stats %}
+            <div class="stats">
+                <span class="because">{{ because }} {% trans "because" %}</span>
+                <span class="but">{{ but }} {% trans "but" %}</span>
+                <span class="however">{{ however }} {% trans "however" %}</span>
+            </div>
+            {% endif %}
+            <div class="info">
+                <h3><a class="main-resolution {{ overview.status }}" href="{{ resolution.get_absolute_url }}">{{ resolution.title }}</a></h3>
+                <div class="overview">
+                    <div class="rate {{ overview.status }}">
+                        {% if overview.status == 'objected' %}
+                            %{{ overview.objection|floatformat }} {% trans "objection rate" %}
+                        {% endif %}
+                        {% if overview.status == 'supported' %}
+                            %{{ overview.support|floatformat }} {% trans "support rate" %}
+                        {% endif %}
+                        {% if overview.status == 'neutral' %}
+                            {% trans "Neutral support and objection rate." %}
+                        {% endif %}
+                    </div>
+                    {% if show_last_declaration %}
+                    {% with resolution.last_declaration as last_declaration %}
+                    {% if last_declaration %}
+                    <div class="last-declarations">
+                        <div class="last-declaration">
+                            <a href="{{ last_declaration.get_absolute_url }}">
+                                {{ last_declaration.text }}
+                                {% if last_declaration.related_resolution %}
+                                <p>{{ last_declaration.related_resolution }}</p>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    {% endif %}
+                    <div class="user">
+                        {% with last_user=resolution.last_user %}
+                        {#<a href="{% url "auth_profile" last_user.username %}">#}
+                        <a href="">
+                            {% gravatar last_user 50 last_user.username %}
+                            <span>{{ last_user.username|lower }}</span>
+                        </a>
+                        {% endwith %}
+                        <time datetime="{{ resolution.date_modification }}">({{ resolution.date_modification|naturaltime }})</time>
+                    </div>
+                </div>
+            </div>
+        </li>
+        {% endwith %}
+    {% empty %}
+        {% if keywords %}
+            <li>{% trans "No results found." %}</li>
+        {% endif %}
+    {% endfor %}
+    {% if has_next_page %}
+    <li class="load-more">
+        <a class="next" href="{{ next_page_url }}">{% trans "Load more" %}</a>
+    </li>
+    {% endif %}
+</ul>

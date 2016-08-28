@@ -1,24 +1,106 @@
 # -*- coding: utf-8 -*-
 
+from unidecode import unidecode
+from uuid import uuid4
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Count
 from django.dispatch import receiver
+from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
-from premises.models import Report, Premise
-from premises.signals import (reported_as_fallacy, added_premise_for_premise,
-                              added_premise_for_contention,
-                              supported_a_premise)
+#from declarations.models import Report, Declaration
+from declarations.signals import (reported_as_fallacy, added_declaration_for_declaration,
+                              added_declaration_for_resolution,
+                              supported_a_declaration)
 from profiles.signals import follow_done
 from django.utils.translation import ugettext_lazy as _
 
 from django.core.mail import send_mail
 
 
+class State(models.Model):
+    iso_3166_alpha2 = models.CharField(max_length=2, default="")
+    iso_3166_alpha3 = models.CharField(max_length=3, default="")
+    iso_3166_numeric = models.CharField(max_length=3, default="")
+    fips = models.CharField(max_length=2, default="")
+    name = models.CharField(max_length=255, default="")
+    capital = models.CharField(max_length=255, default="")
+    area_in_km2 = models.FloatField(blank=True, null=True)
+    population = models.IntegerField(blank=True, null=True)
+    continent = models.CharField(max_length=2, default="")
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_created']
+
+
+class Speaker(models.Model):
+    first_name = models.CharField(max_length=255, db_index=True, default="")
+    last_name = models.CharField(max_length=255, db_index=True, default="")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    followers = models.ManyToManyField(settings.AUTH_USER_MODEL,
+                                        related_name="following")
+    slug = models.CharField(max_length=255, blank=True)
+    state = models.ForeignKey(State, related_name="speakers", null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            slug = slugify(unidecode(self.last_name))
+            duplications = Speaker.objects.filter(slug=slug)
+            if duplications.exists():
+                self.slug = "%s-%s" % (slug, uuid4().hex)
+            else:
+                self.slug = slug
+        return super(Speaker, self).save(*args, **kwargs)
+
+    def serialize(self):
+        bundle = {
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'state': self.state,
+            'id': self.id
+        }
+
+        return bundle
+
+    @property
+    def supported_declaration_count(self):
+        return self.declaration_set.aggregate(Count('supporters'))[
+            'supporters__count']
+
+    @models.permalink
+    def get_absolute_url(self):
+        return 'speaker_detail', [self.slug]
+
+    #def calculate_karma(self):
+    #    from declarations.models import Declaration
+    #    # avoid circular import
+
+    #    # CALCULATES THE KARMA POINT OF REPRESENTATIVE
+    #    # ACCORDING TO HOW MANY TIMES SUPPORTED * 2
+    #    # DECREASE BY FALLACY COUNT * 2
+    #    # HOW MANY CHILD DECLARATIONS ARE ADDED TO REPSENTATIVE'S DECLARATIONS
+    #    karma = 0
+    #    support_sum = self.speaker_declarations.aggregate(
+    #        Count('supporters'))
+    #    karma += 2 * support_sum['supporters__count']
+    #    main_declarations = self.speaker_declarations.all()
+    #    all_sub_declarations = []
+    #    for declaration in main_declarations:
+    #        all_sub_declarations += declaration.published_children().values_list('pk',
+    #                                                                     flat=True)
+    #        karma -= 2 * (declaration.reports.count())
+    #    not_owned_sub_declarations = Declaration.objects.\
+    #        filter(id__in=all_sub_declarations).\
+    #        exclude(speaker__id=self.id).count()
+    #    karma += not_owned_sub_declarations
+    #    return karma
+
+
 class Profile(AbstractUser):
-    following = models.ManyToManyField("self", symmetrical=False)
     notification_email = models.BooleanField(_('email notification'), default=True)
     karma = models.IntegerField(null=True, blank=True)
     twitter_username = models.CharField(max_length=255, blank=True, null=True)
@@ -37,14 +119,8 @@ class Profile(AbstractUser):
         return bundle
 
     @property
-    def followers(self):
-        # todo: find a way to make reverse relationships
-        # with symmetrical false option
-        return Profile.objects.filter(following=self)
-
-    @property
-    def supported_premise_count(self):
-        return self.premise_set.aggregate(Count('supporters'))[
+    def supported_declaration_count(self):
+        return self.declaration_set.aggregate(Count('supporters'))[
             'supporters__count']
 
     @models.permalink
@@ -52,43 +128,46 @@ class Profile(AbstractUser):
         return "auth_profile", [self.username]
 
     def calculate_karma(self):
+        from declarations.models import Declaration
+        # avoid circular import
+
         # CALCULATES THE KARMA POINT OF USER
         # ACCORDING TO HOW MANY TIMES SUPPORTED * 2
         # DECREASE BY FALLACY COUNT * 2
-        # HOW MANY CHILD PREMISES ARE ADDED TO USER'S PREMISES
+        # HOW MANY CHILD DECLARATIONS ARE ADDED TO USER'S DECLARATIONS
         karma = 0
-        support_sum = self.user_premises.aggregate(Count('supporters'))
+        support_sum = self.user_declarations.aggregate(Count('supporters'))
         karma += 2 * support_sum['supporters__count']
-        main_premises = self.user_premises.all()
-        all_sub_premises = []
-        for premise in main_premises:
-            all_sub_premises += premise.published_children().values_list('pk',
+        main_declarations = self.user_declarations.all()
+        all_sub_declarations = []
+        for declaration in main_declarations:
+            all_sub_declarations += declaration.published_children().values_list('pk',
                                                                          flat=True)
-            karma -= 2 * (premise.reports.count())
-        not_owned_sub_premises = Premise.objects.\
-            filter(id__in=all_sub_premises).\
+            karma -= 2 * (declaration.reports.count())
+        not_owned_sub_declarations = Declaration.objects.\
+            filter(id__in=all_sub_declarations).\
             exclude(user__id=self.id).count()
-        karma += not_owned_sub_premises
+        karma += not_owned_sub_declarations
         return karma
 
 
-NOTIFICATION_ADDED_PREMISE_FOR_CONTENTION = 0
-NOTIFICATION_ADDED_PREMISE_FOR_PREMISE = 1
+NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION = 0
+NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION = 1
 NOTIFICATION_REPORTED_AS_FALLACY = 2
-NOTIFICATION_FOLLOWED_A_PROFILE = 3
-NOTIFICATION_SUPPORTED_A_PREMISE = 4
+NOTIFICATION_FOLLOWED_A_SPEAKER = 3
+NOTIFICATION_SUPPORTED_A_DECLARATION = 4
 
 NOTIFICATION_TYPES = (
-    (NOTIFICATION_ADDED_PREMISE_FOR_CONTENTION,
-     "added-premise-for-contention"),
-    (NOTIFICATION_ADDED_PREMISE_FOR_PREMISE,
-     "added-premise-for-premise"),
+    (NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION,
+     "added-declaration-for-resolution"),
+    (NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION,
+     "added-declaration-for-declaration"),
     (NOTIFICATION_REPORTED_AS_FALLACY,
      "reported-as-fallacy"),
-    (NOTIFICATION_FOLLOWED_A_PROFILE,
+    (NOTIFICATION_FOLLOWED_A_SPEAKER,
      "followed"),
-    (NOTIFICATION_SUPPORTED_A_PREMISE,
-     "supported-a-premise"),
+    (NOTIFICATION_SUPPORTED_A_DECLARATION,
+     "supported-a-declaration"),
 )
 
 
@@ -108,12 +187,15 @@ class Notification(models.Model):
         ordering = ['is_read', '-date_created']
 
     def get_target_object(self):
+        from declarations.models import Report, Declaration
+        # avoid circular import
+
         model = {
-            NOTIFICATION_ADDED_PREMISE_FOR_CONTENTION: Premise,
-            NOTIFICATION_ADDED_PREMISE_FOR_PREMISE: Premise,
+            NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION: Declaration,
+            NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION: Declaration,
             NOTIFICATION_REPORTED_AS_FALLACY: Report,
-            NOTIFICATION_FOLLOWED_A_PROFILE: Profile,
-            NOTIFICATION_SUPPORTED_A_PREMISE: Premise,
+            NOTIFICATION_FOLLOWED_A_SPEAKER: Speaker,
+            NOTIFICATION_SUPPORTED_A_DECLARATION: Declaration,
         }.get(self.notification_type)
 
         try:
@@ -136,41 +218,41 @@ class Notification(models.Model):
 def create_fallacy_notification(sender, report, *args, **kwargs):
     Notification.objects.create(
         sender=None,  # notification should be anonymous
-        recipient=report.premise.user,
+        recipient=report.declaration.user,
         notification_type=NOTIFICATION_REPORTED_AS_FALLACY,
         target_object_id=report.id
     )
 
 
-@receiver(added_premise_for_premise)
-def create_premise_answer_notification(sender, premise, *args, **kwargs):
-    if premise.user != premise.parent.user:
+@receiver(added_declaration_for_declaration)
+def create_declaration_answer_notification(sender, declaration, *args, **kwargs):
+    if declaration.user != declaration.parent.user:
         Notification.objects.create(
-            sender=premise.user,
-            recipient=premise.parent.user,
-            notification_type=NOTIFICATION_ADDED_PREMISE_FOR_PREMISE,
-            target_object_id=premise.id
+            sender=declaration.user,
+            recipient=declaration.parent.user,
+            notification_type=NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION,
+            target_object_id=declaration.id
         )
 
 
-@receiver(supported_a_premise)
-def create_premise_support_notification(premise, user, *args, **kwargs):
+@receiver(supported_a_declaration)
+def create_declaration_support_notification(declaration, user, *args, **kwargs):
     Notification.objects.create(
         sender=user,
-        recipient=premise.user,
-        notification_type=NOTIFICATION_SUPPORTED_A_PREMISE,
-        target_object_id=premise.id
+        recipient=declaration.user,
+        notification_type=NOTIFICATION_SUPPORTED_A_DECLARATION,
+        target_object_id=declaration.id
     )
 
 
-@receiver(added_premise_for_contention)
-def create_contention_contribution_notification(sender, premise, *args, **kwargs):
-    if premise.user != premise.argument.user:
+@receiver(added_declaration_for_resolution)
+def create_resolution_contribution_notification(sender, declaration, *args, **kwargs):
+    if declaration.user != declaration.resolution.user:
         Notification.objects.create(
-            sender=premise.user,
-            recipient=premise.argument.user,
-            notification_type=NOTIFICATION_ADDED_PREMISE_FOR_CONTENTION,
-            target_object_id=premise.id
+            sender=declaration.user,
+            recipient=declaration.resolution.user,
+            notification_type=NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION,
+            target_object_id=declaration.id
         )
 
 
@@ -181,7 +263,7 @@ def create_following_notification(following, follower, **kwargs):
     """
     Notification.objects.create(
         target_object_id=follower.id,
-        notification_type=NOTIFICATION_FOLLOWED_A_PROFILE,
+        notification_type=NOTIFICATION_FOLLOWED_A_SPEAKER,
         sender=follower,
         recipient_id=following.id
     )

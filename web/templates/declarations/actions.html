@@ -1,0 +1,8 @@
+{% load i18n %}
+<form action="{% url "insert_declaration" resolution.slug declaration.pk %}" method="get">
+    <input type="submit" value="{% trans "add declaration" %}"/>
+</form>
+<form action="{% url "delete_declaration" resolution.slug declaration.pk %}" method="post">
+    {% csrf_token %}
+    <input type="submit" value="{% trans "remove" %}" class="delete_declaration"/>
+</form>

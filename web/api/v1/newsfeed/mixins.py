@@ -1,5 +1,5 @@
 from rest_framework.templatetags.rest_framework import replace_query_param
-from premises.utils import int_or_default
+from declarations.utils import int_or_default
 
 
 class MongoDBPaginationMixin(object):
@@ -9,8 +9,8 @@ class MongoDBPaginationMixin(object):
     :param limit (integer)
 
     For example:
-    http://arguman.org/api/v1/newsfeed/public/?page=1
-    http://arguman.org/api/v1/newsfeed/public/?page=1&limit=40
+    http://un-project.org/api/v1/newsfeed/public/?page=1
+    http://un-project.org/api/v1/newsfeed/public/?page=1&limit=40
     """
     page_query_param = 'page'
     limit_query_param = 'limit'

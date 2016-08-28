@@ -1,0 +1,13 @@
+{% load i18n %}
+<a href="{{ related_object.resolution.uri }}" class="resolution-link">{{ related_object.resolution.title }}</a>
+
+{% if related_object.related_resolution %}
+    <p>
+        {% trans "associated with another resolution" %} <br />
+        <a href="{{ related_object.resolution.uri }}#{{ related_object.id }}" class="declaration-link  {{ related_object.declaration_class }}">{{ related_object.related_resolution.title }}</a>
+    </p>
+{% else %}
+    <p>
+        <a href="{{ related_object.resolution.uri }}#{{ related_object.id }}" class="declaration-link {{ related_object.declaration_class }}">{{ related_object.text }}</a>
+    </p>
+{% endif %}

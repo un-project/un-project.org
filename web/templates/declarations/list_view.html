@@ -1,0 +1,41 @@
+{% extends "declarations/base_resolution.html" %}
+{% load i18n %}
+{% load static %}
+
+
+{% block content %}
+    <div id="app" class="list-view">
+        <div class="main-resolution">
+            <h3 class="resolution-header">
+                {{ resolution }}
+            </h3>
+            {% if user.is_authenticated and not parent_declaration %}
+            <a class="new-main-declaration" href="{% url "new_declaration" resolution.slug %}?view=list">{% trans "add declaration" %}</a>
+            {% endif %}
+        </div>
+        <div class="thread">
+            {% if parent_declaration %}
+            <div class="thread-item parent-declaration">
+                <a class="go-to-main-declaration"
+                   href="{{ parent_declaration.get_parent.get_absolute_url }}?view=list">&lsaquo; {% trans "Go to parent declaration" %}</a>
+                {% include "declarations/thread.html" with declaration=parent_declaration %}
+                {% if declarations.exists %}
+                    <div class="parent-declaration-info"></div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% for declaration in declarations.all %}
+            <div class="thread-item">
+                {% include "declarations/thread.html" %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if user.is_anonymous %}
+    {% include "auth/login_popup.html" %}
+    {% endif %}
+
+{% endblock %}
+
+{% block footer %}{% endblock %}

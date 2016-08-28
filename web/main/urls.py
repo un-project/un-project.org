@@ -4,28 +4,23 @@ from django.contrib.sitemaps import views as sitemaps_views
 from django.views.decorators.cache import cache_page
 
 from blog.sitemaps import BlogSitemap
-from nouns.views import ChannelDetail
 from profiles.sitemaps import ProfileSitemap
-from premises.sitemaps import ArgumentSitemap, PremiseSitemap
+from declarations.sitemaps import DeclarationSitemap
 
 admin.autodiscover()
 
 sitemaps = {
     'blog': BlogSitemap(),
     'user': ProfileSitemap(),
-    'argument': ArgumentSitemap(),
-    'premise': PremiseSitemap()
+    'declaration': DeclarationSitemap()
 }
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^', include('newsfeed.urls')),
-    url(r'^', include('premises.urls')),
+    url(r'^', include('declarations.urls')),
     url(r'^', include('profiles.urls')),
     url(r'^blog/', include('blog.urls')),
-    url(r'^nouns/', include('nouns.urls')),
-    url(r'^channels/(?P<slug>[-\w]+)$',
-        ChannelDetail.as_view(), name="channel_detail"),
-    url(r'^', include('social_auth.urls')),
+    url(r'^accounts/', include('allauth.urls')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^api/', include('api.urls')),
 
@@ -36,4 +31,4 @@ urlpatterns = patterns('',
     url(r'^sitemap-(?P<section>.+)\.xml$',
         cache_page(86400)(sitemaps_views.sitemap),
         {'sitemaps': sitemaps}, name='sitemaps'),
-)
+]

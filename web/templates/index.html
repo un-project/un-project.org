@@ -9,9 +9,9 @@
         {% include "tabs.html" %}
         {% block tab_content %}
         {% if tab_class == "news" %}
-            {% include "premises/contention_list.html" with show_stats=True show_last_premise=True %}
+            {% include "declarations/resolution_list.html" with show_stats=True show_last_declaration=True %}
         {% else %}
-            {% include "premises/contention_list.html" with show_stats=True %}
+            {% include "declarations/resolution_list.html" with show_stats=True %}
         {% endif %}
         {% endblock %}
     </div>

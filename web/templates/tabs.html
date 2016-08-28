@@ -5,10 +5,10 @@
     <li class="featured{% ifequal tab_class "featured" %} active{% endifequal %}">
         <a href="/">{% trans "Featured" %}</a></li>
     <li class="news{% ifequal tab_class "news" %} active{% endifequal %}">
-        <a href="{% url "contentions_latest" %}">{% trans "New" %}</a></li>
+        <a href="{% url "resolutions_latest" %}">{% trans "New" %}</a></li>
     <li class="fallacies{% ifequal tab_class "fallacies" %} active{% endifequal %}">
         <a href="{% url "fallacies" %}">{% trans "Fallacies" %}</a>
     </li>
     <li class="stats{% ifequal tab_class "stats" %} active{% endifequal %}">
-        <a href="{% url "contentions_stats" %}?what=crowded_contentions&days=7">{% trans "Statistics" %}</a></li>
+        <a href="{% url "resolutions_stats" %}?what=crowded_resolutions&days=7">{% trans "Statistics" %}</a></li>
 </ul>

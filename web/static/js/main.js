@@ -1,12 +1,12 @@
-(function (arguman) {
+(function (unProject) {
 
-    arguman.utils = {
+    unProject.utils = {
         adder: function (a, b) {
             return a + b
         }
     };
 
-    arguman.Navigator = Class.extend({
+    unProject.Navigator = Class.extend({
         currentElement: null,
         init: function (options) {
             $.extend(this, options);
@@ -49,6 +49,10 @@
                 }
                 this.$el.find(".tree-node").removeClass("focused");
                 leaf.find(".tree-node").first().addClass("focused");
+                this.$el.find(".full").hide();
+                this.$el.find(".compact").show();
+                leaf.find(".compact").hide();
+                leaf.find(".full").show();
                 this.currentElement = leaf;
                 if (scroll) {
                     this.scrollTo(leaf);
@@ -57,7 +61,7 @@
         },
         needsScroll: function () {
             var maxHeight = Math.max.apply(this,
-                this.$el.find(".premise")
+                this.$el.find(".declaration")
                     .toArray()
                     .map(function (el) {
                         return $(el).offset().top + $(el).height();
@@ -67,13 +71,13 @@
                     maxHeight > window.innerHeight)
         },
         scrollTo: function (el) {
-            var mainPremise = (".tree-container > .tree > " +
+            var mainDeclaration = (".tree-container > .tree > " +
                                ".tree-branch > .tree-node");
             var node = el.find("> .tree-node");
             if (this.needsScroll()) {
                 var center = node.offset().left +  (node.width()/2);
                 $('html, body').animate({
-                    scrollTop: node.is(mainPremise)? 0: node.offset().top - 200,
+                    scrollTop: node.is(mainDeclaration)? 0: node.offset().top - 200,
                     scrollLeft: center - (window.innerWidth / 2)
                 }, 150);
             }
@@ -99,11 +103,11 @@
         setInitial: function () {
 	        var hash = this.getHashOrPath(),
                 selection = this.$el.find(".tree-branch").first();
-            
+
             if (hash) {
-                var targetPremise = $("#premise-" + hash);
-                if (targetPremise.length) {
-                    selection = targetPremise;
+                var targetDeclaration = $("#declaration-" + hash);
+                if (targetDeclaration.length) {
+                    selection = targetDeclaration;
                     this.expandNode(selection);
                 }
             }
@@ -161,7 +165,7 @@
         }
     });
 
-    arguman.DraggablePage = Class.extend({
+    unProject.DraggablePage = Class.extend({
         el: '#app',
         clicked: false,
         click: {
@@ -211,7 +215,7 @@
         }
     });
 
-    arguman.Tree = Class.extend({
+    unProject.Tree = Class.extend({
 
         treeWidth: 0,
 
@@ -224,8 +228,8 @@
                             .not(".collapsed")
                             .map(this.branchWidth.bind(this))
                             .toArray()
-                            .reduce(arguman.utils.adder, 0);
-                
+                            .reduce(unProject.utils.adder, 0);
+
                 if (max > width) {
                     width = max;
                 }
@@ -237,7 +241,7 @@
         renderSubTree: function (branch, top, left, level) {
             var subTree = branch.find("> .tree"),
                 isSingleBranch = subTree.find("> .tree-branch").length === 1;
-            
+
             if (subTree.length) {
                 if (isSingleBranch) {
                     var extraHeight = 50;
@@ -246,7 +250,7 @@
                 }
 
                 this.renderTree(
-                    subTree, 
+                    subTree,
                     top + extraHeight,
                     left,
                     level
@@ -278,7 +282,7 @@
             var connector = tree.find("> .tree-connector"),
                 hasCollapsed = tree.find("> .collapsed").length > 0,
                 hasCollapsible = tree.find("> .collapsible").length > 0,
-                visible = branchSize > 1; 
+                visible = branchSize > 1;
 
             if (connector.length) {
                 connector.css({
@@ -306,7 +310,7 @@
 
             if (hasCollapsible && !hasCollapsed) {
                 var collapseButton = connector.nextAll(".collapse-button");
-                    
+
                 collapseButton.css({
                     display: "block",
                     top: top - 30,
@@ -317,12 +321,12 @@
                     this.resetTreeWidth();
                     this.collapseTree(tree.parents(".tree").first());
                     this.renderTree(this.getRoot());
-                }.bind(this)); 
-                
+                }.bind(this));
+
             }
 
         },
-        
+
         renderBranch: function (el, treeTop, treeLeft, level) {
             var branch = $(el);
             var node = branch.find("> .tree-node");
@@ -330,7 +334,7 @@
                         .prevAll()
                         .map(this.branchWidth.bind(this))
                         .toArray()
-                        .reduce(arguman.utils.adder, 0)
+                        .reduce(unProject.utils.adder, 0)
                          * (node.width() + 20);
 
             node.css({
@@ -354,7 +358,7 @@
                 treeTop,
                 left + treeLeft
             );
-            
+
             this.renderChildConnector(
                 branch,
                 treeTop + node.height(),
@@ -366,14 +370,14 @@
 
         renderTree: function (tree, treeTop, treeLeft, level) {
             var branches = tree.find("> .tree-branch");
-            
+
             treeTop = treeTop || 40;
             treeLeft = treeLeft || 0;
             level = level || 0;
 
             var maxWidth = 0,
                 branchSize = branches.length;
-            
+
             branches.each(function (index, el) {
                 var width = this.renderBranch(
                     el,
@@ -394,7 +398,7 @@
                 branchSize,
                 level
             );
-            
+
             if (maxWidth > this.treeWidth) {
                 this.treeWidth = maxWidth;
             }
@@ -422,7 +426,7 @@
         },
 
         viewEmptyTree: function () {
-            $(".tree-contention-actions").hide()
+            $(".tree-resolution-actions").hide()
             $(".root-connector").addClass("empty");
             $(".empty-state").show();
         },
@@ -441,26 +445,26 @@
         },
 
         setAppHeight: function () {
-            var premises = $(".tree-node"),
+            var declarations = $(".tree-node"),
                 deepestPosition = 0,
-                deepestPremise = null;
-            premises.each(function () {
-                var premise = $(this),
-                    position = premise.position().top;
+                deepestDeclaration = null;
+            declarations.each(function () {
+                var declaration = $(this),
+                    position = declaration.position().top;
                 if (position > deepestPosition) {
                     deepestPosition = position;
-                    deepestPremise = premise
+                    deepestDeclaration = declaration
                 }
             });
 
-            if (deepestPremise) {
+            if (deepestDeclaration) {
                 $("#app").height(
-                    deepestPosition + 
-                    deepestPremise.height() +
-                    $(".tree-contention").height() +
+                    deepestPosition +
+                    deepestDeclaration.height() +
+                    $(".tree-resolution").height() +
                     350
                 );
-            } 
+            }
         },
 
         expandTree: function (tree, renderTree) {
@@ -489,13 +493,13 @@
 
                 var isFallacy = subTree.prev().hasClass('too-many-fallacy');
                 var score = parseInt(subTree.prev().data('weight'));
-                
+
                 if (parseInt(subTree.data("level")) < 3
                         && !isFallacy
                         && score > -2) {
                     return;
                 }
-                
+
                 subTree
                     .find("> .tree-branch")
                     .first()
@@ -515,10 +519,10 @@
             return $(".tree-container > .tree");
         },
 
-        renderContentionHeader: function () {
+        renderResolutionHeader: function () {
             var viewport = window.innerWidth,
                 rootPoint = $(".root"),
-                actions = $(".tree-contention-actions");
+                actions = $(".tree-resolution-actions");
 
             var center = viewport / 2 - rootPoint.width() / 2;
 
@@ -567,7 +571,7 @@
         render: function () {
             this.loadPartials(function () {
                 var tree = this.getRoot();
-                this.renderContentionHeader();
+                this.renderResolutionHeader();
                 this.collapseTree(tree);
                 this.renderTree(tree);
                 this.onRender();
@@ -578,11 +582,11 @@
         init: function (options) {
             $.extend(this, options);
         }
-        
+
     });
 
-    arguman.NounLoader = Class.extend({
-        el: ".tree-contention h3 a",
+    unProject.NounLoader = Class.extend({
+        el: ".tree-resolution h3 a",
         currentNoun: null,
 
         init: function (options) {
@@ -618,7 +622,7 @@
             }
             $.get(url, {
                 'partial': true,
-                'source': arguman.contention.id
+                'source': unProject.resolution.id
             }, function (response) {
                 this.currentNoun = url;
                 if ($(response).find('.relation').length > 0) {
@@ -664,7 +668,7 @@
         }
     });
 
-    arguman.ForceGraph = Class.extend({
+    unProject.ForceGraph = Class.extend({
         el: ".graph",
         width: 550,
         height: 400,
@@ -764,28 +768,28 @@
         }
     });
 
-    arguman.Timeline = Class.extend({
+    unProject.Timeline = Class.extend({
         el: "#timeline",
-        premises: ".tree-node",
+        declarations: ".tree-node",
 
         init: function (options) {
             $.extend(this, options);
 
             this.$el = $(this.el);
-            this.$premises = $(this.premises);
+            this.$declarations = $(this.declarations);
         },
 
-        getPremiseId: function (node) {
+        getDeclarationId: function (node) {
             return parseInt($(node).data('id'));
         },
 
-        sortPremises: function () {
-            var premises = this.$premises;
-            premises.sort(function (a, b) {
-                return (this.getPremiseId(a) -
-                        this.getPremiseId(b));
+        sortDeclarations: function () {
+            var declarations = this.$declarations;
+            declarations.sort(function (a, b) {
+                return (this.getDeclarationId(a) -
+                        this.getDeclarationId(b));
             }.bind(this));
-            return premises;
+            return declarations;
         },
 
         selectNode: function (target) {
@@ -796,9 +800,9 @@
         },
 
         render: function () {
-            var premises = this.sortPremises();
+            var declarations = this.sortDeclarations();
             var barWidth = Math.max(
-                $('.tree-contention h3 span').width() + 62,
+                $('.tree-resolution h3 span').width() + 62,
                 620
             );
 
@@ -812,14 +816,14 @@
                 marginLeft: -barWidth/2 - 5
             });
 
-            var width = barWidth / this.$premises.length;
+            var width = barWidth / this.$declarations.length;
 
-            $(premises).each(function (i, el) {
-                var premise = $(el);
+            $(declarations).each(function (i, el) {
+                var declaration = $(el);
                 this.$el.append(
                     $("<a />")
                         .addClass("entry")
-                        .addClass(premise.data('type'))
+                        .addClass(declaration.data('type'))
                         .attr({
                             'href': '#'
                         })
@@ -827,7 +831,7 @@
                             width: width
                         }).
                         on('click', function (event) {
-                            this.selectNode(premise);
+                            this.selectNode(declaration);
                             event.preventDefault();
                         }.bind(this))
                 );
@@ -868,7 +872,7 @@
             $(this).hide();
         });
 
-        $('.related-arguments')
+        $('.related-resolutions')
             .on('click', function (event) {
                 $('.recommendation-sidebar').toggleClass('opened');
                 event.preventDefault();
@@ -878,8 +882,8 @@
           event.preventDefault();
           var $this = $(this);
           var csrfToken = $this.find('[name=csrfmiddlewaretoken]').val();
-          var contentionPk = $this.attr('data-contention-pk');
-          var premisePk = $this.attr('data-premise-pk');
+          var resolutionPk = $this.attr('data-resolution-pk');
+          var declarationPk = $this.attr('data-declaration-pk');
           var action = $this.attr('data-action');
           var labelSupport = $this.attr('data-label-support');
           var labelUndo = $this.attr('data-label-undo');
@@ -902,4 +906,4 @@
         });
     });
 
-})(window.arguman || (window.arguman = {}));
+})(window.unProject || (window.unProject = {}));

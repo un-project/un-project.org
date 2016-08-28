@@ -7,8 +7,8 @@ from django.views.generic import DetailView, CreateView, ListView
 from i18n.utils import normalize_language_code
 from nouns.models import Noun, Relation, Channel
 from nouns.forms import RelationCreationForm
-from premises.models import Contention
-from premises.views import HomeView
+from declarations.models import Resolution
+from declarations.views import HomeView
 from profiles.mixins import LoginRequiredMixin
 from profiles.models import Profile
 
@@ -16,8 +16,8 @@ from profiles.models import Profile
 class NounDetail(DetailView):
     queryset = (Noun
                 .objects
-                .prefetch_related('contentions')
-                .select_related('contentions__user')
+                .prefetch_related('resolutions')
+                .select_related('resolutions__user')
                 .order_by('-date_creation'))
     template_name = "nouns/detail.html"
     partial_template_name = "nouns/partial.html"
@@ -29,15 +29,15 @@ class NounDetail(DetailView):
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
-        contentions = (self.get_object().active_contentions())
-        indirect_contentions = (self.get_object().indirect_contentions())
+        resolutions = (self.get_object().active_resolutions())
+        indirect_resolutions = (self.get_object().indirect_resolutions())
         source = self.request.GET.get('source')
         if source:
-            contentions = contentions.exclude(id=source)
-            indirect_contentions = indirect_contentions.exclude(id=source)
+            resolutions = resolutions.exclude(id=source)
+            indirect_resolutions = indirect_resolutions.exclude(id=source)
         return super(NounDetail, self).get_context_data(
-            contentions=contentions,
-            indirect_contentions=indirect_contentions,
+            resolutions=resolutions,
+            indirect_resolutions=indirect_resolutions,
             **kwargs)
 
     def get_object(self, queryset=None):
@@ -80,7 +80,7 @@ class RelationCreate(LoginRequiredMixin, CreateView):
 class ChannelDetail(HomeView):
     template_name = "nouns/channel_detail.html"
     paginate_by = 20
-    context_object_name = "contentions"
+    context_object_name = "resolutions"
 
     def get_channel(self):
         language = normalize_language_code(get_language())
@@ -93,10 +93,10 @@ class ChannelDetail(HomeView):
             active_users=self.get_active_users(),
             channel=channel, **kwargs)
 
-    def get_contentions(self, paginate=True):
+    def get_resolutions(self, paginate=True):
         channel = self.get_channel()
         nouns = channel.nouns.all()
-        contentions = (Contention
+        resolutions = (Resolution
                        .objects
                        .language()
                        .filter(is_published=True,
@@ -105,19 +105,19 @@ class ChannelDetail(HomeView):
                        .order_by("-date_modification"))
 
         if paginate:
-            contentions = (contentions[self.get_offset(): self.get_limit()])
+            resolutions = (resolutions[self.get_offset(): self.get_limit()])
 
-        return contentions
+        return resolutions
 
     def get_active_users(self):
         channel = self.get_channel()
         nouns = channel.nouns.all()
         return Profile.objects.filter(
-            user_premises__argument__nouns__in=nouns,
-            user_premises__argument__is_published=True,
-            user_premises__date_creation__gte=datetime.today() - timedelta(days=30)
+            user_declarations__resolution__nouns__in=nouns,
+            user_declarations__resolution__is_published=True,
+            user_declarations__date_creation__gte=datetime.today() - timedelta(days=30)
         ).annotate(
-            score=Count('user_premises__argument', distinct=True)
+            score=Count('user_declarations__resolution', distinct=True)
         ).order_by(
             '-score'
         )[:5]

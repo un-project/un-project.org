@@ -3,7 +3,7 @@ from django import forms
 from django.utils.translation import get_language
 
 from i18n.utils import normalize_language_code
-from premises.mixins import FormRenderer
+from declarations.mixins import FormRenderer
 from nouns.models import Relation, Noun
 
 

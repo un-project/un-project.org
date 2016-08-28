@@ -1,0 +1,9 @@
+{% load i18n %}
+{% with resolution=target_object.resolution %}
+{% if notification.sender and resolution %}
+<a class="user" href="{% url "auth_profile" notification.sender.username %}">
+{{ notification.sender.username }}</a>
+{% trans "supported your declaration" %} <br>
+<a href="{{ resolution.get_absolute_url }}/{{ target_object.id }}" class="resolution-link">{{ resolution.title }}</a>
+{% endif %}
+{% endwith %}

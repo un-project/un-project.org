@@ -1,0 +1,25 @@
+<div style="padding: 10px; border-radius: 5px;">
+{{ declaration.user }} added a new <b>{{ declaration.get_declaration_type_display }}</b>:
+</div>
+
+<div style="padding: 10px; background: #FFF8B2; border-radius: 5px;">
+
+    <a style="color: black; text-decoration: none;" href="{{ declaration.resolution.get_full_url }}#{{ declaration.pk }}">
+        {% if declaration.related_resolution %}
+            {{ declaration.related_resolution.title }}
+        {% else %}
+            {{ declaration.text }}
+        {% endif %}
+    </a>
+</div>
+
+<div style="padding: 10px; border-radius: 5px;">
+<b>related resolution</b>: <br>
+<a style="color: black;" href="{{ declaration.resolution.get_full_url }}">{{ declaration.resolution }}</a>
+</div>
+
+<div style="padding: 10px; color: gray;">
+    You can turn off email notifications in your profile settings. <br>
+    <a href="http://un-project.org/auth/profile" style="color: gray">http://en.un-project.org/auth/profile</a> <br>
+    {{ declaration.date_creation }}
+</div>

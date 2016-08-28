@@ -1,13 +1,13 @@
 from django.core.management import BaseCommand
-from premises.models import Contention, Premise
+from declarations.models import Resolution, Declaration
 from newsfeed.models import Entry
 from newsfeed.constants import (
-    NEWS_TYPE_CONTENTION, NEWS_TYPE_PREMISE,
+    NEWS_TYPE_RESOLUTION, NEWS_TYPE_DECLARATION,
     NEWS_TYPE_FALLACY, NEWS_TYPE_FOLLOWING)
 
 RELATED_MODELS = {
-    NEWS_TYPE_CONTENTION: Contention,
-    NEWS_TYPE_PREMISE: Premise,
+    NEWS_TYPE_RESOLUTION: Resolution,
+    NEWS_TYPE_DECLARATION: Declaration,
 }
 
 
@@ -16,8 +16,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 		entries = Entry.objects.collection.find({
 		    "news_type": {
-		        "$in": [NEWS_TYPE_CONTENTION,
-		                NEWS_TYPE_PREMISE]
+		        "$in": [NEWS_TYPE_RESOLUTION,
+		                NEWS_TYPE_DECLARATION]
 		    }
 		})
 
@@ -27,7 +27,7 @@ class Command(BaseCommand):
 				instance = model.objects.get(id=entry['object_id'])
 			except model.DoesNotExist:
 				continue
-			
+
 			Entry.objects.collection.update({
 				'_id': entry['_id']
 			}, {
@@ -37,4 +37,4 @@ class Command(BaseCommand):
 			}, multi=True)
 
 
-			
+

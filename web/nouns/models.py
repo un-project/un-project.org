@@ -2,12 +2,12 @@ from uuid import uuid4
 from unidecode import unidecode
 
 from django.db import models
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_text
 from django.conf import settings
 from django.template.defaultfilters import slugify
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _, get_language
-from anora.templatetags.anora import CONSONANT_SOUND, VOWEL_SOUND
+#from anora.templatetags.anora import CONSONANT_SOUND, VOWEL_SOUND
 from i18n.utils import normalize_language_code
 
 from nouns.utils import get_synsets, get_lemmas, from_lemma
@@ -23,7 +23,7 @@ class Noun(models.Model):
         unique_together = (("text", "language"),)
 
     def __unicode__(self):
-        return smart_unicode(self.text).title()
+        return smart_text(self.text).title()
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -95,18 +95,18 @@ class Noun(models.Model):
     def active_keywords(self):
         return self.keywords.filter(is_active=True)
 
-    def active_contentions(self):
+    def active_resolutions(self):
         language = normalize_language_code(get_language())
-        return self.contentions.filter(
+        return self.resolutions.filter(
             is_published=True,
             language=language
         ).order_by('?')
 
-    def indirect_contentions(self):
-        from premises.models import Contention  # to avoid circular import
+    def indirect_resolutions(self):
+        from declarations.models import Resolution  # to avoid circular import
         language = normalize_language_code(get_language())
         nouns = self.out_relations.values_list('target', flat=True)
-        return Contention.objects.filter(
+        return Resolution.objects.filter(
             language=language,
             is_published=True,
             nouns__in=nouns
@@ -142,19 +142,19 @@ class Noun(models.Model):
 
 class Keyword(models.Model):
     """
-    Keywords for matching contentions.
+    Keywords for matching resolutions.
     """
     noun = models.ForeignKey(Noun, related_name="keywords")
     text = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
 
     def __unicode__(self):
-        return smart_unicode(self.text)
+        return smart_text(self.text)
 
 
 class Relation(models.Model):
     """
-    Holds the relationships of contentions.
+    Holds the relationships of resolutions.
 
         - is a (hypernym)
         - part of (holonym)
@@ -182,7 +182,7 @@ class Relation(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
-        return smart_unicode(self.relation_type)
+        return smart_text(self.relation_type)
 
     def reverse_type(self):
         return {
@@ -202,16 +202,17 @@ class Relation(models.Model):
         if (self.relation_type == Relation.HYPERNYM
                 and self.target.language == 'en'):
             text = unicode(self.target)
-            return ('is an' if not CONSONANT_SOUND.match(text)
-                               and VOWEL_SOUND.match(text)
-                    else 'is a')
+            return ('is a')
+            #return ('is an' if not CONSONANT_SOUND.match(text)
+            #                   and VOWEL_SOUND.match(text)
+            #        else 'is a')
         return self.get_relation_type_display()
 
 
 class Channel(models.Model):
     title = models.CharField(max_length=255)
     slug = models.CharField(max_length=255)
-    nouns = models.ManyToManyField('Noun', null=True, blank=True)
+    nouns = models.ManyToManyField('Noun', blank=True)
     order = models.IntegerField()
     language = models.CharField(max_length=255, blank=True, null=True)
     is_featured = models.BooleanField(max_length=255, default=False)
@@ -223,7 +224,7 @@ class Channel(models.Model):
         return super(Channel, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return smart_unicode(self.title)
+        return smart_text(self.title)
 
     @models.permalink
     def get_absolute_url(self):

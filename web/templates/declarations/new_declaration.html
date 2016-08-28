@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+    <section class="container new-declaration">
+        <form action="?view={{ view }}" method="post">
+            {% if parent %}
+                <div class="parent-declaration">
+                    <strong>{% trans "The parent declaration:" %}</strong>
+                    <p>{{ parent.text }}</p>
+                </div>
+            {% endif %}
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="{% trans "Submit" %}" class="submit">
+        </form>
+    </section>
+{% endblock %}
+
+{% block extra-scripts %}
+    <script type="text/javascript">
+    $(function () {
+        var relatedResolutionLabel = "{{ declaration.related_resolution.title }}";
+
+        var textarea = $("#id_text"),
+            container = $("<div>", {
+                "class": "remained-char"
+            }).appendTo(textarea.parent())
+              .html("{% trans "Characters remaining: " %}"),
+            remained = $("<span>").appendTo(container);
+        var update = function (event) {
+            var max = parseInt(textarea.attr("maxlength")),
+                _remained = max - textarea.val().length;
+            remained.html(_remained);
+        };
+        textarea.keyup(update);
+        update();
+
+        var relatedResolution = $('#id_related_resolution');
+
+        var selectResolution = function (label) {
+            var selectedResolution = $("<div />", {
+                'class': 'selected-resolution'
+            }).html(
+                label
+            ).append(
+                $("<a />")
+                 .html(
+                    '{% trans "(change)" %}'
+                 ).on('click', function (event) {
+                    event.preventDefault();
+                    relatedResolution.val("").show();
+                    selectedResolution.remove();
+                 }.bind(this))
+            );
+            relatedResolution.hide().after(selectedResolution);
+        };
+
+        relatedResolution.autocomplete({
+            source: function(search, callback) {
+                $.getJSON("{% url "resolutions_search" %}", {
+                    keywords: search.term,
+                    json: true
+                }, callback);
+            },
+            select: function(event, ui) {
+                $(this).val(ui.item.id);
+                selectResolution(ui.item.label);
+                return false;
+            }
+        });
+
+        if (relatedResolution.val()) {
+            selectResolution(relatedResolutionLabel);
+        }
+    });
+    </script>
+{% endblock %}

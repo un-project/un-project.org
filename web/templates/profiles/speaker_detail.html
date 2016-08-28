@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load gravatar %}
+{% load humanize %}
+
+TODO : copy content from auth/profile.html
+
+{% block content %}
+    <div class="container user-profile">
+        <aside>
+            <a class="gravatar profile-image" href="{{ speaker.get_absolute_url }}">
+            </a>
+
+            <ul class="user-info">
+                {% if speaker.first_name or speaker.last_name %}
+                    <li class="full-name">{{ speaker.get_full_name }}</li>
+                {% endif %}
+                <li class="username">{{speaker.last_name}}</li>
+                <li class="registration">
+                    <h5>{% trans "date joined" %}</h5>
+                    test
+                </li>
+            </ul>
+
+            <nav class="users-block following">
+            </nav>
+
+            <nav class="users-block followers">
+                <h4>{% trans "Followers" %} ({{ speaker.followers.count }})</h4>
+                {% for follower in speaker.followers.all|slice:":20" %}
+                    <a title="{{ follower.username }}" href="{{ follower.get_absolute_url }}">
+                        {% gravatar follower 380 %}
+                    </a>
+                {% endfor %}
+            </nav>
+
+        </aside>
+
+        <div class="user-detail">
+        <ul class="tab-headers">
+            </li>
+        </ul>
+
+        {% block profile-content %}
+            <div class="overview-blocks">
+            <div class="overview-block channels">
+                <h3>{% trans "Most active channels" %}</h3>
+                <ul class="channels">
+                {% for bundle in related_channels|slice:":10" %}
+                    <li class="channel">
+                        <a href="{{ bundle.channel.absolute_url }}">{{ bundle.channel.title }}</a>
+                    </li>
+                    {% empty %}
+                    <li class="empty">
+                    {% trans "No data." %}
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+            <div class="overview-block discussed-users">
+                <h3>{% trans "Most discussed users" %}</h3>
+                {% if discussed_users %}
+                <ul class="users">
+                    {% for discussed_user in discussed_users %}
+                        <li>
+                            <div class="percent">
+                                <span class="but" style="width: {{ discussed_user.but|stringformat:"f" }}%"></span>
+                                <span class="because" style="width: {{ discussed_user.because|stringformat:"f" }}%"></span>
+                                <span class="however" style="width: {{ discussed_user.however|stringformat:"f" }}%"></span>
+                            </div>
+                            <a href="{% url "auth_profile" discussed_user.user.username %}">{{ discussed_user.user.username|lower|truncatechars:18 }}</a>
+                        </li>
+                        {% empty  %}
+                        <li>{% trans "No data." %}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            <div class="overview-block most-loved">
+                <h3>{% trans "Most supported declarations" %}</h3>
+                {% for declaration in supported_declarations %}
+                    <div class="declaration-stats">
+                        <h2><a href="{{ declaration.resolution.get_absolute_url }}">{{ declaration.resolution.title }}</a></h2>
+                        <div class="declaration-content {{ declaration.declaration_class }}">
+                            <a href="{{ declaration.get_absolute_url }}">{{ declaration.text }}</a>
+                            {% if declaration.related_resolution %}
+                            <div class="related-resolution">
+                                <a href="{{ declaration.get_absolute_url }}">{{ declaration.related_resolution.title }}</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if declaration.supporters.exists %}
+                        <div class="supporter-count">
+                        {{ declaration.supporters.count }} {% trans "supporter." %}
+                        </div>
+                        {% endif %}
+                        {% if declaration.reports.exists %}
+                            <div class="reported_as_fallacy">
+                            {{ declaration.reports.count }} {% trans "fallacy report." %}
+
+                            {% if declaration.fallacies %}
+                                {% for fallacy in declaration.fallacies %}
+                                <div class="fallacy">{{ fallacy.label }}</div>
+                                {% endfor %}
+                            {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <div class="empty">
+                    {% trans "No data." %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endblock %}
+
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra-scripts %}
+    {{ block.super }}
+    {% include "infinity-pagination.html" %}
+    <script type="text/javascript">
+        $(function () {
+            $(".anchor").each(function () {
+                $(this).click(function () {
+                    $.ajax({
+                        url: $(this).attr("href"),
+                        type: $(this).data("method"),
+                        beforeSend: function(xhr, settings) {
+                            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+                        }
+                    }).complete(function () {
+                        window.location.reload()
+                    }.bind(this));
+                    return false;
+                });
+            });
+        });
+        $(window).on('load', function () {
+            var left = $(".channels"),
+                right = $(".discussed-users");
+
+            var max = Math.max(right.height(), left.height());
+            left.height(max);
+            right.height(max);
+        });
+    </script>
+{% endblock %}

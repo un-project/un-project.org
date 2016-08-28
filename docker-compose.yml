@@ -1,5 +1,12 @@
 version: '2'
 services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
   redis:
     image: redis
   mongodb:
@@ -10,7 +17,7 @@ services:
     image: postgres
   web:
     build: .
-    command: bash -c "python web/manage.py migrate && python web/manage.py runserver 0.0.0.0:8000"
+    command: bash -c "python web/manage.py makemigrations && python web/manage.py migrate && python web/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/code
     ports:
@@ -19,3 +26,5 @@ services:
       - db
       - redis
       - mongodb
+    environment:
+        - VIRTUAL_HOST=un-project.org,en.un-project.org,fr.un-project.org

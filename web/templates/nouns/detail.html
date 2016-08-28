@@ -38,18 +38,18 @@
             {% endfor %}
             <li class="create relation"><a href="{% url "new_relation" noun.slug %}">{% trans "add new relation" %}</a></li>
         </ul>
-        <ul class="contentions relations">
-            {% for contention in noun.active_contentions.all %}
-            <li class="argument relation">
-                <a class="contention-link" href="{% url "contention_detail" contention.slug %}">{{ contention.title }}</a>
-                <ul class="argument-stats">
+        <ul class="resolutions relations">
+            {% for resolution in noun.active_resolutions.all %}
+            <li class="resolution relation">
+                <a class="resolution-link" href="{% url "resolution_detail" resolution.slug %}">{{ resolution.title }}</a>
+                <ul class="resolution-stats">
                     <li>
-                    <a href="{{ contention.user.get_absolute_url }}">@{{ contention.user }}</a> {{ contention.date_creation|naturaltime }}
+                    <a href="{{ resolution.user.get_absolute_url }}">@{{ resolution.user }}</a> {{ resolution.date_creation|naturaltime }}
                     </li>
                 </ul>
             </li>
             {% endfor %}
-            <li class="create relation"><a href="{% url "new_argument" %}">{% trans "create an argument" %}</a></li>
+            <li class="create relation"><a href="{% url "new_resolution" %}">{% trans "create a resolution" %}</a></li>
         </ul>
     </div>
 </div>

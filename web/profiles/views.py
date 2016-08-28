@@ -15,9 +15,9 @@ from nouns.models import Noun, Channel
 from profiles.mixins import LoginRequiredMixin
 from profiles.forms import (RegistrationForm, AuthenticationForm,
                             ProfileUpdateForm)
-from profiles.models import Profile
-from premises.models import Contention, Premise, SUPPORT, OBJECTION, SITUATION, Report
-from premises.mixins import PaginationMixin
+from profiles.models import Profile, Speaker
+from declarations.models import Resolution, Declaration, SUPPORT, OBJECTION, SITUATION, Report
+from declarations.mixins import PaginationMixin
 from newsfeed.models import Entry
 
 
@@ -62,6 +62,156 @@ class LogoutView(LoginRequiredMixin, RedirectView):
         return reverse("home")
 
 
+class BaseSpeakerDetailView(DetailView):
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    context_object_name = "speaker"
+    model = Speaker
+    paginate_by = 20
+    tab_name = "overview"
+
+    def get_context_data(self, **kwargs):
+        """
+        Adds extra context to template
+        """
+        speaker = self.get_object()
+
+        if self.request.user.is_authenticated():
+            is_followed = self.request.user.following.filter(
+                pk=speaker.id).exists()
+        else:
+            is_followed = False
+
+        return super(BaseSpeakerDetailView, self).get_context_data(
+            can_follow=True,
+            is_followed=is_followed,
+            tab_name=self.tab_name,
+            **kwargs
+        )
+
+
+class SpeakerDetailView(BaseSpeakerDetailView):
+    def get_context_data(self, **kwargs):
+        """
+        Adds extra context to template
+        """
+        speaker = self.get_object()
+        return super(SpeakerDetailView, self).get_context_data(
+            related_channels=self.get_related_channels(speaker),
+            discussed_users=self.get_discussed_speakers(speaker),
+            supported_declarations=self.get_supported_declarations(speaker),
+            **kwargs
+        )
+
+    def get_supported_declarations(self, speaker):
+        return Declaration.objects.filter(
+            is_approved=True,
+            speaker=speaker,
+            resolution__language=normalize_language_code(get_language())
+        ).annotate(
+            supporter_count=Count('supporters', distinct=True)
+        ).filter(
+            supporter_count__gt=0
+        ).order_by(
+            '-supporter_count'
+        )[:10]
+
+    def get_discussed_speakers(self, speaker):
+        lines = Declaration.objects.filter(
+            speaker=speaker,
+            parent__speaker__isnull=False,
+        ).exclude(
+            parent__speaker=speaker
+        ).values(
+            'parent__speaker'
+        ).annotate(
+            count=Count('parent__speaker')
+        ).order_by(
+            '-count'
+        )[:5]
+
+        profiles = [Profile.objects.get(id=line['parent__speaker'])
+                    for line in lines]
+
+        def make_bundle(target):
+            because = self.declaration_count_by_speaker(speaker, target, SUPPORT)
+            but = self.declaration_count_by_speaker(speaker, target, OBJECTION)
+            however = self.declaration_count_by_speaker(speaker, target, SITUATION)
+            total = because + but + however
+
+            return {
+                'speaker': profile,
+                'because': 100 * float(because) / total,
+                'but': 100 * float(but) / total,
+                'however': 100 * float(however) / total
+            }
+
+        return [
+            make_bundle(profile)
+            for profile in profiles
+        ]
+
+    def declaration_count_by_speaker(self, speaker, target, declaration_type):
+        return Declaration.objects.filter(
+            speaker=speaker,
+            parent__speaker=target,
+            declaration_type=declaration_type
+        ).count()
+
+    def get_related_channels(self, speaker):
+        resolution_nouns = Resolution.objects.filter(
+            declarations__speaker=speaker,
+            nouns__isnull=False,
+            language=normalize_language_code(get_language())
+        ).order_by(
+            '-declarations__weight'
+        ).values_list(
+            'nouns',
+            flat=True
+        )
+
+        #supported_nouns = Resolution.objects.filter(
+        #    declarations__supporters=speaker,
+        #    nouns__isnull=False,
+        #    language=normalize_language_code(get_language())
+        #).order_by(
+        #    '-declarations__weight'
+        #).values_list(
+        #    'nouns',
+        #    flat=True
+        #)
+        supported_nouns = []
+
+        noun_ids = list(resolution_nouns) + list(supported_nouns)
+        noun_set = set(noun_ids)
+
+        channels = Channel.objects.filter(
+            nouns__in=noun_ids,
+            language=normalize_language_code(get_language())
+        ).distinct()
+
+        bundle = []
+        total_score = 0
+
+        for channel in channels:
+            channel_dict = {
+                'channel': channel.serialize(),
+                'score': 0,
+            }
+
+            for noun in channel.nouns.all():
+                if noun.pk in noun_set:
+                    channel_dict['score'] += noun_ids.count(noun.pk)
+
+            total_score += channel_dict['score']
+
+            bundle.append(channel_dict)
+
+        return sorted(bundle,
+                      key=lambda c: c['score'],
+                      reverse=True)
+
+
 class BaseProfileDetailView(DetailView):
     slug_field = 'username'
     slug_url_kwarg = 'username'
@@ -101,15 +251,15 @@ class ProfileDetailView(BaseProfileDetailView):
         return super(ProfileDetailView, self).get_context_data(
             related_channels=self.get_related_channels(user),
             discussed_users=self.get_discussed_users(user),
-            supported_premises=self.get_supported_premises(user),
+            supported_declarations=self.get_supported_declarations(user),
             **kwargs
         )
 
-    def get_supported_premises(self, user):
-        return Premise.objects.filter(
+    def get_supported_declarations(self, user):
+        return Declaration.objects.filter(
             is_approved=True,
             user=user,
-            argument__language=normalize_language_code(get_language())
+            resolution__language=normalize_language_code(get_language())
         ).annotate(
             supporter_count=Count('supporters', distinct=True)
         ).filter(
@@ -119,7 +269,7 @@ class ProfileDetailView(BaseProfileDetailView):
         )[:10]
 
     def get_discussed_users(self, user):
-        lines = Premise.objects.filter(
+        lines = Declaration.objects.filter(
             user=user,
             parent__user__isnull=False,
         ).exclude(
@@ -136,9 +286,9 @@ class ProfileDetailView(BaseProfileDetailView):
                     for line in lines]
 
         def make_bundle(target):
-            because = self.premise_count_by_user(user, target, SUPPORT)
-            but = self.premise_count_by_user(user, target, OBJECTION)
-            however = self.premise_count_by_user(user, target, SITUATION)
+            because = self.declaration_count_by_user(user, target, SUPPORT)
+            but = self.declaration_count_by_user(user, target, OBJECTION)
+            however = self.declaration_count_by_user(user, target, SITUATION)
             total = because + but + however
 
             return {
@@ -153,37 +303,37 @@ class ProfileDetailView(BaseProfileDetailView):
             for profile in profiles
         ]
 
-    def premise_count_by_user(self, user, target, premise_type):
-        return Premise.objects.filter(
+    def declaration_count_by_user(self, user, target, declaration_type):
+        return Declaration.objects.filter(
             user=user,
             parent__user=target,
-            premise_type=premise_type
+            declaration_type=declaration_type
         ).count()
 
     def get_related_channels(self, user):
-        contention_nouns = Contention.objects.filter(
-            premises__user=user,
+        resolution_nouns = Resolution.objects.filter(
+            declarations__user=user,
             nouns__isnull=False,
             language=normalize_language_code(get_language())
         ).order_by(
-            '-premises__weight'
+            '-declarations__weight'
         ).values_list(
             'nouns',
             flat=True
         )
 
-        supported_nouns = Contention.objects.filter(
-            premises__supporters=user,
+        supported_nouns = Resolution.objects.filter(
+            declarations__supporters=user,
             nouns__isnull=False,
             language=normalize_language_code(get_language())
         ).order_by(
-            '-premises__weight'
+            '-declarations__weight'
         ).values_list(
             'nouns',
             flat=True
         )
 
-        noun_ids = list(contention_nouns) + list(supported_nouns)
+        noun_ids = list(resolution_nouns) + list(supported_nouns)
         noun_set = set(noun_ids)
 
         channels = Channel.objects.filter(
@@ -213,21 +363,21 @@ class ProfileDetailView(BaseProfileDetailView):
                       reverse=True)
 
 
-class ProfileArgumentsView(BaseProfileDetailView):
-    tab_name = "arguments"
-    template_name = "auth/contentions.html"
+class ProfileResolutionsView(BaseProfileDetailView):
+    tab_name = "resolutions"
+    template_name = "auth/resolutions.html"
 
     def get_context_data(self, **kwargs):
         user = self.get_object()
-        contentions = Contention.objects.filter(
+        resolutions = Resolution.objects.filter(
             user=user
         ).order_by("-date_creation")
 
         if user != self.request.user:
-            contentions = contentions.filter(is_published=True)
+            resolutions = resolutions.filter(is_published=True)
 
-        return super(ProfileArgumentsView, self).get_context_data(
-            contentions=contentions
+        return super(ProfileResolutionsView, self).get_context_data(
+            resolutions=resolutions
         )
 
 
@@ -247,32 +397,32 @@ class ProfileFallaciesView(BaseProfileDetailView):
         )
 
 
-class ProfilePremisesView(BaseProfileDetailView, PaginationMixin):
-    tab_name = "premises"
-    template_name = "auth/premises.html"
+class ProfileDeclarationsView(BaseProfileDetailView, PaginationMixin):
+    tab_name = "declarations"
+    template_name = "auth/declarations.html"
     paginate_by = 20
 
     def get_objects(self, paginate=True):
         user = self.get_object()
-        premises = Premise.objects.filter(user=user).order_by("-date_creation")
+        declarations = Declaration.objects.filter(user=user).order_by("-date_creation")
 
         if user != self.request.user:
-            premises = premises.filter(is_approved=True)
+            declarations = declarations.filter(is_approved=True)
 
         if paginate:
-            premises = premises[self.get_offset():self.get_limit()]
+            declarations = declarations[self.get_offset():self.get_limit()]
 
-        return premises
+        return declarations
 
     def has_next_page(self):
         total = self.get_objects(paginate=False).count()
         return total > (self.get_offset() + self.paginate_by)
 
     def get_context_data(self, **kwargs):
-        premises = self.get_objects()
+        declarations = self.get_objects()
 
-        return super(ProfilePremisesView, self).get_context_data(
-            premises=premises,
+        return super(ProfileDeclarationsView, self).get_context_data(
+            declarations=declarations,
             has_next_page=self.has_next_page(),
             next_page_url=self.get_next_page_url(),
         )
@@ -299,29 +449,29 @@ class ProfileChannelsGraphView(ProfileDetailView):
         return json_graph.node_link_data(graph)
 
     def build_graph(self, user):
-        contention_nouns = Contention.objects.filter(
-            premises__user=user,
+        resolution_nouns = Resolution.objects.filter(
+            declarations__user=user,
             nouns__isnull=False,
             language=normalize_language_code(get_language())
         ).order_by(
-            '-premises__weight'
+            '-declarations__weight'
         ).values_list(
             'nouns',
             flat=True
         )
 
-        supported_nouns = Contention.objects.filter(
-            premises__supporters=user,
+        supported_nouns = Resolution.objects.filter(
+            declarations__supporters=user,
             nouns__isnull=False,
             language=normalize_language_code(get_language())
         ).order_by(
-            '-premises__weight'
+            '-declarations__weight'
         ).values_list(
             'nouns',
             flat=True
         )
 
-        noun_ids = set(contention_nouns) ^ set(supported_nouns)
+        noun_ids = set(resolution_nouns) ^ set(supported_nouns)
 
         channels = Channel.objects.filter(
             nouns__in=noun_ids,
