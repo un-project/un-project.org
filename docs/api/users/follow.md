@@ -62,9 +62,9 @@ curl -X GET -H "Content-Type: application/json"
  "results": [
    {
      "id": 1,
-     "username": "fatiherikli",
-     "absolute_url": "/api/v1/users/fatiherikli/",
-     "avatar": "https://secure.gravatar.com/avatar/e70aa173a95f239ee3aa4768b441cb83.jpg?s=80&r=g&d=mm"
+     "username": "oliviercrave",
+     "absolute_url": "/api/v1/users/oliviercrave/",
+     "avatar": "https://secure.gravatar.com/avatar/41bb2e2400b9f471115d72fc30b45e51?s=80&r=g&d=mm"
    }
   ]
 }
