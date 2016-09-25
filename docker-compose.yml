@@ -27,4 +27,4 @@ services:
       - redis
       - mongodb
     environment:
-        - VIRTUAL_HOST=un-project.org,en.un-project.org,fr.un-project.org
+      - VIRTUAL_HOST=un-project.org,ar.un-project.org,ch.un-project.org,en.un-project.org,fr.un-project.org,ru.un-project.org,es.un-project.org
