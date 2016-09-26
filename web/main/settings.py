@@ -212,7 +212,7 @@ BASE_DOMAIN = 'un-project.org'
 
 AVAILABLE_LANGUAGES = (
     'ar',
-    'cn',
+    'ch',
     'en',
     'es',
     'fr',
