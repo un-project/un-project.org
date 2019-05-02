@@ -18,6 +18,7 @@ import json
 # from django.utils import timezone
 # from datetime import datetime
 from dateutil.parser import parse
+from dateutil import tz
 
 STATES = [
     ["AD", "AND", "020", "AN", "Andorra", "Andorra la Vella", 468.0, 84000, "EU"],
@@ -563,7 +564,10 @@ class Command(BaseCommand):
             pv_header = pv["header"]
             # date_creation = datetime.strptime(pv_header['meeting_date'].strip().replace('a.m.', 'AM').replace('p.m.', 'PM'), '%A, %d %B %Y, %I %p')
             print(pv_header["meeting_date"].strip())
-            date_creation = parse(pv_header["meeting_date"].strip())
+            add_default_tz = lambda x, tzinfo: x.replace(tzinfo=x.tzinfo or tzinfo)
+            date_creation = add_default_tz(
+                parse(pv_header["meeting_date"].strip()), tz.gettz("America/New_York")
+            )
 
             for state in STATES:
                 state = State(
