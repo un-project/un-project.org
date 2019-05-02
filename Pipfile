@@ -1,0 +1,36 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+psycopg2 = ">=2.6.1"
+docutils = "==0.14"
+django-filter = "==2.1.0"
+django-extensions = ">=1.6.1"
+django-libsass = ">=0.6"
+django-debug-toolbar = ">=1.4"
+django-gravatar2 = "*"
+#django-markitup = "*"
+django-markupfield = "==1.5.1"
+markdown = "== 3.1"
+django-typogrify = "*"
+django-allauth = "*"
+djangorestframework = "*"
+anora = "*"
+snowballstemmer = "*"
+textblob = "*"
+pymongo = "==2.7.2"
+networkx = "*"
+gunicorn = ">=19.1.1"
+pytest = "*"
+python-dateutil = "*"
+Django = "==2.2"
+django_compressor = ">=1.6"
+Unidecode = "*"
+Fabric = ">=1.10.0"
+
+[requires]
+python_version = "3.6"

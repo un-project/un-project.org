@@ -9,11 +9,11 @@ def get_connection():
     global _connection
     if not _connection:
         _connection = Connection(
-            host=getattr(settings, 'MONGODB_HOST', None),
-            port=getattr(settings, 'MONGODB_PORT', None)
+            host=getattr(settings, "MONGODB_HOST", None),
+            port=getattr(settings, "MONGODB_PORT", None),
         )
-        username = getattr(settings, 'MONGODB_USERNAME', None)
-        password = getattr(settings, 'MONGODB_PASSWORD', None)
+        username = getattr(settings, "MONGODB_USERNAME", None)
+        password = getattr(settings, "MONGODB_PASSWORD", None)
         db = _connection[settings.MONGODB_DATABASE]
         if username and password:
             db.authenticate(username, password)

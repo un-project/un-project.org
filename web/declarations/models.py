@@ -5,7 +5,7 @@ from datetime import datetime
 from math import log
 from operator import itemgetter
 from uuid import uuid4
-from markdown2 import markdown
+from markdown import markdown
 from unidecode import unidecode
 
 from django.utils.html import escape
@@ -15,6 +15,7 @@ from django.template.loader import render_to_string
 from django.db import models
 from django.db.models import Count, Q
 from django.template.defaultfilters import slugify
+from django.urls import reverse
 from django.utils.encoding import smart_text
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _, get_language
@@ -22,7 +23,10 @@ from django.utils.html import strip_tags
 from i18n.utils import normalize_language_code
 
 from newsfeed.constants import (
-    NEWS_TYPE_FALLACY, NEWS_TYPE_DECLARATION, NEWS_TYPE_RESOLUTION)
+    NEWS_TYPE_FALLACY,
+    NEWS_TYPE_DECLARATION,
+    NEWS_TYPE_RESOLUTION,
+)
 from declarations.constants import MAX_DECLARATION_CONTENT_LENGTH
 from declarations.managers import LanguageManager, DeletePreventionManager
 from declarations.mixins import DeletePreventionMixin
@@ -66,7 +70,7 @@ FALLACY_TYPES = (
     ("ResolutionToPity", _("Resolution To Pity")),
     ("PrejudicialLanguage", _("Prejudicial Language")),
     ("FallacyOfSpecialPleading", _("Fallacy Of Special Pleading")),
-    ("AppealToAuthority", _("Appeal To Authority"))
+    ("AppealToAuthority", _("Appeal To Authority")),
 )
 
 
@@ -74,41 +78,48 @@ class Resolution(DeletePreventionMixin, models.Model):
     from profiles.models import State
 
     title = models.CharField(
-        max_length=512, verbose_name=_("Resolution"),
-        help_text=render_to_string("declarations/examples/resolution.html"))
+        max_length=512,
+        verbose_name=_("Resolution"),
+        help_text=render_to_string("declarations/examples/resolution.html"),
+    )
     slug = models.SlugField(max_length=512, blank=True)
-    description = models.TextField(
-        null=True, blank=True, verbose_name=_("Description"), )
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="resolutions")
+    description = models.TextField(null=True, blank=True, verbose_name=_("Description"))
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="resolutions", on_delete=models.CASCADE
+    )
     owner = models.CharField(
-        max_length=255, null=True, blank=True,
+        max_length=255,
+        null=True,
+        blank=True,
         verbose_name=_("Original Discourse"),
-        help_text=render_to_string("declarations/examples/owner.html"))
+        help_text=render_to_string("declarations/examples/owner.html"),
+    )
     sources = models.TextField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         verbose_name=_("Sources"),
-        help_text=render_to_string("declarations/examples/sources.html"))
+        help_text=render_to_string("declarations/examples/sources.html"),
+    )
     is_featured = models.BooleanField(default=False)
     is_published = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     date_creation = models.DateTimeField(default=timezone.now)
     date_modification = models.DateTimeField(default=timezone.now)
-    #date_creation = models.DateTimeField(auto_now_add=True)
-    #date_modification = models.DateTimeField(auto_now_add=True)
+    # date_creation = models.DateTimeField(auto_now_add=True)
+    # date_modification = models.DateTimeField(auto_now_add=True)
     ip_address = models.CharField(max_length=255, null=True, blank=True)
-    language = models.CharField(max_length=5, null=True,
-                                choices=[(language, language) for language in
-                                         settings.AVAILABLE_LANGUAGES])
-    nouns = models.ManyToManyField('nouns.Noun', blank=True,
-                                   related_name="resolutions")
-    related_nouns = models.ManyToManyField('nouns.Noun', blank=True,
-                                           related_name="resolutions_related")
-    in_favour = models.ManyToManyField(State,
-                                      related_name="in_favour")
-    against = models.ManyToManyField(State,
-                                     related_name="against")
-    abstaining = models.ManyToManyField(State,
-                                        related_name="abstaining")
+    language = models.CharField(
+        max_length=5,
+        null=True,
+        choices=[(language, language) for language in settings.AVAILABLE_LANGUAGES],
+    )
+    nouns = models.ManyToManyField("nouns.Noun", blank=True, related_name="resolutions")
+    related_nouns = models.ManyToManyField(
+        "nouns.Noun", blank=True, related_name="resolutions_related"
+    )
+    in_favour = models.ManyToManyField(State, related_name="in_favour")
+    against = models.ManyToManyField(State, related_name="against")
+    abstaining = models.ManyToManyField(State, related_name="abstaining")
 
     score = models.FloatField(blank=True, null=True)
     objects = LanguageManager()
@@ -121,14 +132,14 @@ class Resolution(DeletePreventionMixin, models.Model):
 
     def get_declarations(self):
         return (
-            self.declarations
-                .filter(is_approved=True)
-                .select_related('speaker', 'related_resolution')
-                .prefetch_related('supporters', 'reports')
-                .annotate(
-                    report_count=Count('reports', distinct=True),
-                    supporter_count=Count('supporters', distinct=True))
-                .order_by('-weight')
+            self.declarations.filter(is_approved=True)
+            .select_related("speaker", "related_resolution")
+            .prefetch_related("supporters", "reports")
+            .annotate(
+                report_count=Count("reports", distinct=True),
+                supporter_count=Count("supporters", distinct=True),
+            )
+            .order_by("-weight")
         )
 
     def serialize(self, authenticated_user=None):
@@ -140,76 +151,82 @@ class Resolution(DeletePreventionMixin, models.Model):
         ]
 
         return {
-            'id': self.id,
-            'user': self.user.serialize(),
-            'title': self.title,
-            'description': self.description,
-            'owner': self.owner,
-            'sources': self.sources,
-            'is_published': self.is_published,
-            'slug': self.slug,
-            'absolute_url': self.get_absolute_url(),
-            'language': self.language,
-            'full_url': self.get_full_url(),
-            'declarations': main_declarations,
-            'date_creation': self.date_creation,
-            'overview': self.overview(main_declarations)
+            "id": self.id,
+            "user": self.user.serialize(),
+            "title": self.title,
+            "description": self.description,
+            "owner": self.owner,
+            "sources": self.sources,
+            "is_published": self.is_published,
+            "slug": self.slug,
+            "absolute_url": self.get_absolute_url(),
+            "language": self.language,
+            "full_url": self.get_full_url(),
+            "declarations": main_declarations,
+            "date_creation": self.date_creation,
+            "overview": self.overview(main_declarations),
         }
 
     def partial_serialize(self, parent_id, authenticated_user=None):
         declarations = self.get_declarations()
 
-        parent = list(declaration.serialize(declarations, authenticated_user) for declaration in declarations
-                      if declaration.parent_id == parent_id)
+        parent = list(
+            declaration.serialize(declarations, authenticated_user)
+            for declaration in declarations
+            if declaration.parent_id == parent_id
+        )
 
         return {
-            'id': self.id,
-            'slug': self.slug,
-            'absolute_url': self.get_absolute_url(),
-            'language': self.language,
-            'full_url': self.get_full_url(),
-            'declarations': parent,
-            'date_creation': self.date_creation
+            "id": self.id,
+            "slug": self.slug,
+            "absolute_url": self.get_absolute_url(),
+            "language": self.language,
+            "full_url": self.get_full_url(),
+            "declarations": parent,
+            "date_creation": self.date_creation,
         }
 
     def overview(self, declarations=None, show_percent=True):
 
         if declarations is None:
-            declarations = self.published_children().values('weight', 'declaration_type')
+            declarations = self.published_children().values(
+                "weight", "declaration_type"
+            )
 
-        supported = sum(declaration['weight'] + 1 for declaration in declarations
-                        if declaration['declaration_type'] == SUPPORT
-                        if declaration['weight'] >= 0)
+        supported = sum(
+            declaration["weight"] + 1
+            for declaration in declarations
+            if declaration["declaration_type"] == SUPPORT
+            if declaration["weight"] >= 0
+        )
 
-        objected = sum(declaration['weight'] + 1 for declaration in declarations
-                       if declaration['declaration_type'] == OBJECTION
-                       if declaration['weight'] >= 0)
+        objected = sum(
+            declaration["weight"] + 1
+            for declaration in declarations
+            if declaration["declaration_type"] == OBJECTION
+            if declaration["weight"] >= 0
+        )
 
         total = supported + objected
 
         if supported > objected:
-            status = 'supported'
+            status = "supported"
         elif supported < objected:
-            status = 'objected'
+            status = "objected"
         else:
-            status = 'neutral'
+            status = "neutral"
 
         if total > 0 and show_percent:
             return {
-                'support': 100 * float(supported) / total,
-                'objection': 100 * float(objected) / total,
-                'status': status
+                "support": 100 * float(supported) / total,
+                "objection": 100 * float(objected) / total,
+                "status": status,
             }
 
-        return {
-            'support': supported,
-            'objection': objected,
-            'status': status
-        }
+        return {"support": supported, "objection": objected, "status": status}
 
-    @models.permalink
     def get_absolute_url(self):
-        return 'resolution_detail', [self.slug]
+        return reverse("resolution_detail", args=[self.slug])
 
     def epoch_seconds(self, date):
         """Returns the number of seconds from the epoch to date."""
@@ -230,7 +247,7 @@ class Resolution(DeletePreventionMixin, models.Model):
         return "http://%(language)s.%(domain)s%(path)s" % {
             "language": self.language,
             "domain": settings.BASE_DOMAIN,
-            "path": self.get_absolute_url()
+            "path": self.get_absolute_url(),
         }
 
     def save(self, *args, **kwargs):
@@ -245,10 +262,10 @@ class Resolution(DeletePreventionMixin, models.Model):
             else:
                 self.slug = slug
 
-        if not kwargs.pop('skip_date_update', False):
+        if not kwargs.pop("skip_date_update", False):
             self.date_modification = datetime.now()
 
-        return super(Resolution, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def published_declarations(self, parent=None, ignore_parent=False):
         declarations = self.declarations.filter(is_approved=True)
@@ -259,15 +276,19 @@ class Resolution(DeletePreventionMixin, models.Model):
     published_children = published_declarations
 
     def children_by_declaration_type(self, declaration_type=None, ignore_parent=False):
-        return (self.published_declarations(ignore_parent=ignore_parent)
-                .filter(declaration_type=declaration_type))
+        return self.published_declarations(ignore_parent=ignore_parent).filter(
+            declaration_type=declaration_type
+        )
 
-    because = curry(children_by_declaration_type,
-                    declaration_type=SUPPORT, ignore_parent=True)
-    but = curry(children_by_declaration_type,
-                declaration_type=OBJECTION, ignore_parent=True)
-    however = curry(children_by_declaration_type,
-                    declaration_type=SITUATION, ignore_parent=True)
+    because = curry(
+        children_by_declaration_type, declaration_type=SUPPORT, ignore_parent=True
+    )
+    but = curry(
+        children_by_declaration_type, declaration_type=OBJECTION, ignore_parent=True
+    )
+    however = curry(
+        children_by_declaration_type, declaration_type=SITUATION, ignore_parent=True
+    )
 
     def update_sibling_counts(self):
         for declaration in self.declarations.filter():
@@ -304,7 +325,7 @@ class Resolution(DeletePreventionMixin, models.Model):
             "language": self.language,
             "title": self.title,
             "owner": self.owner,
-            "uri": self.get_absolute_url()
+            "uri": self.get_absolute_url(),
         }
 
     def get_overview_bundle(self):
@@ -316,11 +337,12 @@ class Resolution(DeletePreventionMixin, models.Model):
             "date_modification": self.date_modification,
             "declaration_count": self.declarations.count(),
             "absolute_url": self.get_full_url(),
-            "support_rate": self.overview(show_percent=True)['support']
+            "support_rate": self.overview(show_percent=True)["support"],
         }
 
     def contributors(self):
         from profiles.models import Speaker
+
         # avoid circular import
 
         return Speaker.objects.filter(
@@ -328,20 +350,12 @@ class Resolution(DeletePreventionMixin, models.Model):
         )
 
     def extract_nouns(self):
-        ngrams = set(build_ngrams(self.title,
-                                  language=self.language))
+        ngrams = set(build_ngrams(self.title, language=self.language))
 
-        nouns = (
-            Noun
-            .objects
-            .prefetch_related('keywords')
-            .filter(
-                Q(is_active=True),
-                Q(language=self.language),
-                Q(text__in=ngrams) |
-                Q(keywords__text__in=ngrams,
-                  keywords__is_active=True)
-            )
+        nouns = Noun.objects.prefetch_related("keywords").filter(
+            Q(is_active=True),
+            Q(language=self.language),
+            Q(text__in=ngrams) | Q(keywords__text__in=ngrams, keywords__is_active=True),
         )
 
         return nouns
@@ -351,54 +365,38 @@ class Resolution(DeletePreventionMixin, models.Model):
         for noun in nouns:
             self.nouns.add(noun)
 
-    def formatted_title(self, tag='a'):
+    def formatted_title(self, tag="a"):
         language = normalize_language_code(get_language())
         title = strip_tags(self.title)
-        select = {'length': 'Length(nouns_noun.text)'}
-        nouns = (self
-                 .nouns
-                 .extra(select=select)
-                 .filter(language=language)
-                 .prefetch_related('keywords')
-                 .order_by('-length'))
+        select = {"length": "Length(nouns_noun.text)"}
+        nouns = (
+            self.nouns.extra(select=select)
+            .filter(language=language)
+            .prefetch_related("keywords")
+            .order_by("-length")
+        )
 
         for noun in nouns:
-            keywords = (
-                noun.active_keywords().values_list(
-                    'text', flat=True
-                )
-            )
-            sorted_keywords = sorted(
-                keywords,
-                key=len,
-                reverse=True
-            )
+            keywords = noun.active_keywords().values_list("text", flat=True)
+            sorted_keywords = sorted(keywords, key=len, reverse=True)
 
             for keyword in sorted_keywords:
                 replaced = replace_with_link(
-                    title,
-                    keyword,
-                    noun.get_absolute_url(),
-                    tag
+                    title, keyword, noun.get_absolute_url(), tag
                 )
 
                 if replaced is not None:
                     title = replaced
                     continue
 
-            replaced = replace_with_link(
-                title,
-                noun.text,
-                noun.get_absolute_url(),
-                tag
-            )
+            replaced = replace_with_link(title, noun.text, noun.get_absolute_url(), tag)
 
             if replaced is not None:
                 title = replaced
 
         return title
 
-    highlighted_title = curry(formatted_title, tag='span')
+    highlighted_title = curry(formatted_title, tag="span")
 
     def related_resolutions(self):
         if self.related_nouns.exists():
@@ -406,40 +404,37 @@ class Resolution(DeletePreventionMixin, models.Model):
         else:
             source = self.nouns
 
-        nouns = source.prefetch_related('out_relations')
-        noun_ids = set(nouns.values_list('pk', flat=True))
+        nouns = source.prefetch_related("out_relations")
+        noun_ids = set(nouns.values_list("pk", flat=True))
 
         for noun in nouns.all():
-            relations = set(noun.out_relations.values_list('target', flat=True))
+            relations = set(noun.out_relations.values_list("target", flat=True))
             noun_ids = noun_ids.union(relations)
 
         available_nouns = (
             Noun.objects.filter(
-                language=normalize_language_code(get_language()),
-                id__in=noun_ids
-            ).annotate(
-                resolution_count=Count('resolutions'),
-            ).filter(
-                resolutions__is_published=True
-            ).prefetch_related(
-                'resolutions'
+                language=normalize_language_code(get_language()), id__in=noun_ids
             )
+            .annotate(resolution_count=Count("resolutions"))
+            .filter(resolutions__is_published=True)
+            .prefetch_related("resolutions")
         )
 
-        serialized = [{
-            'noun': noun,
-            'resolutions': (
-                noun
-                .resolutions
-                .exclude(pk=self.pk)
-                .values('title', 'slug')
-                .order_by('?')  # find a proper way to randomize
-                                # suggestions
-                [:7]
-            )
-        } for noun in available_nouns]
+        serialized = [
+            {
+                "noun": noun,
+                "resolutions": (
+                    noun.resolutions.exclude(pk=self.pk)
+                    .values("title", "slug")
+                    .order_by("?")  # find a proper way to randomize
+                    # suggestions
+                    [:7]
+                ),
+            }
+            for noun in available_nouns
+        ]
 
-        return filter(itemgetter('resolutions'), serialized)
+        return filter(itemgetter("resolutions"), serialized)
 
     def update_declaration_weights(self):
         for child in self.published_children():
@@ -457,8 +452,7 @@ class Resolution(DeletePreventionMixin, models.Model):
             return
 
         channel = Channel.objects.filter(
-            nouns__in=nouns,
-            language=normalize_language_code(get_language())
+            nouns__in=nouns, language=normalize_language_code(get_language())
         ).first()
 
         return channel
@@ -466,41 +460,68 @@ class Resolution(DeletePreventionMixin, models.Model):
 
 class Declaration(DeletePreventionMixin, models.Model):
     from profiles.models import Speaker
+
     # avoid circular import
 
-    resolution = models.ForeignKey(Resolution, related_name="declarations")
-    speaker = models.ForeignKey(Speaker, related_name='speaker_declarations', null=True)
-    #speaker = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='speaker_declarations')
-    parent = models.ForeignKey("self", related_name="children",
-                               null=True, blank=True,
-                               verbose_name=_("Parent"),
-                               help_text=_("The parent of declaration. If you don't choose " +
-                                           "anything, it will be a main declaration."))
+    resolution = models.ForeignKey(
+        Resolution, related_name="declarations", on_delete=models.CASCADE
+    )
+    speaker = models.ForeignKey(
+        Speaker,
+        related_name="speaker_declarations",
+        null=True,
+        on_delete=models.CASCADE,
+    )
+    # speaker = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='speaker_declarations', on_delete=models.CASCADE)
+    parent = models.ForeignKey(
+        "self",
+        related_name="children",
+        null=True,
+        blank=True,
+        verbose_name=_("Parent"),
+        help_text=_(
+            "The parent of declaration. If you don't choose "
+            + "anything, it will be a main declaration."
+        ),
+        on_delete=models.CASCADE,
+    )
     declaration_type = models.IntegerField(
         default=NEUTRAL,
-        choices=DECLARATION_TYPES, verbose_name=_("Declaration Type"),
-        help_text=render_to_string("declarations/examples/declaration_type.html"))
+        choices=DECLARATION_TYPES,
+        verbose_name=_("Declaration Type"),
+        help_text=render_to_string("declarations/examples/declaration_type.html"),
+    )
     text = models.TextField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         verbose_name=_("Declaration Content"),
         help_text=render_to_string("declarations/examples/declaration.html"),
-        validators=[validators.MaxLengthValidator(MAX_DECLARATION_CONTENT_LENGTH)])
+        validators=[validators.MaxLengthValidator(MAX_DECLARATION_CONTENT_LENGTH)],
+    )
     sources = models.TextField(
-        null=True, blank=True, verbose_name=_("Sources"),
-        help_text=render_to_string("declarations/examples/declaration_source.html"))
-    related_resolution = models.ForeignKey(Resolution, related_name="related_declarations",
-                                           blank=True, null=True,
-                                           verbose_name=_('Related Resolution'),
-                                           help_text=_("You can also associate your declaration "
-                                                       "with a resolution."))
+        null=True,
+        blank=True,
+        verbose_name=_("Sources"),
+        help_text=render_to_string("declarations/examples/declaration_source.html"),
+    )
+    related_resolution = models.ForeignKey(
+        Resolution,
+        related_name="related_declarations",
+        blank=True,
+        null=True,
+        verbose_name=_("Related Resolution"),
+        help_text=_("You can also associate your declaration " "with a resolution."),
+        on_delete=models.CASCADE,
+    )
     is_approved = models.BooleanField(default=True, verbose_name=_("Published"))
     collapsed = models.BooleanField(default=False)
-    supporters = models.ManyToManyField(settings.AUTH_USER_MODEL,
-                                        related_name="supporting")
+    supporters = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="supporting"
+    )
     sibling_count = models.IntegerField(default=1)  # denormalized field
     child_count = models.IntegerField(default=1)  # denormalized field
     max_sibling_count = models.IntegerField(default=1)  # denormalized field
-    #date_creation = models.DateTimeField(auto_now_add=True)
+    # date_creation = models.DateTimeField(auto_now_add=True)
     date_creation = models.DateTimeField(default=timezone.now)
     ip_address = models.CharField(max_length=255, null=True, blank=True)
     weight = models.IntegerField(default=0)
@@ -516,9 +537,7 @@ class Declaration(DeletePreventionMixin, models.Model):
     def serialize(self, declaration_lookup, authenticated_speaker=None):
 
         if authenticated_speaker is not None:
-            supported = self.supporters.filter(
-                id=authenticated_speaker.id
-            ).exists()
+            supported = self.supporters.filter(id=authenticated_speaker.id).exists()
         else:
             supported = False
 
@@ -532,39 +551,38 @@ class Declaration(DeletePreventionMixin, models.Model):
 
         if self.related_resolution:
             related_resolution = {
-                'title': self.related_resolution.title,
-                'absolute_url': self.related_resolution.get_absolute_url()
+                "title": self.related_resolution.title,
+                "absolute_url": self.related_resolution.get_absolute_url(),
             }
 
         return {
-            'id': self.id,
-            'children': children,
-            'supported_by_authenticated_speaker': supported,
-            'supporter_count': self.supporter_count,
-            'speaker': self.speaker.serialize(),
-            'declaration_type': self.declaration_type,
-            'declaration_type_label': self.get_declaration_type_display(),
-            'declaration_class': self.declaration_class(),
-            'text': self.text,
-            'formatted_text': self.formatted_text,
-            'sources': self.sources,
-            'is_approved': self.is_approved,
-            'is_collapsed': self.is_collapsed(),
-            'max_sibling_count': self.max_sibling_count,
-            'child_count': self.child_count,
-            'date_creation': self.date_creation,
-            'fallacies': self.fallacies(authenticated_speaker),
-            'fallacy_count': self.report_count,
-            'weight': self.weight,
-            'related_resolution': related_resolution
+            "id": self.id,
+            "children": children,
+            "supported_by_authenticated_speaker": supported,
+            "supporter_count": self.supporter_count,
+            "speaker": self.speaker.serialize(),
+            "declaration_type": self.declaration_type,
+            "declaration_type_label": self.get_declaration_type_display(),
+            "declaration_class": self.declaration_class(),
+            "text": self.text,
+            "formatted_text": self.formatted_text,
+            "sources": self.sources,
+            "is_approved": self.is_approved,
+            "is_collapsed": self.is_collapsed(),
+            "max_sibling_count": self.max_sibling_count,
+            "child_count": self.child_count,
+            "date_creation": self.date_creation,
+            "fallacies": self.fallacies(authenticated_speaker),
+            "fallacy_count": self.report_count,
+            "weight": self.weight,
+            "related_resolution": related_resolution,
         }
 
-    @models.permalink
     def get_absolute_url(self):
-        return 'declaration_detail', [self.resolution.slug, self.pk]
+        return reverse("declaration_detail", args=[self.resolution.slug, self.pk])
 
     def get_list_url(self):
-        return '%s?view=list' % self.get_absolute_url()
+        return "%s?view=list" % self.get_absolute_url()
 
     @property
     def parent_speakers(self):
@@ -581,8 +599,9 @@ class Declaration(DeletePreventionMixin, models.Model):
         self.get_siblings().update(sibling_count=count)
 
     def get_siblings(self):
-        return Declaration.objects.filter(parent=self.parent,
-                                      resolution=self.resolution)
+        return Declaration.objects.filter(
+            parent=self.parent, resolution=self.resolution
+        )
 
     def published_children(self):
         return self.children.filter(is_approved=True)
@@ -601,7 +620,7 @@ class Declaration(DeletePreventionMixin, models.Model):
             OBJECTION: "but",
             SUPPORT: "because",
             SITUATION: "however",
-            NEUTRAL: "neutral"
+            NEUTRAL: "neutral",
         }.get(self.declaration_type)
 
     def reported_by(self, user):
@@ -617,31 +636,40 @@ class Declaration(DeletePreventionMixin, models.Model):
         return self.published_children().count()
 
     def fallacies(self, authenticated_user=None):
-        reports = self.reports.values('fallacy_type', 'reporter_id',
-                                      'reporter__username', 'reason')
-        fallacies = set(report['fallacy_type'] for report in reports)
+        reports = self.reports.values(
+            "fallacy_type", "reporter_id", "reporter__username", "reason"
+        )
+        fallacies = set(report["fallacy_type"] for report in reports)
         mapping = dict(FALLACY_TYPES)
 
         user_reports = set()
         reasons = defaultdict(list)
 
         for report in reports:
-            if (authenticated_user is not None and
-                    report['reporter_id'] == authenticated_user.id):
-                user_reports.add(report['fallacy_type'])
+            if (
+                authenticated_user is not None
+                and report["reporter_id"] == authenticated_user.id
+            ):
+                user_reports.add(report["fallacy_type"])
 
-            if report['reason'] is not None:
-                reasons[report['fallacy_type']].append({
-                    'reporter': report['reporter__username'],
-                    'reason': report['reason']
-                })
+            if report["reason"] is not None:
+                reasons[report["fallacy_type"]].append(
+                    {
+                        "reporter": report["reporter__username"],
+                        "reason": report["reason"],
+                    }
+                )
 
-        return [{
-            'type': fallacy,
-            'label': mapping.get(fallacy),
-            'reasons': reasons.get(fallacy),
-            'reported_by_authenticated_user': fallacy in user_reports
-        } for fallacy in fallacies if fallacy]
+        return [
+            {
+                "type": fallacy,
+                "label": mapping.get(fallacy),
+                "reasons": reasons.get(fallacy),
+                "reported_by_authenticated_user": fallacy in user_reports,
+            }
+            for fallacy in fallacies
+            if fallacy
+        ]
 
     def get_actor(self):
         # Encapsulated for newsfeed app.
@@ -664,7 +692,7 @@ class Declaration(DeletePreventionMixin, models.Model):
             "text": self.text,
             "sources": self.sources,
             "resolution": self.resolution.get_newsfeed_bundle(),
-            'related_resolution': related_resolution
+            "related_resolution": related_resolution,
         }
 
     def get_parent(self):
@@ -684,7 +712,7 @@ class Declaration(DeletePreventionMixin, models.Model):
 
     def save(self, *args, **kwargs):
         # self.save_karma_tree()
-        return super(Declaration, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     because = curry(children_by_declaration_type, declaration_type=SUPPORT)
     but = curry(children_by_declaration_type, declaration_type=OBJECTION)
@@ -710,22 +738,38 @@ class Declaration(DeletePreventionMixin, models.Model):
 
 
 class Report(models.Model):
-    reporter = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                 related_name='reports')
-    declaration = models.ForeignKey(Declaration,
-                                related_name='reports',
-                                blank=True,
-                                null=True)
-    resolution = models.ForeignKey(Resolution,
-                                   related_name='reports',
-                                   blank=True,
-                                   null=True)
-    reason = models.TextField(verbose_name=_("Reason"), null=True, blank=False,
-                              help_text=_('Please explain why the declaration is a fallacy.'))
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="reports", on_delete=models.CASCADE
+    )
+    declaration = models.ForeignKey(
+        Declaration,
+        related_name="reports",
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+    )
+    resolution = models.ForeignKey(
+        Resolution,
+        related_name="reports",
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+    )
+    reason = models.TextField(
+        verbose_name=_("Reason"),
+        null=True,
+        blank=False,
+        help_text=_("Please explain why the declaration is a fallacy."),
+    )
     fallacy_type = models.CharField(
-        _("Fallacy Type"), choices=FALLACY_TYPES, null=True, blank=False,
-        max_length=255, default="Wrong Direction",
-        help_text=render_to_string("declarations/examples/fallacy.html"))
+        _("Fallacy Type"),
+        choices=FALLACY_TYPES,
+        null=True,
+        blank=False,
+        max_length=255,
+        default="Wrong Direction",
+        help_text=render_to_string("declarations/examples/fallacy.html"),
+    )
 
     def __unicode__(self):
         return smart_text(self.fallacy_type)
@@ -737,7 +781,7 @@ class Report(models.Model):
 
     def save(self, *args, **kwargs):
         self.save_karma()
-        return super(Report, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def get_actor(self):
         """
@@ -754,5 +798,5 @@ class Report(models.Model):
             "reason": self.reason,
             "fallacy_type": self.fallacy_type,
             "declaration": self.declaration.get_newsfeed_bundle(),
-            "resolution": self.resolution.get_newsfeed_bundle()
+            "resolution": self.resolution.get_newsfeed_bundle(),
         }

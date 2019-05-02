@@ -11,64 +11,129 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-    ]
+    dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
 
     operations = [
         migrations.CreateModel(
-            name='Channel',
+            name="Channel",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('slug', models.CharField(max_length=255)),
-                ('order', models.IntegerField()),
-                ('language', models.CharField(blank=True, max_length=255, null=True)),
-                ('is_featured', models.BooleanField(default=False, max_length=255)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("slug", models.CharField(max_length=255)),
+                ("order", models.IntegerField()),
+                ("language", models.CharField(blank=True, max_length=255, null=True)),
+                ("is_featured", models.BooleanField(default=False, max_length=255)),
             ],
         ),
         migrations.CreateModel(
-            name='Keyword',
+            name="Keyword",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=255)),
-                ('is_active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=255)),
+                ("is_active", models.BooleanField(default=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Noun',
+            name="Noun",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(db_index=True, max_length=255)),
-                ('slug', models.SlugField(blank=True, max_length=255)),
-                ('language', models.CharField(max_length=25)),
-                ('is_active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(db_index=True, max_length=255)),
+                ("slug", models.SlugField(blank=True, max_length=255)),
+                ("language", models.CharField(max_length=25)),
+                ("is_active", models.BooleanField(default=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Relation',
+            name="Relation",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('relation_type', models.CharField(choices=[(b'hypernym', 'is a'), (b'holonym', 'part of'), (b'antonym', 'opposite with')], max_length=25)),
-                ('is_active', models.BooleanField(default=True)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('source', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='out_relations', to='nouns.Noun')),
-                ('target', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='in_relations', to='nouns.Noun')),
-                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "relation_type",
+                    models.CharField(
+                        choices=[
+                            (b"hypernym", "is a"),
+                            (b"holonym", "part of"),
+                            (b"antonym", "opposite with"),
+                        ],
+                        max_length=25,
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                (
+                    "source",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="out_relations",
+                        to="nouns.Noun",
+                    ),
+                ),
+                (
+                    "target",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="in_relations",
+                        to="nouns.Noun",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.AlterUniqueTogether(
-            name='noun',
-            unique_together=set([('text', 'language')]),
+            name="noun", unique_together=set([("text", "language")])
         ),
         migrations.AddField(
-            model_name='keyword',
-            name='noun',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='keywords', to='nouns.Noun'),
+            model_name="keyword",
+            name="noun",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="keywords",
+                to="nouns.Noun",
+            ),
         ),
         migrations.AddField(
-            model_name='channel',
-            name='nouns',
-            field=models.ManyToManyField(blank=True, to='nouns.Noun'),
+            model_name="channel",
+            name="nouns",
+            field=models.ManyToManyField(blank=True, to="nouns.Noun"),
         ),
     ]

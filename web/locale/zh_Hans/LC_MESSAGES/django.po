@@ -434,9 +434,13 @@ msgstr "语言:"
 msgid "English"
 msgstr "英语"
 
-#: templates/base.html:56
-msgid "Turkish"
-msgstr "土耳其语"
+#: templates/base.html:54
+msgid "Français"
+msgstr "法语"
+
+#: templates/base.html:54
+msgid "Русский"
+msgstr "俄语"
 
 #: templates/base.html:58
 msgid "Chinese"

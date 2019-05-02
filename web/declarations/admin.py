@@ -7,32 +7,33 @@ from declarations.models import Resolution, Declaration, Report
 
 
 class ReportAdmin(admin.ModelAdmin):
-    list_display = ('reporter', 'declaration', 'resolution')
+    list_display = ("reporter", "declaration", "resolution")
 
 
 class DeclarationInline(admin.TabularInline):
     model = Declaration
     extra = 0
-    fields = ('user', 'declaration_type',
-              'text', 'sources', 'is_approved')
+    fields = ("user", "declaration_type", "text", "sources", "is_approved")
     fk_name = "resolution"
-    raw_id_fields = ('speaker', )
+    raw_id_fields = ("speaker",)
     formfield_overrides = {
-        models.TextField: {
-            'widget': Textarea(
-                attrs={'rows': 2, 'cols': 40}
-            )},
+        models.TextField: {"widget": Textarea(attrs={"rows": 2, "cols": 40})}
     }
 
 
 class ResolutionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'language', 'is_featured',
-                    'is_published', 'declaration_count')
-    list_editable = ('language', 'is_featured',)
-    search_fields = ('title', 'nouns__text')
+    list_display = (
+        "title",
+        "language",
+        "is_featured",
+        "is_published",
+        "declaration_count",
+    )
+    list_editable = ("language", "is_featured")
+    search_fields = ("title", "nouns__text")
     list_per_page = 100
-    list_filter = ('language', 'is_featured',)
-    filter_horizontal = ('nouns', 'related_nouns')
+    list_filter = ("language", "is_featured")
+    filter_horizontal = ("nouns", "related_nouns")
     inlines = [DeclarationInline]
 
     def declaration_count(self, obj):
@@ -40,8 +41,8 @@ class ResolutionAdmin(admin.ModelAdmin):
 
 
 class DeclarationAdmin(admin.ModelAdmin):
-    list_display = ('text', 'resolution', 'is_deleted')
-    list_filter = ('is_deleted',)
+    list_display = ("text", "resolution", "is_deleted")
+    list_filter = ("is_deleted",)
 
     def get_queryset(self, request):
         return Declaration.objects.all_with_deleted()

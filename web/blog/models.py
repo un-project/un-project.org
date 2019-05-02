@@ -1,16 +1,18 @@
 from django.db import models
+from django.urls import reverse
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext_lazy as _
 
-from markitup.fields import MarkupField
+from markupfield.fields import MarkupField
 
 
 class PublishedManager(models.Manager):
     """
     Returns published blog posts.
     """
+
     def get_queryset(self):
-        queryset = super(PublishedManager, self).get_queryset()
+        queryset = super().get_queryset()
         return queryset.filter(is_published=True)
 
 
@@ -18,6 +20,7 @@ class Post(models.Model):
     """
     Holds blog post data.
     """
+
     title = models.CharField(_("Name"), max_length=255)
     slug = models.SlugField(_("Slug"), max_length=255, unique=True)
     content = MarkupField(_("Content"))
@@ -30,11 +33,10 @@ class Post(models.Model):
     published_objects = PublishedManager()
 
     class Meta:
-        ordering = ("-date_created", )
+        ordering = ("-date_created",)
 
     def __unicode__(self):
         return smart_text(self.title)
 
-    @models.permalink
     def get_absolute_url(self):
-        return "blog_detail", [self.slug]
+        return reverse("blog_detail", args=[self.slug])

@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from rest_framework import serializers
 from django_gravatar.templatetags import gravatar
@@ -12,7 +12,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ('id', 'username', 'absolute_url', 'avatar',)
+        fields = ("id", "username", "absolute_url", "avatar")
 
     def get_absolute_url(self, obj):
         return reverse("api-profile-detail", args=[obj.username])

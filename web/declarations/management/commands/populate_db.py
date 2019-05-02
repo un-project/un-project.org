@@ -1,19 +1,37 @@
 # -*- coding: utf-8 -*-
 
 from django.core.management.base import BaseCommand
-from declarations.models import Declaration, Resolution, OBJECTION, SUPPORT, SITUATION, NEUTRAL
+from declarations.models import (
+    Declaration,
+    Resolution,
+    OBJECTION,
+    SUPPORT,
+    SITUATION,
+    NEUTRAL,
+)
 from profiles.models import Profile, Speaker, State
 
 import sys
 import argparse
 import json
-#from django.utils import timezone
-#from datetime import datetime
+
+# from django.utils import timezone
+# from datetime import datetime
 from dateutil.parser import parse
 
 STATES = [
     ["AD", "AND", "020", "AN", "Andorra", "Andorra la Vella", 468.0, 84000, "EU"],
-    ["AE", "ARE", "784", "AE", "United Arab Emirates", "Abu Dhabi", 82880.0, 4975593, "AS"],
+    [
+        "AE",
+        "ARE",
+        "784",
+        "AE",
+        "United Arab Emirates",
+        "Abu Dhabi",
+        82880.0,
+        4975593,
+        "AS",
+    ],
     ["AF", "AFG", "004", "AF", "Afghanistan", "Kabul", 647500.0, 29121286, "AS"],
     ["AG", "ATG", "028", "AC", "Antigua and Barbuda", "St. John's", 443.0, 86754, "NA"],
     ["AI", "AIA", "660", "AV", "Anguilla", "The Valley", 102.0, 13254, "NA"],
@@ -29,7 +47,17 @@ STATES = [
     ["AW", "ABW", "533", "AA", "Aruba", "Oranjestad", 193.0, 71566, "NA"],
     ["AX", "ALA", "248", "", "Åland", "Mariehamn", 1580.0, 26711, "EU"],
     ["AZ", "AZE", "031", "AJ", "Azerbaijan", "Baku", 86600.0, 8303512, "AS"],
-    ["BA", "BIH", "070", "BK", "Bosnia and Herzegovina", "Sarajevo", 51129.0, 4590000, "EU"],
+    [
+        "BA",
+        "BIH",
+        "070",
+        "BK",
+        "Bosnia and Herzegovina",
+        "Sarajevo",
+        51129.0,
+        4590000,
+        "EU",
+    ],
     ["BB", "BRB", "052", "BB", "Barbados", "Bridgetown", 431.0, 285653, "NA"],
     ["BD", "BGD", "050", "BG", "Bangladesh", "Dhaka", 144000.0, 156118464, "AS"],
     ["BE", "BEL", "056", "BE", "Belgium", "Brussels", 30510.0, 10403000, "EU"],
@@ -51,10 +79,50 @@ STATES = [
     ["BY", "BLR", "112", "BO", "Belarus", "Minsk", 207600.0, 9685000, "EU"],
     ["BZ", "BLZ", "084", "BH", "Belize", "Belmopan", 22966.0, 314522, "NA"],
     ["CA", "CAN", "124", "CA", "Canada", "Ottawa", 9984670.0, 33679000, "NA"],
-    ["CC", "CCK", "166", "CK", "Cocos [Keeling] Islands", "West Island", 14.0, 628, "AS"],
-    ["CD", "COD", "180", "CG", "Democratic Republic of the Congo", "Kinshasa", 2345410.0, 70916439, "AF"],
-    ["CF", "CAF", "140", "CT", "Central African Republic", "Bangui", 622984.0, 4844927, "AF"],
-    ["CG", "COG", "178", "CF", "Republic of the Congo", "Brazzaville", 342000.0, 3039126, "AF"],
+    [
+        "CC",
+        "CCK",
+        "166",
+        "CK",
+        "Cocos [Keeling] Islands",
+        "West Island",
+        14.0,
+        628,
+        "AS",
+    ],
+    [
+        "CD",
+        "COD",
+        "180",
+        "CG",
+        "Democratic Republic of the Congo",
+        "Kinshasa",
+        2345410.0,
+        70916439,
+        "AF",
+    ],
+    [
+        "CF",
+        "CAF",
+        "140",
+        "CT",
+        "Central African Republic",
+        "Bangui",
+        622984.0,
+        4844927,
+        "AF",
+    ],
+    [
+        "CG",
+        "COG",
+        "178",
+        "CF",
+        "Republic of the Congo",
+        "Brazzaville",
+        342000.0,
+        3039126,
+        "AF",
+    ],
     ["CH", "CHE", "756", "SZ", "Switzerland", "Bern", 41290.0, 7581000, "EU"],
     ["CI", "CIV", "384", "IV", "Ivory Coast", "Yamoussoukro", 322460.0, 21058798, "AF"],
     ["CK", "COK", "184", "CW", "Cook Islands", "Avarua", 240.0, 21388, "OC"],
@@ -67,14 +135,34 @@ STATES = [
     ["CU", "CUB", "192", "CU", "Cuba", "Havana", 110860.0, 11423000, "NA"],
     ["CV", "CPV", "132", "CV", "Cape Verde", "Praia", 4033.0, 508659, "AF"],
     ["CW", "CUW", "531", "UC", "Curacao", "Willemstad", 444.0, 141766, "NA"],
-    ["CX", "CXR", "162", "KT", "Christmas Island", "Flying Fish Cove", 135.0, 1500, "AS"],
+    [
+        "CX",
+        "CXR",
+        "162",
+        "KT",
+        "Christmas Island",
+        "Flying Fish Cove",
+        135.0,
+        1500,
+        "AS",
+    ],
     ["CY", "CYP", "196", "CY", "Cyprus", "Nicosia", 9250.0, 1102677, "EU"],
     ["CZ", "CZE", "203", "EZ", "Czech Republic", "Prague", 78866.0, 10476000, "EU"],
     ["DE", "DEU", "276", "GM", "Germany", "Berlin", 357021.0, 81802257, "EU"],
     ["DJ", "DJI", "262", "DJ", "Djibouti", "Djibouti", 23000.0, 740528, "AF"],
     ["DK", "DNK", "208", "DA", "Denmark", "Copenhagen", 43094.0, 5484000, "EU"],
     ["DM", "DMA", "212", "DO", "Dominica", "Roseau", 754.0, 72813, "NA"],
-    ["DO", "DOM", "214", "DR", "Dominican Republic", "Santo Domingo", 48730.0, 9823821, "NA"],
+    [
+        "DO",
+        "DOM",
+        "214",
+        "DR",
+        "Dominican Republic",
+        "Santo Domingo",
+        48730.0,
+        9823821,
+        "NA",
+    ],
     ["DZ", "DZA", "012", "AG", "Algeria", "Algiers", 2381740.0, 34586184, "AF"],
     ["EC", "ECU", "218", "EC", "Ecuador", "Quito", 283560.0, 14790608, "SA"],
     ["EE", "EST", "233", "EN", "Estonia", "Tallinn", 45226.0, 1291170, "EU"],
@@ -103,7 +191,17 @@ STATES = [
     ["GP", "GLP", "312", "GP", "Guadeloupe", "Basse-Terre", 1780.0, 443000, "NA"],
     ["GQ", "GNQ", "226", "EK", "Equatorial Guinea", "Malabo", 28051.0, 1014999, "AF"],
     ["GR", "GRC", "300", "GR", "Greece", "Athens", 131940.0, 11000000, "EU"],
-    ["GS", "SGS", "239", "SX", "South Georgia and the South Sandwich Islands", "Grytviken", 3903.0, 30, "AN"],
+    [
+        "GS",
+        "SGS",
+        "239",
+        "SX",
+        "South Georgia and the South Sandwich Islands",
+        "Grytviken",
+        3903.0,
+        30,
+        "AN",
+    ],
     ["GT", "GTM", "320", "GT", "Guatemala", "Guatemala City", 108890.0, 13550440, "NA"],
     ["GU", "GUM", "316", "GQ", "Guam", "Hagatna", 549.0, 159358, "OC"],
     ["GW", "GNB", "624", "PU", "Guinea-Bissau", "Bissau", 36120.0, 1565126, "AF"],
@@ -119,7 +217,17 @@ STATES = [
     ["IL", "ISR", "376", "IS", "Israel", "Jerusalem", 20770.0, 7353985, "AS"],
     ["IM", "IMN", "833", "IM", "Isle of Man", "Douglas", 572.0, 75049, "EU"],
     ["IN", "IND", "356", "IN", "India", "New Delhi", 3287590.0, 1173108018, "AS"],
-    ["IO", "IOT", "086", "IO", "British Indian Ocean Territory", "Diego Garcia", 60.0, 4000, "AS"],
+    [
+        "IO",
+        "IOT",
+        "086",
+        "IO",
+        "British Indian Ocean Territory",
+        "Diego Garcia",
+        60.0,
+        4000,
+        "AS",
+    ],
     ["IQ", "IRQ", "368", "IZ", "Iraq", "Baghdad", 437072.0, 29671605, "AS"],
     ["IR", "IRN", "364", "IR", "Iran", "Tehran", 1648000.0, 76923300, "AS"],
     ["IS", "ISL", "352", "IC", "Iceland", "Reykjavik", 103000.0, 308910, "EU"],
@@ -133,7 +241,17 @@ STATES = [
     ["KH", "KHM", "116", "CB", "Cambodia", "Phnom Penh", 181040.0, 14453680, "AS"],
     ["KI", "KIR", "296", "KR", "Kiribati", "Tarawa", 811.0, 92533, "OC"],
     ["KM", "COM", "174", "CN", "Comoros", "Moroni", 2170.0, 773407, "AF"],
-    ["KN", "KNA", "659", "SC", "Saint Kitts and Nevis", "Basseterre", 261.0, 51134, "NA"],
+    [
+        "KN",
+        "KNA",
+        "659",
+        "SC",
+        "Saint Kitts and Nevis",
+        "Basseterre",
+        261.0,
+        51134,
+        "NA",
+    ],
     ["KP", "PRK", "408", "KN", "North Korea", "Pyongyang", 120540.0, 22912177, "AS"],
     ["KR", "KOR", "410", "KS", "South Korea", "Seoul", 98480.0, 48422644, "AS"],
     ["KW", "KWT", "414", "KU", "Kuwait", "Kuwait City", 17820.0, 2789132, "AS"],
@@ -152,17 +270,47 @@ STATES = [
     ["LY", "LBY", "434", "LY", "Libya", "Tripoli", 1759540.0, 6461454, "AF"],
     ["MA", "MAR", "504", "MO", "Morocco", "Rabat", 446550.0, 31627428, "AF"],
     ["MC", "MCO", "492", "MN", "Monaco", "Monaco", 1.9, 32965, "EU"],
-    ["MD", "MDA", "498", "MD", "Republic of Moldova", "Chisinau", 33843.0, 4324000, "EU"],
+    [
+        "MD",
+        "MDA",
+        "498",
+        "MD",
+        "Republic of Moldova",
+        "Chisinau",
+        33843.0,
+        4324000,
+        "EU",
+    ],
     ["ME", "MNE", "499", "MJ", "Montenegro", "Podgorica", 14026.0, 666730, "EU"],
     ["MF", "MAF", "663", "RN", "Saint Martin", "Marigot", 53.0, 35925, "NA"],
     ["MG", "MDG", "450", "MA", "Madagascar", "Antananarivo", 587040.0, 21281844, "AF"],
     ["MH", "MHL", "584", "RM", "Marshall Islands", "Majuro", 181.3, 65859, "OC"],
     ["MK", "MKD", "807", "MK", "Macedonia", "Skopje", 25333.0, 2062294, "EU"],
     ["ML", "MLI", "466", "ML", "Mali", "Bamako", 1240000.0, 13796354, "AF"],
-    ["MM", "MMR", "104", "BM", "Myanmar [Burma]", "Nay Pyi Taw", 678500.0, 53414374, "AS"],
+    [
+        "MM",
+        "MMR",
+        "104",
+        "BM",
+        "Myanmar [Burma]",
+        "Nay Pyi Taw",
+        678500.0,
+        53414374,
+        "AS",
+    ],
     ["MN", "MNG", "496", "MG", "Mongolia", "Ulan Bator", 1565000.0, 3086918, "AS"],
     ["MO", "MAC", "446", "MC", "Macao", "Macao", 254.0, 449198, "AS"],
-    ["MP", "MNP", "580", "CQ", "Northern Mariana Islands", "Saipan", 477.0, 53883, "OC"],
+    [
+        "MP",
+        "MNP",
+        "580",
+        "CQ",
+        "Northern Mariana Islands",
+        "Saipan",
+        477.0,
+        53883,
+        "OC",
+    ],
     ["MQ", "MTQ", "474", "MB", "Martinique", "Fort-de-France", 1100.0, 432900, "NA"],
     ["MR", "MRT", "478", "MR", "Mauritania", "Nouakchott", 1030700.0, 3205060, "AF"],
     ["MS", "MSR", "500", "MH", "Montserrat", "Plymouth", 102.0, 9341, "NA"],
@@ -189,11 +337,31 @@ STATES = [
     ["PA", "PAN", "591", "PM", "Panama", "Panama City", 78200.0, 3410676, "NA"],
     ["PE", "PER", "604", "PE", "Peru", "Lima", 1285220.0, 29907003, "SA"],
     ["PF", "PYF", "258", "FP", "French Polynesia", "Papeete", 4167.0, 270485, "OC"],
-    ["PG", "PNG", "598", "PP", "Papua New Guinea", "Port Moresby", 462840.0, 6064515, "OC"],
+    [
+        "PG",
+        "PNG",
+        "598",
+        "PP",
+        "Papua New Guinea",
+        "Port Moresby",
+        462840.0,
+        6064515,
+        "OC",
+    ],
     ["PH", "PHL", "608", "RP", "Philippines", "Manila", 300000.0, 99900177, "AS"],
     ["PK", "PAK", "586", "PK", "Pakistan", "Islamabad", 803940.0, 184404791, "AS"],
     ["PL", "POL", "616", "PL", "Poland", "Warsaw", 312685.0, 38500000, "EU"],
-    ["PM", "SPM", "666", "SB", "Saint Pierre and Miquelon", "Saint-Pierre", 242.0, 7012, "NA"],
+    [
+        "PM",
+        "SPM",
+        "666",
+        "SB",
+        "Saint Pierre and Miquelon",
+        "Saint-Pierre",
+        242.0,
+        7012,
+        "NA",
+    ],
     ["PN", "PCN", "612", "PC", "Pitcairn Islands", "Adamstown", 47.0, 46, "OC"],
     ["PR", "PRI", "630", "RQ", "Puerto Rico", "San Juan", 9104.0, 3916632, "NA"],
     ["PS", "PSE", "275", "WE", "Palestine", "East Jerusalem", 5970.0, 3800000, "AS"],
@@ -204,7 +372,17 @@ STATES = [
     ["RE", "REU", "638", "RE", "Réunion", "Saint-Denis", 2517.0, 776948, "AF"],
     ["RO", "ROU", "642", "RO", "Romania", "Bucharest", 237500.0, 21959278, "EU"],
     ["RS", "SRB", "688", "RI", "Serbia", "Belgrade", 88361.0, 7344847, "EU"],
-    ["RU", "RUS", "643", "RS", "Russian Federation", "Moscow", 17100000.0, 140702000, "EU"],
+    [
+        "RU",
+        "RUS",
+        "643",
+        "RS",
+        "Russian Federation",
+        "Moscow",
+        17100000.0,
+        140702000,
+        "EU",
+    ],
     ["RW", "RWA", "646", "RW", "Rwanda", "Kigali", 26338.0, 11055976, "AF"],
     ["SA", "SAU", "682", "SA", "Saudi Arabia", "Riyadh", 1960582.0, 25731776, "AS"],
     ["SB", "SLB", "090", "BP", "Solomon Islands", "Honiara", 28450.0, 559198, "OC"],
@@ -214,7 +392,17 @@ STATES = [
     ["SG", "SGP", "702", "SN", "Singapore", "Singapore", 692.7, 4701069, "AS"],
     ["SH", "SHN", "654", "SH", "Saint Helena", "Jamestown", 410.0, 7460, "AF"],
     ["SI", "SVN", "705", "SI", "Slovenia", "Ljubljana", 20273.0, 2007000, "EU"],
-    ["SJ", "SJM", "744", "SV", "Svalbard and Jan Mayen", "Longyearbyen", 62049.0, 2550, "EU"],
+    [
+        "SJ",
+        "SJM",
+        "744",
+        "SV",
+        "Svalbard and Jan Mayen",
+        "Longyearbyen",
+        62049.0,
+        2550,
+        "EU",
+    ],
     ["SK", "SVK", "703", "LO", "Slovakia", "Bratislava", 48845.0, 5455000, "EU"],
     ["SL", "SLE", "694", "SL", "Sierra Leone", "Freetown", 71740.0, 5245695, "AF"],
     ["SM", "SMR", "674", "SM", "San Marino", "San Marino", 61.2, 31477, "EU"],
@@ -222,15 +410,55 @@ STATES = [
     ["SO", "SOM", "706", "SO", "Somalia", "Mogadishu", 637657.0, 10112453, "AF"],
     ["SR", "SUR", "740", "NS", "Suriname", "Paramaribo", 163270.0, 492829, "SA"],
     ["SS", "SSD", "728", "OD", "South Sudan", "Juba", 644329.0, 8260490, "AF"],
-    ["ST", "STP", "678", "TP", "São Tomé and Príncipe", "Sao Tome", 1001.0, 175808, "AF"],
+    [
+        "ST",
+        "STP",
+        "678",
+        "TP",
+        "São Tomé and Príncipe",
+        "Sao Tome",
+        1001.0,
+        175808,
+        "AF",
+    ],
     ["SV", "SLV", "222", "ES", "El Salvador", "San Salvador", 21040.0, 6052064, "NA"],
     ["SX", "SXM", "534", "NN", "Sint Maarten", "Philipsburg", 21.0, 37429, "NA"],
-    ["SY", "SYR", "760", "SY", "Syrian Arab Republic", "Damascus", 185180.0, 22198110, "AS"],
-    #["SY", "SYR", "760", "SY", "Syria", "Damascus", 185180.0, 22198110, "AS"],
+    [
+        "SY",
+        "SYR",
+        "760",
+        "SY",
+        "Syrian Arab Republic",
+        "Damascus",
+        185180.0,
+        22198110,
+        "AS",
+    ],
+    # ["SY", "SYR", "760", "SY", "Syria", "Damascus", 185180.0, 22198110, "AS"],
     ["SZ", "SWZ", "748", "WZ", "Swaziland", "Mbabane", 17363.0, 1354051, "AF"],
-    ["TC", "TCA", "796", "TK", "Turks and Caicos Islands", "Cockburn Town", 430.0, 20556, "NA"],
+    [
+        "TC",
+        "TCA",
+        "796",
+        "TK",
+        "Turks and Caicos Islands",
+        "Cockburn Town",
+        430.0,
+        20556,
+        "NA",
+    ],
     ["TD", "TCD", "148", "CD", "Chad", "N'Djamena", 1284000.0, 10543464, "AF"],
-    ["TF", "ATF", "260", "FS", "French Southern Territories", "Port-aux-Francais", 7829.0, 140, "AN"],
+    [
+        "TF",
+        "ATF",
+        "260",
+        "FS",
+        "French Southern Territories",
+        "Port-aux-Francais",
+        7829.0,
+        140,
+        "AN",
+    ],
     ["TG", "TGO", "768", "TO", "Togo", "Lome", 56785.0, 6587239, "AF"],
     ["TH", "THA", "764", "TH", "Thailand", "Bangkok", 514000.0, 67089500, "AS"],
     ["TJ", "TJK", "762", "TI", "Tajikistan", "Dushanbe", 143100.0, 7487489, "AS"],
@@ -240,21 +468,71 @@ STATES = [
     ["TN", "TUN", "788", "TS", "Tunisia", "Tunis", 163610.0, 10589025, "AF"],
     ["TO", "TON", "776", "TN", "Tonga", "Nuku'alofa", 748.0, 122580, "OC"],
     ["TR", "TUR", "792", "TU", "Turkey", "Ankara", 780580.0, 77804122, "AS"],
-    ["TT", "TTO", "780", "TD", "Trinidad and Tobago", "Port of Spain", 5128.0, 1228691, "NA"],
+    [
+        "TT",
+        "TTO",
+        "780",
+        "TD",
+        "Trinidad and Tobago",
+        "Port of Spain",
+        5128.0,
+        1228691,
+        "NA",
+    ],
     ["TV", "TUV", "798", "TV", "Tuvalu", "Funafuti", 26.0, 10472, "OC"],
     ["TW", "TWN", "158", "TW", "Taiwan", "Taipei", 35980.0, 22894384, "AS"],
     ["TZ", "TZA", "834", "TZ", "Tanzania", "Dodoma", 945087.0, 41892895, "AF"],
     ["UA", "UKR", "804", "UP", "Ukraine", "Kiev", 603700.0, 45415596, "EU"],
     ["UG", "UGA", "800", "UG", "Uganda", "Kampala", 236040.0, 33398682, "AF"],
     ["UM", "UMI", "581", "", "U.S. Minor Outlying Islands", "", 0.0, 0, "OC"],
-    ["US", "USA", "840", "US", "United States of America", "Washington", 9629091.0, 310232863, "NA"],
+    [
+        "US",
+        "USA",
+        "840",
+        "US",
+        "United States of America",
+        "Washington",
+        9629091.0,
+        310232863,
+        "NA",
+    ],
     ["UY", "URY", "858", "UY", "Uruguay", "Montevideo", 176220.0, 3477000, "SA"],
     ["UZ", "UZB", "860", "UZ", "Uzbekistan", "Tashkent", 447400.0, 27865738, "AS"],
     ["VA", "VAT", "336", "VT", "Vatican City", "Vatican City", 0.4, 921, "EU"],
-    ["VC", "VCT", "670", "VC", "Saint Vincent and the Grenadines", "Kingstown", 389.0, 104217, "NA"],
+    [
+        "VC",
+        "VCT",
+        "670",
+        "VC",
+        "Saint Vincent and the Grenadines",
+        "Kingstown",
+        389.0,
+        104217,
+        "NA",
+    ],
     ["VE", "VEN", "862", "VE", "Venezuela", "Caracas", 912050.0, 27223228, "SA"],
-    ["VG", "VGB", "092", "VI", "British Virgin Islands", "Road Town", 153.0, 21730, "NA"],
-    ["VI", "VIR", "850", "VQ", "U.S. Virgin Islands", "Charlotte Amalie", 352.0, 108708, "NA"],
+    [
+        "VG",
+        "VGB",
+        "092",
+        "VI",
+        "British Virgin Islands",
+        "Road Town",
+        153.0,
+        21730,
+        "NA",
+    ],
+    [
+        "VI",
+        "VIR",
+        "850",
+        "VQ",
+        "U.S. Virgin Islands",
+        "Charlotte Amalie",
+        352.0,
+        108708,
+        "NA",
+    ],
     ["VN", "VNM", "704", "VM", "Vietnam", "Hanoi", 329560.0, 89571130, "AS"],
     ["VU", "VUT", "548", "NH", "Vanuatu", "Port Vila", 12200.0, 221552, "OC"],
     ["WF", "WLF", "876", "WF", "Wallis and Futuna", "Mata Utu", 274.0, 16025, "OC"],
@@ -267,21 +545,25 @@ STATES = [
     ["ZW", "ZWE", "716", "ZI", "Zimbabwe", "Harare", 390580.0, 13061000, "AF"],
 ]
 
+
 class Command(BaseCommand):
-    args = '<infile>'
-    help = 'populate the database'
+    help = "populate the database"
+
+    def add_arguments(self, parser):
+        parser.add_argument("infile", type=str)
 
     def _create_state(self):
         pass
 
     def _create_declarations(self, infile):
+        print(infile)
         with open(infile) as f:
             pv = json.load(f)
 
-            pv_header = pv['header']
-            #date_creation = datetime.strptime(pv_header['meeting_date'].strip().replace('a.m.', 'AM').replace('p.m.', 'PM'), '%A, %d %B %Y, %I %p')
-            print(pv_header['meeting_date'].strip())
-            date_creation = parse(pv_header['meeting_date'].strip())
+            pv_header = pv["header"]
+            # date_creation = datetime.strptime(pv_header['meeting_date'].strip().replace('a.m.', 'AM').replace('p.m.', 'PM'), '%A, %d %B %Y, %I %p')
+            print(pv_header["meeting_date"].strip())
+            date_creation = parse(pv_header["meeting_date"].strip())
 
             for state in STATES:
                 state = State(
@@ -293,41 +575,44 @@ class Command(BaseCommand):
                     capital=state[5],
                     area_in_km2=state[6],
                     population=state[7],
-                    continent=state[8])
+                    continent=state[8],
+                )
                 state.save()
 
-            for item in pv['items']:
-                if 'header' not in item:
+            for item in pv["items"]:
+                if "header" not in item:
                     continue
-                item_header = item['header']
+                item_header = item["header"]
 
-                user = (Profile.objects.get(
-                    username='admin'))
+                user = Profile.objects.get(username="admin")
 
-                resolution = Resolution(title=item_header['title'], user=user,
-                    description=item_header['title'], is_featured=True,
-                    date_creation=date_creation, is_published=True,
+                resolution = Resolution(
+                    title=item_header["title"],
+                    user=user,
+                    description=item_header["title"],
+                    is_featured=True,
+                    date_creation=date_creation,
+                    is_published=True,
                     date_modification=date_creation,
-                    is_public=True, language='en')
+                    is_public=True,
+                    language="en",
+                )
                 resolution.save(skip_date_update=True)
 
                 vote = {}
-                for statement in item['statements']:
-                    if 'vote' in statement:
-                        vote = statement['vote']
-                        #for state_name in vote['against']:
+                for statement in item["statements"]:
+                    if "vote" in statement:
+                        vote = statement["vote"]
+                        # for state_name in vote['against']:
                         #  state = self._create_state()
                         #  resolution.in_favour.add(state)
 
-                for statement in item['statements']:
+                for statement in item["statements"]:
                     # Check if state already exists
-                    if 'speaker' in statement:
-                        state_name = statement['speaker'].get('state', '')
+                    if "speaker" in statement:
+                        state_name = statement["speaker"].get("state", "")
                         if state_name:
-                            state = (State
-                                     .objects
-                                     .filter(name=state_name)
-                                     )
+                            state = State.objects.filter(name=state_name)
                             if not state.exists():
                                 state = State(name=state_name)
                                 state.save()
@@ -337,11 +622,8 @@ class Command(BaseCommand):
                             state = None
 
                         # Check if speaker already exists
-                        last_name = statement['speaker'].get('name', '')
-                        speaker = (Speaker
-                                   .objects
-                                   .filter(last_name=last_name)
-                                   )
+                        last_name = statement["speaker"].get("name", "")
+                        speaker = Speaker.objects.filter(last_name=last_name)
                         if not speaker.exists():
                             speaker = Speaker(last_name=last_name, state=state)
                             speaker.save()
@@ -350,19 +632,23 @@ class Command(BaseCommand):
 
                         declaration_type = NEUTRAL
                         if vote and state_name:
-                            if state_name in vote.get('in_favour', []):
+                            if state_name in vote.get("in_favour", []):
                                 declaration_type = SUPPORT
-                            elif state_name in vote.get('against', []):
+                            elif state_name in vote.get("against", []):
                                 declaration_type = OBJECTION
-                            elif state_name in vote.get('abstaining', []):
+                            elif state_name in vote.get("abstaining", []):
                                 declaration_type = SITUATION
 
-                        declaration = Declaration(resolution=resolution, speaker=speaker,
-                            #text='\n\n'.join(statement.get('paragraphs', [])),
+                        declaration = Declaration(
+                            resolution=resolution,
+                            speaker=speaker,
+                            # text='\n\n'.join(statement.get('paragraphs', [])),
                             date_creation=date_creation,
-                            text=' '.join(statement.get('paragraphs', [])),
-                            is_approved=True, declaration_type=declaration_type)
+                            text="\n".join(statement.get("paragraphs", [])),
+                            is_approved=True,
+                            declaration_type=declaration_type,
+                        )
                         declaration.save()
 
-    def handle(self, infile, **kwargs):
-        self._create_declarations(infile)
+    def handle(self, *args, **options):
+        self._create_declarations(options["infile"])

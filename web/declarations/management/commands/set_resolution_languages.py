@@ -5,6 +5,4 @@ from declarations.models import Resolution
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        (Resolution.objects
-         .filter(language__isnull=True)
-         .update(language='tr'))
+        (Resolution.objects.filter(language__isnull=True).update(language="tr"))

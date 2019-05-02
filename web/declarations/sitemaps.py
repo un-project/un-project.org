@@ -11,10 +11,7 @@ class ResolutionSitemap(Sitemap):
 
     def items(self):
         language = normalize_language_code(get_language())
-        return Resolution.objects.filter(
-            language=language,
-            is_published=True
-        )
+        return Resolution.objects.filter(language=language, is_published=True)
 
     def location(self, obj):
         return obj.get_absolute_url()
@@ -30,8 +27,7 @@ class DeclarationSitemap(Sitemap):
     def items(self):
         language = normalize_language_code(get_language())
         return Declaration.objects.filter(
-            resolution__language=language,
-            is_approved=True
+            resolution__language=language, is_approved=True
         )
 
     def location(self, obj):

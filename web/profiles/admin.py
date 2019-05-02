@@ -9,17 +9,25 @@ from profiles.models import Profile, Notification
 
 class ProfileAdmin(UserAdmin):
 
-    list_display = ('gravatar', 'username', 'email', 'first_name',
-                    'last_name', 'is_staff', 'karma')
+    list_display = (
+        "gravatar",
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "is_staff",
+        "karma",
+    )
     ordering = ("-id", "karma")
 
     def gravatar(self, obj):
         return gravatar_for_user(obj)
+
     gravatar.allow_tags = True
 
 
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ('sender', 'recipient', 'notification_type')
+    list_display = ("sender", "recipient", "notification_type")
 
 
 admin.site.register(Profile, ProfileAdmin)

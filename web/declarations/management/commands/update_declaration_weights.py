@@ -8,4 +8,4 @@ class Command(BaseCommand):
         declarations = Declaration.objects.all()
 
         for declaration in declarations:
-            print declaration.update_declaration_weights()
+            print(declaration.update_declaration_weights())

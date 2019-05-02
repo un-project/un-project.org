@@ -4,13 +4,17 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import get_language_from_request
 
 
-class SubdomainLanguageMiddleware(object):
+class SubdomainLanguageMiddleware:
     """
     Set the language for the site based on the subdomain the request
     is being served on. For example, serving on 'fr.domain.com' would
     make the language French (fr).
     """
+
     LANGUAGES = settings.AVAILABLE_LANGUAGES
+
+    def __init__(self, get_response):
+        self.get_response = get_response
 
     def redirect_homepage(self, request):
         if request.path not in settings.REDIRECTED_PATHS:
@@ -21,23 +25,29 @@ class SubdomainLanguageMiddleware(object):
         if language not in self.LANGUAGES:
             language = settings.DEFAULT_LANGUAGE
 
-        querystring = request.META.get('QUERY_STRING', '')
+        querystring = request.META.get("QUERY_STRING", "")
         if querystring:
-            querystring = '?' + querystring
+            querystring = "?" + querystring
 
         return HttpResponseRedirect(
-            ''.join([
-                'http://', language, '.', settings.BASE_DOMAIN,
-                request.path, querystring
-            ])
+            "".join(
+                [
+                    "http://",
+                    language,
+                    ".",
+                    settings.BASE_DOMAIN,
+                    request.path,
+                    querystring,
+                ]
+            )
         )
 
     def get_language_code(self, code):
         mapping = settings.LANGUAGE_CODE_MAPPING
         return mapping.get(code, code)
 
-    def process_request(self, request):
-        host = request.get_host().split('.')
+    def __call__(self, request):
+        host = request.get_host().split(".")
         language = host[0]
 
         if settings.PREVENT_LANGUAGE_REDIRECTION:
@@ -50,21 +60,32 @@ class SubdomainLanguageMiddleware(object):
         translation.activate(language_code)
         request.LANGUAGE_CODE = language_code
 
+        response = self.get_response(request)
 
-class MultipleProxyMiddleware(object):
+        return response
+
+
+class MultipleProxyMiddleware:
     FORWARDED_FOR_FIELDS = [
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_FORWARDED_HOST',
-        'HTTP_X_FORWARDED_SERVER',
+        "HTTP_X_FORWARDED_FOR",
+        "HTTP_X_FORWARDED_HOST",
+        "HTTP_X_FORWARDED_SERVER",
     ]
 
-    def process_request(self, request):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         """
         Rewrites the proxy headers so that only the most
         recent proxy is used.
         """
         for field in self.FORWARDED_FOR_FIELDS:
             if field in request.META:
-                if ',' in request.META[field]:
-                    parts = request.META[field].split(',')
+                if "," in request.META[field]:
+                    parts = request.META[field].split(",")
                     request.META[field] = parts[-1].strip()
+
+        response = self.get_response(request)
+
+        return response

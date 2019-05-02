@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, include, url
+from django.urls import include, path, re_path
 from django.contrib import admin
 from django.contrib.sitemaps import views as sitemaps_views
 from django.views.decorators.cache import cache_page
@@ -10,25 +10,29 @@ from declarations.sitemaps import DeclarationSitemap
 admin.autodiscover()
 
 sitemaps = {
-    'blog': BlogSitemap(),
-    'user': ProfileSitemap(),
-    'declaration': DeclarationSitemap()
+    "blog": BlogSitemap(),
+    "user": ProfileSitemap(),
+    "declaration": DeclarationSitemap(),
 }
 
 urlpatterns = [
-    url(r'^', include('newsfeed.urls')),
-    url(r'^', include('declarations.urls')),
-    url(r'^', include('profiles.urls')),
-    url(r'^blog/', include('blog.urls')),
-    url(r'^accounts/', include('allauth.urls')),
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^api/', include('api.urls')),
-
+    path("", include("newsfeed.urls")),
+    path("", include("declarations.urls")),
+    path("", include("profiles.urls")),
+    path("blog/", include("blog.urls")),
+    path("accounts/", include("allauth.urls")),
+    path("admin/", admin.site.urls),
+    path("api/", include("api.urls")),
     # Sitemap
-    url(r'^sitemap\.xml$',
+    re_path(
+        r"^sitemap\.xml$",
         cache_page(86400)(sitemaps_views.index),
-        {'sitemaps': sitemaps, 'sitemap_url_name': 'sitemaps'}),
-    url(r'^sitemap-(?P<section>.+)\.xml$',
+        {"sitemaps": sitemaps, "sitemap_url_name": "sitemaps"},
+    ),
+    re_path(
+        r"^sitemap-(?P<section>.+)\.xml$",
         cache_page(86400)(sitemaps_views.sitemap),
-        {'sitemaps': sitemaps}, name='sitemaps'),
+        {"sitemaps": sitemaps},
+        name="sitemaps",
+    ),
 ]

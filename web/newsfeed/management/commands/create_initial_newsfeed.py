@@ -4,7 +4,6 @@ from declarations.models import Resolution
 
 
 class Command(BaseCommand):
-
     def handle(self, *args, **options):
         for resolution in Resolution.objects.all():
             Entry.objects.create(
@@ -12,5 +11,5 @@ class Command(BaseCommand):
                 news_type=resolution.get_newsfeed_type(),
                 sender=resolution.get_actor(),
                 related_object=resolution.get_newsfeed_bundle(),
-                date_creation=resolution.date_creation
+                date_creation=resolution.date_creation,
             )

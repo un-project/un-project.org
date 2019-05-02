@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import django_filters.rest_framework
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework import filters, status
@@ -12,13 +13,16 @@ class NotificationViewset(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
     paginate_by = 20
     serializer_class = NotificationSerializer
-    filter_backends = (filters.DjangoFilterBackend, filters.OrderingFilter,)
-    filter_fields = ('is_read',)
-    ordering_fields = ('date_created',)
+    filter_backends = (
+        django_filters.rest_framework.DjangoFilterBackend,
+        filters.OrderingFilter,
+    )
+    filter_fields = ("is_read",)
+    ordering_fields = ("date_created",)
 
     def get_queryset(self):
         user = self.request.user
-        return user.notifications.select_related('sender', 'recipient')
+        return user.notifications.select_related("sender", "recipient")
 
     def mark_as_read_all_notification(self, request):
         user = self.request.user
@@ -27,15 +31,15 @@ class NotificationViewset(viewsets.ModelViewSet):
 
     def mark_as_read_single_notification(self, request, pk=None):
         notification = self.get_object()
-        notification.is_read=True
+        notification.is_read = True
         notification.save()
         return Response(status=status.HTTP_200_OK)
 
 
 notification_list = NotificationViewset.as_view(
-    {'get': 'list', 'patch': 'mark_as_read_all_notification'}
+    {"get": "list", "patch": "mark_as_read_all_notification"}
 )
 
 notification_detail = NotificationViewset.as_view(
-    {'get': 'retrieve', 'patch': 'mark_as_read_single_notification'}
+    {"get": "retrieve", "patch": "mark_as_read_single_notification"}
 )

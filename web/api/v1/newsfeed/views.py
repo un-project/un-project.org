@@ -11,21 +11,18 @@ class NewsfeedViewset(MongoDBPaginationMixin, viewsets.ViewSet):
     renderer_classes = (MongoDBJSONRenderer,)
 
     def public_newsfeed(self, request):
-        data = Entry.objects.get_public_newsfeed(
-            **self.get_pagination_context())
+        data = Entry.objects.get_public_newsfeed(**self.get_pagination_context())
         return Response(self.get_paginated_response(data))
 
     def private_newsfeed(self, request):
         data = Entry.objects.get_private_newsfeed(
-            user=self.request.user, **self.get_pagination_context())
+            user=self.request.user, **self.get_pagination_context()
+        )
         return Response(self.get_paginated_response(data))
 
 
-public_newsfeed = NewsfeedViewset.as_view(
-    {'get': 'public_newsfeed'}
-)
+public_newsfeed = NewsfeedViewset.as_view({"get": "public_newsfeed"})
 
 private_newsfeed = NewsfeedViewset.as_view(
-    {'get': 'private_newsfeed'},
-    permission_classes=(permissions.IsAuthenticated,)
+    {"get": "private_newsfeed"}, permission_classes=(permissions.IsAuthenticated,)
 )

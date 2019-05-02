@@ -9,7 +9,7 @@ class MongoDBJSONEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, ObjectId):
             return force_text(obj)
-        return super(MongoDBJSONEncoder, self).default(obj)
+        return super().default(obj)
 
 
 class MongoDBJSONRenderer(JSONRenderer):

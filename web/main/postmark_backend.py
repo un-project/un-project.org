@@ -6,7 +6,6 @@ from django.conf import settings
 
 
 class PostmarkMessage(dict):
-
     def __init__(self, message, fail_silently=True):
         try:
             message_dict = {}
@@ -24,12 +23,14 @@ class PostmarkMessage(dict):
                 message_dict["Bcc"] = ",".join(message.bcc)
 
             if isinstance(message, EmailMultiAlternatives):
-                    for alt in message.alternatives:
-                        if alt[1] == "text/html":
-                            message_dict["HtmlBody"] = unicode(alt[0])
+                for alt in message.alternatives:
+                    if alt[1] == "text/html":
+                        message_dict["HtmlBody"] = unicode(alt[0])
 
             if len(message.extra_headers):
-                message_dict["Headers"] = [{"Name": x[0], "Value": x[1]} for x in message.extra_headers.items()]
+                message_dict["Headers"] = [
+                    {"Name": x[0], "Value": x[1]} for x in message.extra_headers.items()
+                ]
             if message.attachments and isinstance(message.attachments, list):
                 if len(message.attachments):
                     message_dict["Attachments"] = message.attachments
@@ -39,10 +40,10 @@ class PostmarkMessage(dict):
                 message_dict = {}
             else:
                 raise
-        super(PostmarkMessage, self).__init__(message_dict)
+        super().__init__(message_dict)
+
 
 class EmailBackend(BaseEmailBackend):
-
     def send_messages(self, email_messages):
         if not email_messages:
             return
@@ -61,13 +62,14 @@ class EmailBackend(BaseEmailBackend):
 
         return num_sent
 
-
     def _send(self, message):
 
-        requests.post(settings.POSTMARK_API_URL,
-                      data=json.dumps(message),
-                      headers={
-                          "Accept": "application/json",
-                          "Content-Type": "application/json",
-                          "X-Postmark-Server-Token": settings.POSTMARK_TOKEN
-                      })
+        requests.post(
+            settings.POSTMARK_API_URL,
+            data=json.dumps(message),
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-Postmark-Server-Token": settings.POSTMARK_TOKEN,
+            },
+        )

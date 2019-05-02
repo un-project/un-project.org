@@ -14,88 +14,246 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('auth', '0007_alter_validators_add_error_messages'),
-    ]
+    dependencies = [("auth", "0007_alter_validators_add_error_messages")]
 
     operations = [
         migrations.CreateModel(
-            name='Profile',
+            name="Profile",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('password', models.CharField(max_length=128, verbose_name='password')),
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=30, unique=True, validators=[django.core.validators.RegexValidator('^[\\w.@+-]+$', 'Enter a valid username. This value may contain only letters, numbers and @/./+/-/_ characters.')], verbose_name='username')),
-                ('first_name', models.CharField(blank=True, max_length=30, verbose_name='first name')),
-                ('last_name', models.CharField(blank=True, max_length=30, verbose_name='last name')),
-                ('email', models.EmailField(blank=True, max_length=254, verbose_name='email address')),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
-                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
-                ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
-                ('notification_email', models.BooleanField(default=True, verbose_name='email notification')),
-                ('karma', models.IntegerField(blank=True, null=True)),
-                ('twitter_username', models.CharField(blank=True, max_length=255, null=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.Group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.Permission', verbose_name='user permissions')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("password", models.CharField(max_length=128, verbose_name="password")),
+                (
+                    "last_login",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
+                ),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                (
+                    "username",
+                    models.CharField(
+                        error_messages={
+                            "unique": "A user with that username already exists."
+                        },
+                        help_text="Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only.",
+                        max_length=30,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^[\\w.@+-]+$",
+                                "Enter a valid username. This value may contain only letters, numbers and @/./+/-/_ characters.",
+                            )
+                        ],
+                        verbose_name="username",
+                    ),
+                ),
+                (
+                    "first_name",
+                    models.CharField(
+                        blank=True, max_length=30, verbose_name="first name"
+                    ),
+                ),
+                (
+                    "last_name",
+                    models.CharField(
+                        blank=True, max_length=30, verbose_name="last name"
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(
+                        blank=True, max_length=254, verbose_name="email address"
+                    ),
+                ),
+                (
+                    "is_staff",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates whether the user can log into this admin site.",
+                        verbose_name="staff status",
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+                        verbose_name="active",
+                    ),
+                ),
+                (
+                    "date_joined",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="date joined"
+                    ),
+                ),
+                (
+                    "notification_email",
+                    models.BooleanField(
+                        default=True, verbose_name="email notification"
+                    ),
+                ),
+                ("karma", models.IntegerField(blank=True, null=True)),
+                (
+                    "twitter_username",
+                    models.CharField(blank=True, max_length=255, null=True),
+                ),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.Group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.Permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'verbose_name': 'user',
-                'verbose_name_plural': 'users',
+                "abstract": False,
+                "verbose_name": "user",
+                "verbose_name_plural": "users",
             },
-            managers=[
-                ('objects', django.contrib.auth.models.UserManager()),
+            managers=[("objects", django.contrib.auth.models.UserManager())],
+        ),
+        migrations.CreateModel(
+            name="Notification",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                (
+                    "notification_type",
+                    models.IntegerField(
+                        choices=[
+                            (0, b"added-declaration-for-resolution"),
+                            (1, b"added-declaration-for-declaration"),
+                            (2, b"reported-as-fallacy"),
+                            (3, b"followed"),
+                            (4, b"supported-a-declaration"),
+                        ]
+                    ),
+                ),
+                ("is_read", models.BooleanField(default=False)),
+                ("target_object_id", models.IntegerField(blank=True, null=True)),
+                (
+                    "recipient",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notifications",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "sender",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sent_notifications",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+            options={"ordering": ["is_read", "-date_created"]},
+        ),
+        migrations.CreateModel(
+            name="Speaker",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "first_name",
+                    models.CharField(db_index=True, default=b"", max_length=255),
+                ),
+                (
+                    "last_name",
+                    models.CharField(db_index=True, default=b"", max_length=255),
+                ),
+                ("date_creation", models.DateTimeField(auto_now_add=True)),
+                ("slug", models.CharField(blank=True, max_length=255)),
+                (
+                    "followers",
+                    models.ManyToManyField(
+                        related_name="following", to=settings.AUTH_USER_MODEL
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Notification',
+            name="State",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('notification_type', models.IntegerField(choices=[(0, b'added-declaration-for-resolution'), (1, b'added-declaration-for-declaration'), (2, b'reported-as-fallacy'), (3, b'followed'), (4, b'supported-a-declaration')])),
-                ('is_read', models.BooleanField(default=False)),
-                ('target_object_id', models.IntegerField(blank=True, null=True)),
-                ('recipient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to=settings.AUTH_USER_MODEL)),
-                ('sender', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='sent_notifications', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("iso_3166_alpha2", models.CharField(default=b"", max_length=2)),
+                ("iso_3166_alpha3", models.CharField(default=b"", max_length=3)),
+                ("iso_3166_numeric", models.CharField(default=b"", max_length=3)),
+                ("fips", models.CharField(default=b"", max_length=2)),
+                ("name", models.CharField(default=b"", max_length=255)),
+                ("capital", models.CharField(default=b"", max_length=255)),
+                ("area_in_km2", models.FloatField(blank=True, null=True)),
+                ("population", models.IntegerField(blank=True, null=True)),
+                ("continent", models.CharField(default=b"", max_length=2)),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
             ],
-            options={
-                'ordering': ['is_read', '-date_created'],
-            },
-        ),
-        migrations.CreateModel(
-            name='Speaker',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('first_name', models.CharField(db_index=True, default=b'', max_length=255)),
-                ('last_name', models.CharField(db_index=True, default=b'', max_length=255)),
-                ('date_creation', models.DateTimeField(auto_now_add=True)),
-                ('slug', models.CharField(blank=True, max_length=255)),
-                ('followers', models.ManyToManyField(related_name='following', to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='State',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('iso_3166_alpha2', models.CharField(default=b'', max_length=2)),
-                ('iso_3166_alpha3', models.CharField(default=b'', max_length=3)),
-                ('iso_3166_numeric', models.CharField(default=b'', max_length=3)),
-                ('fips', models.CharField(default=b'', max_length=2)),
-                ('name', models.CharField(default=b'', max_length=255)),
-                ('capital', models.CharField(default=b'', max_length=255)),
-                ('area_in_km2', models.FloatField(blank=True, null=True)),
-                ('population', models.IntegerField(blank=True, null=True)),
-                ('continent', models.CharField(default=b'', max_length=2)),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-            ],
-            options={
-                'ordering': ['-date_created'],
-            },
+            options={"ordering": ["-date_created"]},
         ),
         migrations.AddField(
-            model_name='speaker',
-            name='state',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='speakers', to='profiles.State'),
+            model_name="speaker",
+            name="state",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="speakers",
+                to="profiles.State",
+            ),
         ),
     ]

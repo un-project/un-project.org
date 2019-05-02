@@ -6,4 +6,4 @@ from nouns.models import Noun
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        Noun.objects.update(language='en')
+        Noun.objects.update(language="en")

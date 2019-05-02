@@ -15,10 +15,18 @@ def humanize_fallacy_type(value):
 @register.filter
 def check_content_deletion(resolution):
     content_deletion = settings.CONTENT_DELETION
-    last_deletion_date = resolution.date_creation + content_deletion['LAST_DELETION_DATE']
-    if not resolution.declarations.exists() and content_deletion['HAS_EMPTY_CONTENT_DELETION']:
+    last_deletion_date = (
+        resolution.date_creation + content_deletion["LAST_DELETION_DATE"]
+    )
+    if (
+        not resolution.declarations.exists()
+        and content_deletion["HAS_EMPTY_CONTENT_DELETION"]
+    ):
         return True
-    if resolution.declarations.count() <= content_deletion['MAX_DECLARATION_COUNT'] and last_deletion_date > timezone.now():
+    if (
+        resolution.declarations.count() <= content_deletion["MAX_DECLARATION_COUNT"]
+        and last_deletion_date > timezone.now()
+    ):
         return True
     return False
 
@@ -28,9 +36,11 @@ def percentformat(value):
     return min(40, max(5, value))
 
 
-def gravatar(user_or_email, size=GRAVATAR_DEFAULT_SIZE, alt_text='', css_class='gravatar'):
+def gravatar(
+    user_or_email, size=GRAVATAR_DEFAULT_SIZE, alt_text="", css_class="gravatar"
+):
     """ Builds an gravatar <img> tag from an user or email """
-    if hasattr(user_or_email, 'email'):
+    if hasattr(user_or_email, "email"):
         email = user_or_email.email
     else:
         email = user_or_email
@@ -38,7 +48,8 @@ def gravatar(user_or_email, size=GRAVATAR_DEFAULT_SIZE, alt_text='', css_class='
     try:
         url = escape(get_gravatar_url(email=email, size=size))
     except:
-        return ''
+        return ""
     template = '<img class="{css_class}" src="{src}" width="{width}" height="{height}" alt="{alt}" />'
     return template.format(
-        css_class=css_class, src=url, width=size, height=size, alt=alt_text)
+        css_class=css_class, src=url, width=size, height=size, alt=alt_text
+    )

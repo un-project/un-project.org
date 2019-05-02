@@ -12,14 +12,13 @@ class Command(BaseCommand):
             fallacy_type = report.fallacy_type or ""
 
             fallacy_type = (
-                fallacy_type
-                    .replace(' ', '')
-                    .replace(u'İ', 'I')
-                    .replace(u'“', '')
-                    .replace(u'”', '')
-                    .replace("of", "Of")
-                    .replace("to", "To")
-                    .replace("the", "The")
+                fallacy_type.replace(" ", "")
+                .replace(u"İ", "I")
+                .replace(u"“", "")
+                .replace(u"”", "")
+                .replace("of", "Of")
+                .replace("to", "To")
+                .replace("the", "The")
             )
 
             report.fallacy_type = fallacy_type

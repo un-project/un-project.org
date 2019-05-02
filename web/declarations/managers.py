@@ -8,15 +8,13 @@ from i18n.utils import normalize_language_code
 
 class DeletePreventionQueryset(query.QuerySet):
     def delete(self):
-        return super(DeletePreventionQueryset, self).update(
-            is_deleted=True, deleted_at=datetime.now())
+        return super().update(is_deleted=True, deleted_at=datetime.now())
 
     def hard_delete(self):
-        return super(DeletePreventionQueryset, self).delete()
+        return super().delete()
 
 
 class DeletePreventionManager(models.Manager):
-
     def get_queryset(self):
         queryset = DeletePreventionQueryset(self.model, using=self._db)
         return queryset.filter(is_deleted=False)

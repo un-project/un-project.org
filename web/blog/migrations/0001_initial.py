@@ -3,32 +3,44 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-import markitup.fields
+from markupfield.fields import MarkupField
 
 
 class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Post',
+            name="Post",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255, verbose_name='Name')),
-                ('slug', models.SlugField(max_length=255, unique=True, verbose_name='Slug')),
-                ('content', markitup.fields.MarkupField(no_rendered_field=True, verbose_name='Content')),
-                ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date_modified', models.DateTimeField(auto_now=True)),
-                ('is_published', models.BooleanField(default=True, verbose_name='Published')),
-                ('is_announcement', models.BooleanField(default=False)),
-                ('_content_rendered', models.TextField(blank=True, editable=False)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255, verbose_name="Name")),
+                (
+                    "slug",
+                    models.SlugField(max_length=255, unique=True, verbose_name="Slug"),
+                ),
+                ("content", MarkupField("Content")),
+                # ('content', MarkupField(no_rendered_field=True, verbose_name='Content')),
+                ("date_created", models.DateTimeField(auto_now_add=True)),
+                ("date_modified", models.DateTimeField(auto_now=True)),
+                (
+                    "is_published",
+                    models.BooleanField(default=True, verbose_name="Published"),
+                ),
+                ("is_announcement", models.BooleanField(default=False)),
+                ("_content_rendered", models.TextField(blank=True, editable=False)),
             ],
-            options={
-                'ordering': ('-date_created',),
-            },
-        ),
+            options={"ordering": ("-date_created",)},
+        )
     ]

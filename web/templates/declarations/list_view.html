@@ -7,7 +7,7 @@
     <div id="app" class="list-view">
         <div class="main-resolution">
             <h3 class="resolution-header">
-                {{ resolution }}
+                {{ resolution.formatted_title|safe }}
             </h3>
             {% if user.is_authenticated and not parent_declaration %}
             <a class="new-main-declaration" href="{% url "new_declaration" resolution.slug %}?view=list">{% trans "add declaration" %}</a>

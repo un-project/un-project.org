@@ -9,5 +9,5 @@ class Command(BaseCommand):
         for declaration in declarations:
             score = declaration.calculate_score()
             declaration.score = score
-            print declaration.title, ' == ', declaration.score
+            print(declaration.title, " == ", declaration.score)
             declaration.save(skip_date_update=True)

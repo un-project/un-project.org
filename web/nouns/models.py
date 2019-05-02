@@ -5,9 +5,11 @@ from django.db import models
 from django.utils.encoding import smart_text
 from django.conf import settings
 from django.template.defaultfilters import slugify
+from django.urls import reverse
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _, get_language
-#from anora.templatetags.anora import CONSONANT_SOUND, VOWEL_SOUND
+
+# from anora.templatetags.anora import CONSONANT_SOUND, VOWEL_SOUND
 from i18n.utils import normalize_language_code
 
 from nouns.utils import get_synsets, get_lemmas, from_lemma
@@ -28,13 +30,12 @@ class Noun(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             slug = slugify(unidecode(self.text))
-            duplications = Noun.objects.filter(slug=slug,
-                                               language=self.language)
+            duplications = Noun.objects.filter(slug=slug, language=self.language)
             if duplications.exists():
                 self.slug = "%s-%s" % (slug, uuid4().hex)
             else:
                 self.slug = slug
-        return super(Noun, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     @classmethod
     def from_synset(cls, synset):
@@ -44,9 +45,10 @@ class Noun(models.Model):
         noun, created = cls.objects.get_or_create(
             text=from_lemma(text),
             defaults={
-                'is_active': False,
-                'language': normalize_language_code(get_language())
-            })
+                "is_active": False,
+                "language": normalize_language_code(get_language()),
+            },
+        )
         for keyword in keywords:
             noun.add_keyword(from_lemma(keyword))
         return noun
@@ -97,41 +99,34 @@ class Noun(models.Model):
 
     def active_resolutions(self):
         language = normalize_language_code(get_language())
-        return self.resolutions.filter(
-            is_published=True,
-            language=language
-        ).order_by('?')
+        return self.resolutions.filter(is_published=True, language=language).order_by(
+            "?"
+        )
 
     def indirect_resolutions(self):
         from declarations.models import Resolution  # to avoid circular import
-        language = normalize_language_code(get_language())
-        nouns = self.out_relations.values_list('target', flat=True)
-        return Resolution.objects.filter(
-            language=language,
-            is_published=True,
-            nouns__in=nouns
-        ).order_by('?')
 
-    @models.permalink
+        language = normalize_language_code(get_language())
+        nouns = self.out_relations.values_list("target", flat=True)
+        return Resolution.objects.filter(
+            language=language, is_published=True, nouns__in=nouns
+        ).order_by("?")
+
     def get_absolute_url(self):
-        return 'nouns_detail', [self.slug]
+        return reverse("nouns_detail", args=[self.slug])
 
     def serialize(self):
-        return {
-            'title': self.text,
-            'absolute_url': self.get_absolute_url()
-        }
+        return {"title": self.text, "absolute_url": self.get_absolute_url()}
 
     def hypernyms(self):
-        return self.out_relations.filter(relation_type='hypernym')
+        return self.out_relations.filter(relation_type="hypernym")
 
     def hyponyms(self):
-        return self.in_relations.filter(relation_type='hypernym')
+        return self.in_relations.filter(relation_type="hypernym")
 
     def add_relation(self, target, relation_type=None):
-        relation, created = (
-            self.out_relations.get_or_create(
-                target=target, relation_type=relation_type)
+        relation, created = self.out_relations.get_or_create(
+            target=target, relation_type=relation_type
         )
         return relation
 
@@ -144,7 +139,8 @@ class Keyword(models.Model):
     """
     Keywords for matching resolutions.
     """
-    noun = models.ForeignKey(Noun, related_name="keywords")
+
+    noun = models.ForeignKey(Noun, related_name="keywords", on_delete=models.CASCADE)
     text = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
 
@@ -162,6 +158,7 @@ class Relation(models.Model):
         - same_as (synonym)
 
     """
+
     HYPERNYM = "hypernym"
     HOLONYM = "holonym"
     ANTONYM = "antonym"
@@ -169,15 +166,21 @@ class Relation(models.Model):
     MERONYM = "meronym"
 
     TYPES = (
-        (HYPERNYM, _('is a')),
-        (HOLONYM, _('part of')),
-        (ANTONYM, _('opposite with')),
+        (HYPERNYM, _("is a")),
+        (HOLONYM, _("part of")),
+        (ANTONYM, _("opposite with")),
     )
 
-    source = models.ForeignKey(Noun, related_name="out_relations")
-    target = models.ForeignKey(Noun, related_name="in_relations")
+    source = models.ForeignKey(
+        Noun, related_name="out_relations", on_delete=models.CASCADE
+    )
+    target = models.ForeignKey(
+        Noun, related_name="in_relations", on_delete=models.CASCADE
+    )
     relation_type = models.CharField(max_length=25, choices=TYPES)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.CASCADE
+    )
     is_active = models.BooleanField(default=True)
     date_created = models.DateTimeField(auto_now_add=True)
 
@@ -188,22 +191,21 @@ class Relation(models.Model):
         return {
             Relation.HYPERNYM: Relation.HYPONYM,
             Relation.HOLONYM: Relation.MERONYM,
-            Relation.ANTONYM: Relation.ANTONYM
+            Relation.ANTONYM: Relation.ANTONYM,
         }.get(self.relation_type)
 
     def get_reverse_type_display(self):
         return {
             Relation.HYPONYM: _("whole of"),
             Relation.MERONYM: _("whole of"),
-            Relation.ANTONYM: _("opposite with")
+            Relation.ANTONYM: _("opposite with"),
         }.get(self.reverse_type())
 
     def relation_type_label(self):
-        if (self.relation_type == Relation.HYPERNYM
-                and self.target.language == 'en'):
+        if self.relation_type == Relation.HYPERNYM and self.target.language == "en":
             text = unicode(self.target)
-            return ('is a')
-            #return ('is an' if not CONSONANT_SOUND.match(text)
+            return "is a"
+            # return ('is an' if not CONSONANT_SOUND.match(text)
             #                   and VOWEL_SOUND.match(text)
             #        else 'is a')
         return self.get_relation_type_display()
@@ -212,7 +214,7 @@ class Relation(models.Model):
 class Channel(models.Model):
     title = models.CharField(max_length=255)
     slug = models.CharField(max_length=255)
-    nouns = models.ManyToManyField('Noun', blank=True)
+    nouns = models.ManyToManyField("Noun", blank=True)
     order = models.IntegerField()
     language = models.CharField(max_length=255, blank=True, null=True)
     is_featured = models.BooleanField(max_length=255, default=False)
@@ -221,17 +223,13 @@ class Channel(models.Model):
         if not self.slug:
             slug = slugify(unidecode(self.text))
             self.slug = slug
-        return super(Channel, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def __unicode__(self):
         return smart_text(self.title)
 
-    @models.permalink
     def get_absolute_url(self):
-        return 'channel_detail', [self.slug]
+        return reverse("channel_detail", args=[self.slug])
 
     def serialize(self):
-        return {
-            'title': self.title,
-            'absolute_url': self.get_absolute_url()
-        }
+        return {"title": self.title, "absolute_url": self.get_absolute_url()}

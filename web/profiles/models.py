@@ -11,10 +11,15 @@ from django.db.models import Count
 from django.dispatch import receiver
 from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
-#from declarations.models import Report, Declaration
-from declarations.signals import (reported_as_fallacy, added_declaration_for_declaration,
-                              added_declaration_for_resolution,
-                              supported_a_declaration)
+from django.urls import reverse
+
+# from declarations.models import Report, Declaration
+from declarations.signals import (
+    reported_as_fallacy,
+    added_declaration_for_declaration,
+    added_declaration_for_resolution,
+    supported_a_declaration,
+)
 from profiles.signals import follow_done
 from django.utils.translation import ugettext_lazy as _
 
@@ -34,17 +39,20 @@ class State(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-date_created']
+        ordering = ["-date_created"]
 
 
 class Speaker(models.Model):
     first_name = models.CharField(max_length=255, db_index=True, default="")
     last_name = models.CharField(max_length=255, db_index=True, default="")
     date_creation = models.DateTimeField(auto_now_add=True)
-    followers = models.ManyToManyField(settings.AUTH_USER_MODEL,
-                                        related_name="following")
+    followers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="following"
+    )
     slug = models.CharField(max_length=255, blank=True)
-    state = models.ForeignKey(State, related_name="speakers", null=True)
+    state = models.ForeignKey(
+        State, related_name="speakers", null=True, on_delete=models.CASCADE
+    )
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -54,28 +62,26 @@ class Speaker(models.Model):
                 self.slug = "%s-%s" % (slug, uuid4().hex)
             else:
                 self.slug = slug
-        return super(Speaker, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def serialize(self):
         bundle = {
-            'first_name': self.first_name,
-            'last_name': self.last_name,
-            'state': self.state,
-            'id': self.id
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "state": self.state,
+            "id": self.id,
         }
 
         return bundle
 
     @property
     def supported_declaration_count(self):
-        return self.declaration_set.aggregate(Count('supporters'))[
-            'supporters__count']
+        return self.declaration_set.aggregate(Count("supporters"))["supporters__count"]
 
-    @models.permalink
     def get_absolute_url(self):
-        return 'speaker_detail', [self.slug]
+        return reverse("speaker_detail", args=[self.slug])
 
-    #def calculate_karma(self):
+    # def calculate_karma(self):
     #    from declarations.models import Declaration
     #    # avoid circular import
 
@@ -101,34 +107,28 @@ class Speaker(models.Model):
 
 
 class Profile(AbstractUser):
-    notification_email = models.BooleanField(_('email notification'), default=True)
+    notification_email = models.BooleanField(_("email notification"), default=True)
     karma = models.IntegerField(null=True, blank=True)
     twitter_username = models.CharField(max_length=255, blank=True, null=True)
 
     def serialize(self, show_email=True):
-        bundle = {
-            'username': self.username,
-            'id': self.id
-        }
+        bundle = {"username": self.username, "id": self.id}
 
         if show_email:
-            bundle.update({
-                'email': self.email
-            })
+            bundle.update({"email": self.email})
 
         return bundle
 
     @property
     def supported_declaration_count(self):
-        return self.declaration_set.aggregate(Count('supporters'))[
-            'supporters__count']
+        return self.declaration_set.aggregate(Count("supporters"))["supporters__count"]
 
-    @models.permalink
     def get_absolute_url(self):
-        return "auth_profile", [self.username]
+        return reverse("auth_profile", args=[self.username])
 
     def calculate_karma(self):
         from declarations.models import Declaration
+
         # avoid circular import
 
         # CALCULATES THE KARMA POINT OF USER
@@ -136,17 +136,20 @@ class Profile(AbstractUser):
         # DECREASE BY FALLACY COUNT * 2
         # HOW MANY CHILD DECLARATIONS ARE ADDED TO USER'S DECLARATIONS
         karma = 0
-        support_sum = self.user_declarations.aggregate(Count('supporters'))
-        karma += 2 * support_sum['supporters__count']
+        support_sum = self.user_declarations.aggregate(Count("supporters"))
+        karma += 2 * support_sum["supporters__count"]
         main_declarations = self.user_declarations.all()
         all_sub_declarations = []
         for declaration in main_declarations:
-            all_sub_declarations += declaration.published_children().values_list('pk',
-                                                                         flat=True)
+            all_sub_declarations += declaration.published_children().values_list(
+                "pk", flat=True
+            )
             karma -= 2 * (declaration.reports.count())
-        not_owned_sub_declarations = Declaration.objects.\
-            filter(id__in=all_sub_declarations).\
-            exclude(user__id=self.id).count()
+        not_owned_sub_declarations = (
+            Declaration.objects.filter(id__in=all_sub_declarations)
+            .exclude(user__id=self.id)
+            .count()
+        )
         karma += not_owned_sub_declarations
         return karma
 
@@ -158,36 +161,40 @@ NOTIFICATION_FOLLOWED_A_SPEAKER = 3
 NOTIFICATION_SUPPORTED_A_DECLARATION = 4
 
 NOTIFICATION_TYPES = (
-    (NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION,
-     "added-declaration-for-resolution"),
-    (NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION,
-     "added-declaration-for-declaration"),
-    (NOTIFICATION_REPORTED_AS_FALLACY,
-     "reported-as-fallacy"),
-    (NOTIFICATION_FOLLOWED_A_SPEAKER,
-     "followed"),
-    (NOTIFICATION_SUPPORTED_A_DECLARATION,
-     "supported-a-declaration"),
+    (NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION, "added-declaration-for-resolution"),
+    (
+        NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION,
+        "added-declaration-for-declaration",
+    ),
+    (NOTIFICATION_REPORTED_AS_FALLACY, "reported-as-fallacy"),
+    (NOTIFICATION_FOLLOWED_A_SPEAKER, "followed"),
+    (NOTIFICATION_SUPPORTED_A_DECLARATION, "supported-a-declaration"),
 )
 
 
 class Notification(models.Model):
     # sender can be `null` for system notifications
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL,
-                               null=True, blank=True,
-                               related_name="sent_notifications")
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                  related_name="notifications")
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="sent_notifications",
+        on_delete=models.CASCADE,
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="notifications", on_delete=models.CASCADE
+    )
     date_created = models.DateTimeField(auto_now_add=True)
     notification_type = models.IntegerField(choices=NOTIFICATION_TYPES)
     is_read = models.BooleanField(default=False)
     target_object_id = models.IntegerField(null=True, blank=True)
 
     class Meta:
-        ordering = ['is_read', '-date_created']
+        ordering = ["is_read", "-date_created"]
 
     def get_target_object(self):
         from declarations.models import Report, Declaration
+
         # avoid circular import
 
         model = {
@@ -206,12 +213,11 @@ class Notification(models.Model):
         return instance
 
     def render(self):
-        template_name = ("notifications/%s.html" %
-                         self.get_notification_type_display())
-        return render_to_string(template_name, {
-            "notification": self,
-            "target_object": self.get_target_object()
-        })
+        template_name = "notifications/%s.html" % self.get_notification_type_display()
+        return render_to_string(
+            template_name,
+            {"notification": self, "target_object": self.get_target_object()},
+        )
 
 
 @receiver(reported_as_fallacy)
@@ -220,7 +226,7 @@ def create_fallacy_notification(sender, report, *args, **kwargs):
         sender=None,  # notification should be anonymous
         recipient=report.declaration.user,
         notification_type=NOTIFICATION_REPORTED_AS_FALLACY,
-        target_object_id=report.id
+        target_object_id=report.id,
     )
 
 
@@ -231,7 +237,7 @@ def create_declaration_answer_notification(sender, declaration, *args, **kwargs)
             sender=declaration.user,
             recipient=declaration.parent.user,
             notification_type=NOTIFICATION_ADDED_DECLARATION_FOR_DECLARATION,
-            target_object_id=declaration.id
+            target_object_id=declaration.id,
         )
 
 
@@ -241,7 +247,7 @@ def create_declaration_support_notification(declaration, user, *args, **kwargs):
         sender=user,
         recipient=declaration.user,
         notification_type=NOTIFICATION_SUPPORTED_A_DECLARATION,
-        target_object_id=declaration.id
+        target_object_id=declaration.id,
     )
 
 
@@ -252,7 +258,7 @@ def create_resolution_contribution_notification(sender, declaration, *args, **kw
             sender=declaration.user,
             recipient=declaration.resolution.user,
             notification_type=NOTIFICATION_ADDED_DECLARATION_FOR_RESOLUTION,
-            target_object_id=declaration.id
+            target_object_id=declaration.id,
         )
 
 
@@ -265,5 +271,5 @@ def create_following_notification(following, follower, **kwargs):
         target_object_id=follower.id,
         notification_type=NOTIFICATION_FOLLOWED_A_SPEAKER,
         sender=follower,
-        recipient_id=following.id
+        recipient_id=following.id,
     )

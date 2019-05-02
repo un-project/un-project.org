@@ -13,15 +13,10 @@ def int_or_default(value, default=None):
 int_or_zero = partial(int_or_default, default=0)
 
 
-def wrap_tag(text, link, tag='a'):
+def wrap_tag(text, link, tag="a"):
     template = '<%(tag)s %(attr)s="%(link)s">%(text)s</%(tag)s>'
-    attr = 'href' if tag == 'a' else 'data-href'
-    return mark_safe(template % {
-        'tag': tag,
-        'text': text,
-        'link': link,
-        'attr': attr
-    })
+    attr = "href" if tag == "a" else "data-href"
+    return mark_safe(template % {"tag": tag, "text": text, "link": link, "attr": attr})
 
 
 def replace_with_link(source, text, url, tag):
@@ -34,16 +29,13 @@ def replace_with_link(source, text, url, tag):
     position = lower_source.index(text)
 
     left = source[:position]
-    middle = source[position:position + len(text)]
-    right = source[position + len(text):]
+    middle = source[position : position + len(text)]
+    right = source[position + len(text) :]
 
-    token_start, token_end = '<' + tag, '</' + tag
-    if (left.count(token_start) !=
-            left.count(token_end)):
+    token_start, token_end = "<" + tag, "</" + tag
+    if left.count(token_start) != left.count(token_end):
         return
 
-    link = (left +
-            wrap_tag(middle, url, tag) +
-            right)
+    link = left + wrap_tag(middle, url, tag) + right
 
     return link
