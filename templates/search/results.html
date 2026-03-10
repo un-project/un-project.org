@@ -52,7 +52,7 @@
     </div>
     <p class="search-excerpt">{{ speech.excerpt }}</p>
     <div class="meta">
-      <a href="{{ speech.get_absolute_url }}">{{ speech.document.symbol }}</a>
+      <a href="{{ speech.document.get_absolute_url }}?q={{ query|urlencode }}#speech-{{ speech.pk }}">{{ speech.document.symbol }}</a>
       {% if speech.document.date %}&mdash; {{ speech.document.date|date:"N j, Y" }}{% endif %}
     </div>
   </div>

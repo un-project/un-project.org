@@ -54,12 +54,8 @@ def meeting_detail(request, slug):
         from django.http import Http404
         raise Http404("Meeting not found")
 
-    items = DocumentItem.objects.filter(document=document).prefetch_related(
-        'speeches__speaker__country',
-        'stage_directions',
-        'votes__resolution',
-        'votes__country_votes__country',
-    )
+    items = list(DocumentItem.objects.filter(document=document))
+    item_map = {item.pk: item for item in items}
 
     # Build a flat list of transcript elements sorted by position_in_document
     speeches = list(
@@ -77,18 +73,28 @@ def meeting_detail(request, slug):
     # Merge into a single timeline
     transcript = []
     for s in speeches:
-        transcript.append({'type': 'speech', 'pos': s.position_in_document, 'obj': s})
+        transcript.append({'type': 'speech', 'pos': s.position_in_document, 'item_id': s.item_id, 'obj': s})
     for d in stage_dirs:
-        transcript.append({'type': 'stage', 'pos': d.position_in_document, 'obj': d})
+        transcript.append({'type': 'stage', 'pos': d.position_in_document, 'item_id': d.item_id, 'obj': d})
     for v in votes:
-        # votes don't have position_in_document; use item position as fallback
-        pos = getattr(v, 'position_in_item', 0)
-        transcript.append({'type': 'vote', 'pos': pos, 'obj': v})
+        transcript.append({'type': 'vote', 'pos': v.position_in_item, 'item_id': v.item_id, 'obj': v})
 
     transcript.sort(key=lambda x: x['pos'])
+
+    # Insert item_header markers on first appearance of each agenda item
+    final_transcript = []
+    seen_items = set()
+    for entry in transcript:
+        item_id = entry.get('item_id')
+        if item_id and item_id not in seen_items:
+            item = item_map.get(item_id)
+            if item:
+                final_transcript.append({'type': 'item_header', 'pos': entry['pos'], 'obj': item})
+            seen_items.add(item_id)
+        final_transcript.append(entry)
 
     return render(request, 'meetings/detail.html', {
         'document': document,
         'items': items,
-        'transcript': transcript,
+        'transcript': final_transcript,
     })

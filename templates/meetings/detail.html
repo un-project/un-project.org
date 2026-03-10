@@ -41,7 +41,17 @@
 
     {% for entry in transcript %}
 
-      {% if entry.type == "speech" %}
+      {% if entry.type == "item_header" %}
+      {% with item=entry.obj %}
+      <div class="item-anchor" id="item-{{ item.pk }}">
+        <h3 style="margin:2rem 0 0.5rem; color:var(--un-dark); font-size:1rem; border-bottom:1px solid var(--border); padding-bottom:0.4rem;">
+          {% if item.agenda_number %}{{ item.agenda_number }}{% if item.sub_item %}{{ item.sub_item }}{% endif %}.&nbsp;{% endif %}
+          {{ item.title }}
+        </h3>
+      </div>
+      {% endwith %}
+
+      {% elif entry.type == "speech" %}
       {% with s=entry.obj %}
       <div class="speech" id="speech-{{ s.pk }}">
         <div class="speech-header">
@@ -89,4 +99,23 @@
 
   </div><!-- .transcript -->
 </div><!-- .meeting-layout -->
+
+{% block extra_js %}
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var q = params.get('q');
+  if (!q) return;
+  var hash = window.location.hash;
+  if (!hash) return;
+  var target = document.getElementById(hash.slice(1));
+  if (!target) return;
+  var textEl = target.querySelector('.speech-text');
+  if (!textEl) return;
+  var escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  var re = new RegExp('(' + escaped + ')', 'gi');
+  textEl.innerHTML = textEl.innerHTML.replace(re, '<mark>$1</mark>');
+})();
+</script>
+{% endblock %}
 {% endblock %}

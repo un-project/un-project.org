@@ -25,28 +25,26 @@
   </section>
 
   <section>
-    <div class="section-title">Recent Speeches</div>
-    {% for speech in recent_speeches %}
+    <div class="section-title">Recent Resolutions</div>
+    {% for vote in recent_votes %}
     <div class="card">
-      <div class="speech-header">
-        <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
-        {% if speech.speaker.country %}
-        <span class="speech-country">
-          {% if speech.speaker.country.flag_url %}
-          <img src="{{ speech.speaker.country.flag_url }}" alt="" style="height:14px;vertical-align:middle;margin-right:3px;">
-          {% endif %}
-          {{ speech.speaker.country.display_name }}
-        </span>
+      <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+        <strong>{{ vote.resolution }}</strong>
+        <span class="badge">{{ vote.vote_type }}</span>
+        {% if vote.yes_count is not None %}
+        <span class="meta">✓&nbsp;{{ vote.yes_count }} &nbsp;✗&nbsp;{{ vote.no_count }} &nbsp;{{ vote.abstain_count }}&nbsp;abs.</span>
         {% endif %}
       </div>
-      <p class="speech-excerpt meta" style="margin:0.3rem 0;">{{ speech.excerpt }}</p>
-      <div class="meta">
-        <a href="{{ speech.get_absolute_url }}">{{ speech.document.symbol }}</a>
-        {% if speech.document.date %}&mdash; {{ speech.document.date|date:"N j, Y" }}{% endif %}
+      {% if vote.resolution.title %}
+      <p class="meta" style="margin:0.3rem 0 0;">{{ vote.resolution.title|truncatechars:120 }}</p>
+      {% endif %}
+      <div class="meta" style="margin-top:0.3rem;">
+        <a href="{{ vote.document.get_absolute_url }}">{{ vote.document.symbol }}</a>
+        {% if vote.document.date %}&mdash; {{ vote.document.date|date:"N j, Y" }}{% endif %}
       </div>
     </div>
     {% empty %}
-    <p class="meta">No speeches found.</p>
+    <p class="meta">No resolutions found.</p>
     {% endfor %}
   </section>
 
