@@ -56,15 +56,16 @@
       <div class="speech" id="speech-{{ s.pk }}">
         <div class="speech-header">
           <a class="speaker-name" href="{{ s.speaker.get_absolute_url }}">{{ s.speaker.name }}</a>
-          {% if s.on_behalf_of %}
-          <span class="speech-country">(on behalf of {{ s.on_behalf_of }})</span>
-          {% elif s.speaker.country %}
+          {% if s.speaker.country %}
           <span class="speech-country">
             {% if s.speaker.country.flag_url %}
-            <img src="{{ s.speaker.country.flag_url }}" alt="" style="height:14px;vertical-align:middle;margin-right:3px;">
+            <img src="{{ s.speaker.country.flag_url }}" alt="{{ s.speaker.country.iso3 }}" style="height:14px;vertical-align:middle;margin-right:3px;">
             {% endif %}
             <a href="{{ s.speaker.country.get_absolute_url }}" style="color:inherit;">{{ s.speaker.country.display_name }}</a>
           </span>
+          {% endif %}
+          {% if s.on_behalf_of %}
+          <span class="meta" style="font-size:0.82rem;">on behalf of {{ s.on_behalf_of }}</span>
           {% endif %}
           {% if s.language %}<span class="meta" style="font-size:0.78rem;">[{{ s.language }}]</span>{% endif %}
           <a href="#speech-{{ s.pk }}" class="meta" style="font-size:0.78rem;margin-left:auto;">#{{ s.pk }}</a>
