@@ -4,7 +4,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## In Progress / Near-term
 
-- [ ] **Country ISO codes** — populate `iso2` / `iso3` columns in the `countries` table so flags display correctly. Flag images go in `static/flags/<ISO3>.svg`.
+- [x] **Country ISO codes + flags** — 195 UN member states matched; `iso2`/`iso3` populated in DB; SVG flags in `static/flags/<ISO3>.svg`. Script: `scripts/populate_iso_and_flags.py`.
 - [ ] **Speaker photos** — add optional photos to `static/speakers/<id>.jpg`; the speaker page already shows them when present.
 - [ ] **Meetings list — add speech count** — annotate each document with the number of speeches for display on the list page.
 
