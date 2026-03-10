@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}UN Meetings{% endblock %} — UN Project</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="brand" href="/">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2c1.09 0 2.13.18 3.1.51-.05.17-.1.34-.17.5-.27.67-.66 1.31-1.07 1.9-.74 1.04-1.65 1.96-2.58 2.81A17.6 17.6 0 0 1 9.1 7.3a14.4 14.4 0 0 1-.73-1.88C9.33 4.42 10.63 4 12 4zm-3.66.96c.23.66.5 1.3.83 1.91-1.3.37-2.67.57-4.08.57a8.03 8.03 0 0 1 3.25-2.48zM4.1 9.46c1.65 0 3.26-.24 4.77-.68.38.71.83 1.38 1.33 2.02C8.9 12.14 7.5 13.5 6.3 15c-.48.61-.93 1.24-1.31 1.9A7.96 7.96 0 0 1 4 12c0-.87.12-1.72.1-2.54zm15.8 0c-.02.82.1 1.67.1 2.54a7.96 7.96 0 0 1-.99 4.9c-.38-.66-.83-1.29-1.31-1.9-1.2-1.5-2.6-2.86-3.9-4.2.5-.64.95-1.31 1.33-2.02 1.51.44 3.12.68 4.77.68zM12 9.64c1.03.98 2.07 1.94 3.03 2.98.93 1.01 1.82 2.08 2.5 3.27-1.03.94-2.21 1.7-3.52 2.18-.5-1.47-1.05-2.93-1.53-4.42-.23-.72-.43-1.45-.48-2.01zm0 0c-.05.56-.25 1.29-.48 2.01-.48 1.49-1.03 2.95-1.53 4.42-1.31-.48-2.49-1.24-3.52-2.18.68-1.19 1.57-2.26 2.5-3.27C9.93 11.58 10.97 10.62 12 9.64zm0 9.36c.67 0 1.32-.07 1.95-.2-.49.78-1.04 1.5-1.95 1.5-.91 0-1.46-.72-1.95-1.5.63.13 1.28.2 1.95.2z"/>
+    </svg>
+    UN Project
+  </a>
+
+  <form class="search-form" action="/search/" method="get">
+    <input type="search" name="q" placeholder="Search speeches…" value="{{ request.GET.q|default:'' }}">
+    <button type="submit">Search</button>
+  </form>
+
+  <ul class="nav-links">
+    <li>
+      <span>General Assembly ▾</span>
+      <ul class="dropdown-menu">
+        <li><a href="/?body=GA">Homepage</a></li>
+        <li><a href="/meeting/?body=GA">Meetings</a></li>
+      </ul>
+    </li>
+    <li>
+      <span>Security Council ▾</span>
+      <ul class="dropdown-menu">
+        <li><a href="/?body=SC">Homepage</a></li>
+        <li><a href="/meeting/?body=SC">Meetings</a></li>
+      </ul>
+    </li>
+    <li>
+      <span>More ▾</span>
+      <ul class="dropdown-menu">
+        <li><a href="/search/">Search</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="container">
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<footer>
+  <p>UN Project — exploring United Nations meetings, speeches, and votes.</p>
+</footer>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

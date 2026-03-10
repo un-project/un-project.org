@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Search{% if query %}: {{ query }}{% endif %}{% endblock %}
+
+{% block content %}
+<h1>Search</h1>
+
+<form class="filters" method="get" action="/search/">
+  <input type="search" name="q" value="{{ query }}" placeholder="Search speeches…" style="flex:1; min-width:200px;">
+
+  <select name="body">
+    <option value="">All bodies</option>
+    <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
+    <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
+  </select>
+
+  <select name="country">
+    <option value="">All countries</option>
+    {% for c in countries %}
+    <option value="{{ c.pk }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="speaker">
+    <option value="">All speakers</option>
+    {% for sp in speakers %}
+    <option value="{{ sp.pk }}" {% if current_speaker == sp.pk|stringformat:"s" %}selected{% endif %}>{{ sp.name }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Search</button>
+</form>
+
+{% if query %}
+
+  {% if page %}
+  <p class="meta">{{ page.paginator.count }} result{{ page.paginator.count|pluralize }} for "<strong>{{ query }}</strong>"</p>
+
+  <div style="margin-top:1rem;">
+  {% for speech in page %}
+  <div class="search-result">
+    <div class="speech-header" style="margin-bottom:0.3rem;">
+      <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
+      {% if speech.speaker.country %}
+      <span class="speech-country">
+        {% if speech.speaker.country.flag_url %}
+        <img src="{{ speech.speaker.country.flag_url }}" alt="" style="height:13px;vertical-align:middle;margin-right:3px;">
+        {% endif %}
+        <a href="{{ speech.speaker.country.get_absolute_url }}" style="color:inherit;">{{ speech.speaker.country.display_name }}</a>
+      </span>
+      {% endif %}
+      <span class="badge badge-{{ speech.document.body|lower }}">{{ speech.document.body }}</span>
+    </div>
+    <p class="search-excerpt">{{ speech.excerpt }}</p>
+    <div class="meta">
+      <a href="{{ speech.get_absolute_url }}">{{ speech.document.symbol }}</a>
+      {% if speech.document.date %}&mdash; {{ speech.document.date|date:"N j, Y" }}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  </div>
+
+  {% include "partials/pagination.html" with page_obj=page %}
+
+  {% else %}
+  <p class="meta">No results found for "<strong>{{ query }}</strong>".</p>
+  {% endif %}
+
+{% else %}
+<p class="meta">Enter a search term above to find speeches and statements.</p>
+{% endif %}
+{% endblock %}

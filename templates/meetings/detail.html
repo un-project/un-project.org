@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ document.symbol }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="/meeting/" class="meta">← All meetings</a>
+</div>
+
+<h1>
+  {{ document.symbol }}
+  <span class="badge badge-{{ document.body|lower }}">{{ document.body_display }}</span>
+</h1>
+
+<div class="meta" style="margin-bottom:1.5rem;">
+  {% if document.date %}{{ document.date|date:"l, N j, Y" }}{% endif %}
+  &mdash; Session {{ document.session }}, Meeting {{ document.meeting_number }}
+  {% if document.location %}&mdash; {{ document.location }}{% endif %}
+</div>
+
+<div class="meeting-layout">
+
+  <!-- Agenda sidebar -->
+  <aside class="agenda-sidebar">
+    <h3>Agenda Items</h3>
+    <ul>
+      {% for item in items %}
+      <li>
+        <a href="#item-{{ item.pk }}">
+          {% if item.agenda_number %}{{ item.agenda_number }}{% if item.sub_item %}{{ item.sub_item }}{% endif %}.&nbsp;{% endif %}
+          {{ item.title|truncatechars:70 }}
+        </a>
+      </li>
+      {% empty %}
+      <li class="meta">No agenda items.</li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  <!-- Transcript -->
+  <div class="transcript">
+
+    {% for entry in transcript %}
+
+      {% if entry.type == "speech" %}
+      {% with s=entry.obj %}
+      <div class="speech" id="speech-{{ s.pk }}">
+        <div class="speech-header">
+          <a class="speaker-name" href="{{ s.speaker.get_absolute_url }}">{{ s.speaker.name }}</a>
+          {% if s.on_behalf_of %}
+          <span class="speech-country">(on behalf of {{ s.on_behalf_of }})</span>
+          {% elif s.speaker.country %}
+          <span class="speech-country">
+            {% if s.speaker.country.flag_url %}
+            <img src="{{ s.speaker.country.flag_url }}" alt="" style="height:14px;vertical-align:middle;margin-right:3px;">
+            {% endif %}
+            <a href="{{ s.speaker.country.get_absolute_url }}" style="color:inherit;">{{ s.speaker.country.display_name }}</a>
+          </span>
+          {% endif %}
+          {% if s.language %}<span class="meta" style="font-size:0.78rem;">[{{ s.language }}]</span>{% endif %}
+          <a href="#speech-{{ s.pk }}" class="meta" style="font-size:0.78rem;margin-left:auto;">#{{ s.pk }}</a>
+        </div>
+        <div class="speech-text">{{ s.text }}</div>
+      </div>
+      {% endwith %}
+
+      {% elif entry.type == "stage" %}
+      {% with d=entry.obj %}
+      <div class="stage-direction">{{ d.text }}</div>
+      {% endwith %}
+
+      {% elif entry.type == "vote" %}
+      {% with v=entry.obj %}
+      <div class="vote-block">
+        <strong>Vote:</strong>
+        {{ v.resolution }}
+        <span class="badge">{{ v.vote_type }}</span>
+        {% if v.yes_count is not None %}
+        <div class="vote-tally">
+          Yes: {{ v.yes_count }} &mdash; No: {{ v.no_count }} &mdash; Abstain: {{ v.abstain_count }}
+        </div>
+        {% endif %}
+      </div>
+      {% endwith %}
+      {% endif %}
+
+    {% empty %}
+    <p class="meta">No transcript content available for this meeting.</p>
+    {% endfor %}
+
+  </div><!-- .transcript -->
+</div><!-- .meeting-layout -->
+{% endblock %}

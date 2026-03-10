@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ speaker.name }}{% endblock %}
+
+{% block content %}
+<div class="profile-header">
+  <img class="speaker-photo" src="/static/speakers/{{ speaker.pk }}.jpg"
+    onerror="this.style.display='none'" alt="{{ speaker.name }}">
+  <div>
+    <h1 style="margin-bottom:0.25rem;">{{ speaker.name }}</h1>
+    {% if speaker.title %}<div class="meta">{{ speaker.title }}</div>{% endif %}
+    {% if speaker.country %}
+    <div style="margin-top:0.5rem;">
+      {% if speaker.country.flag_url %}
+      <img src="{{ speaker.country.flag_url }}" alt="" style="height:16px;vertical-align:middle;margin-right:4px;">
+      {% endif %}
+      <a href="{{ speaker.country.get_absolute_url }}">{{ speaker.country.name }}</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-box">
+    <div class="num">{{ speech_count }}</div>
+    <div class="label">Speeches</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ meetings_count }}</div>
+    <div class="label">Meetings</div>
+  </div>
+</div>
+
+{% if recent_meetings %}
+<h2>Meetings Attended</h2>
+<ul style="list-style:none; padding:0;">
+  {% for doc in recent_meetings %}
+  <li style="margin-bottom:0.4rem;">
+    <a href="{{ doc.get_absolute_url }}">{{ doc.symbol }}</a>
+    <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
+    {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Speeches</h2>
+{% for speech in speeches_page %}
+<div class="card">
+  <div class="speech-header">
+    <a href="{{ speech.get_absolute_url }}" class="meta">{{ speech.document.symbol }}</a>
+    {% if speech.document.date %}<span class="meta">{{ speech.document.date|date:"N j, Y" }}</span>{% endif %}
+  </div>
+  <p class="meta" style="margin:0.3rem 0 0;">{{ speech.excerpt }}</p>
+</div>
+{% empty %}
+<p class="meta">No speeches found.</p>
+{% endfor %}
+
+{% include "partials/pagination.html" with page_obj=speeches_page %}
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ country.name }}{% endblock %}
+
+{% block content %}
+<div class="profile-header">
+  {% if country.flag_url %}
+  <img class="flag-img" src="{{ country.flag_url }}" alt="{{ country.name }} flag">
+  {% endif %}
+  <div>
+    <h1 style="margin-bottom:0.25rem;">{{ country.name }}</h1>
+    {% if country.iso3 %}<div class="meta">ISO: {{ country.iso3 }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-box">
+    <div class="num">{{ speeches_page.paginator.count }}</div>
+    <div class="label">Speeches</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ representatives.count }}</div>
+    <div class="label">Speakers</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ vote_stats.yes }}</div>
+    <div class="label">Yes votes</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ vote_stats.no }}</div>
+    <div class="label">No votes</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ vote_stats.abstain }}</div>
+    <div class="label">Abstentions</div>
+  </div>
+</div>
+
+<h2>Representatives</h2>
+{% if representatives %}
+<ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
+  {% for sp in representatives %}
+  <li style="margin-bottom:0.4rem;">
+    <a href="{{ sp.get_absolute_url }}">{{ sp.name }}</a>
+    {% if sp.role %}<span class="meta">&mdash; {{ sp.role }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">No speaker records found.</p>
+{% endif %}
+
+<h2>Voting History</h2>
+{% if voting_history %}
+<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+  <thead>
+    <tr style="text-align:left; border-bottom:2px solid var(--border);">
+      <th style="padding:0.5rem 0.75rem;">Resolution</th>
+      <th style="padding:0.5rem 0.75rem;">Meeting</th>
+      <th style="padding:0.5rem 0.75rem;">Date</th>
+      <th style="padding:0.5rem 0.75rem;">Position</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cv in voting_history %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.45rem 0.75rem;">{{ cv.vote.resolution }}</td>
+      <td style="padding:0.45rem 0.75rem;">
+        <a href="{{ cv.vote.document.get_absolute_url }}">{{ cv.vote.document.symbol }}</a>
+      </td>
+      <td style="padding:0.45rem 0.75rem; color:var(--muted);">
+        {% if cv.vote.document.date %}{{ cv.vote.document.date|date:"N j, Y" }}{% endif %}
+      </td>
+      <td style="padding:0.45rem 0.75rem;">
+        <span class="badge">{{ cv.vote_position }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="meta">No voting records found.</p>
+{% endif %}
+
+<h2>Recent Speeches</h2>
+{% for speech in speeches_page %}
+<div class="card">
+  <div class="speech-header">
+    <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
+    <a href="{{ speech.get_absolute_url }}" class="meta">{{ speech.document.symbol }}</a>
+    {% if speech.document.date %}<span class="meta">{{ speech.document.date|date:"N j, Y" }}</span>{% endif %}
+  </div>
+  <p class="meta" style="margin:0.3rem 0 0;">{{ speech.excerpt }}</p>
+</div>
+{% empty %}
+<p class="meta">No speeches found.</p>
+{% endfor %}
+
+{% include "partials/pagination.html" with page_obj=speeches_page %}
+{% endblock %}

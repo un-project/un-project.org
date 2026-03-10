@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Meetings{% endblock %}
+
+{% block content %}
+<h1>Meetings</h1>
+
+<form class="filters" method="get">
+  <select name="body">
+    <option value="">All bodies</option>
+    <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
+    <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
+  </select>
+
+  <select name="session">
+    <option value="">All sessions</option>
+    {% for s in sessions %}
+    <option value="{{ s }}" {% if current_session == s|stringformat:"s" %}selected{% endif %}>Session {{ s }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="year">
+    <option value="">All years</option>
+    {% for y in years %}
+    <option value="{{ y|date:'Y' }}" {% if current_year == y|date:"Y" %}selected{% endif %}>{{ y|date:"Y" }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Filter</button>
+  {% if current_body or current_session or current_year %}
+  <a href="/meeting/" class="btn btn-secondary btn-sm">Clear</a>
+  {% endif %}
+</form>
+
+<p class="meta">{{ page.paginator.count }} meeting{{ page.paginator.count|pluralize }} found</p>
+
+{% for doc in page %}
+<div class="card">
+  <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+    <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
+    <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
+    {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
+    <span class="meta">Session {{ doc.session }}</span>
+    <span class="meta">Meeting {{ doc.meeting_number }}</span>
+  </div>
+</div>
+{% empty %}
+<p class="meta">No meetings match the selected filters.</p>
+{% endfor %}
+
+{% include "partials/pagination.html" with page_obj=page %}
+{% endblock %}

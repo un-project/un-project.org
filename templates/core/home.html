@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h1>United Nations Meetings</h1>
+<p class="meta">Browse transcripts, speeches, and voting records from the UN General Assembly and Security Council.</p>
+
+<div class="two-col" style="margin-top:2rem;">
+
+  <section>
+    <div class="section-title">Recent Meetings</div>
+    {% for doc in recent_meetings %}
+    <div class="card">
+      <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
+      <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
+      <div class="meta">
+        {% if doc.date %}{{ doc.date|date:"N j, Y" }}{% endif %}
+        &mdash; Session {{ doc.session }}, Meeting {{ doc.meeting_number }}
+      </div>
+    </div>
+    {% empty %}
+    <p class="meta">No meetings found.</p>
+    {% endfor %}
+    <a href="/meeting/" class="btn btn-secondary btn-sm">View all meetings →</a>
+  </section>
+
+  <section>
+    <div class="section-title">Recent Speeches</div>
+    {% for speech in recent_speeches %}
+    <div class="card">
+      <div class="speech-header">
+        <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
+        {% if speech.speaker.country %}
+        <span class="speech-country">
+          {% if speech.speaker.country.flag_url %}
+          <img src="{{ speech.speaker.country.flag_url }}" alt="" style="height:14px;vertical-align:middle;margin-right:3px;">
+          {% endif %}
+          {{ speech.speaker.country.display_name }}
+        </span>
+        {% endif %}
+      </div>
+      <p class="speech-excerpt meta" style="margin:0.3rem 0;">{{ speech.excerpt }}</p>
+      <div class="meta">
+        <a href="{{ speech.get_absolute_url }}">{{ speech.document.symbol }}</a>
+        {% if speech.document.date %}&mdash; {{ speech.document.date|date:"N j, Y" }}{% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <p class="meta">No speeches found.</p>
+    {% endfor %}
+  </section>
+
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% load query_tags %}
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+  <a href="{% url_with_page page_obj.previous_page_number %}">&laquo; Prev</a>
+  {% endif %}
+
+  {% for num in page_obj.paginator.page_range %}
+    {% if page_obj.number == num %}
+    <span class="current">{{ num }}</span>
+    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+    <a href="{% url_with_page num %}">{{ num }}</a>
+    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+    <a href="{% url_with_page num %}">{{ num }}</a>
+    {% endif %}
+  {% endfor %}
+
+  {% if page_obj.has_next %}
+  <a href="{% url_with_page page_obj.next_page_number %}">Next &raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
