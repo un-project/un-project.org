@@ -2,14 +2,22 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
+{% if current_body %}
+<div style="display:flex; align-items:center; justify-content:center; gap:1.5rem; margin:2.5rem 0 2rem; flex-wrap:wrap;">
+  <img src="/static/img/un-emblem.svg" alt="UN emblem" style="width:110px; height:auto;">
+  <div style="text-align:left;">
+    <div style="font-size:0.85rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:0.25rem;">United Nations</div>
+    <h1 style="margin:0; font-size:1.9rem; line-height:1.2;">
+      {% if current_body == 'GA' %}General Assembly{% elif current_body == 'SC' %}Security Council{% endif %}
+    </h1>
+  </div>
+</div>
+{% else %}
 <div style="text-align:center; margin:2rem 0 1.5rem;">
   <img src="/static/img/logo-large.png" alt="UN Project" style="width:160px; height:160px; border-radius:12px;">
 </div>
-<h1 style="text-align:center;">
-  {% if current_body == 'GA' %}General Assembly
-  {% elif current_body == 'SC' %}Security Council
-  {% else %}United Nations Meetings{% endif %}
-</h1>
+<h1 style="text-align:center;">United Nations Meetings</h1>
+{% endif %}
 <p class="meta" style="text-align:center;">
   {% if current_body == 'GA' %}Browse General Assembly transcripts, speeches, and voting records.
   {% elif current_body == 'SC' %}Browse Security Council transcripts and speeches.
