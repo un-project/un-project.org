@@ -24,6 +24,14 @@ On first start, Docker will:
 2. Run Django migrations (including the full-text search index)
 3. Start the web server
 
+### Live development with Watch
+
+```bash
+docker compose watch
+```
+
+Enables hot-reloading during development: source files, templates, and static assets are synced into the container instantly. Changes to `requirements.txt` or `Dockerfile` trigger a full rebuild. Gunicorn runs with `--reload` so Python changes are picked up automatically.
+
 > **Note:** The database starts empty. To load data, restore a dump into the `db` service or point `DB_HOST` at an existing PostgreSQL instance.
 
 ## Tech Stack
