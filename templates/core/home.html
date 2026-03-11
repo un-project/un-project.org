@@ -5,13 +5,21 @@
 <div style="text-align:center; margin:2rem 0 1.5rem;">
   <img src="/static/img/logo-large.png" alt="UN Project" style="width:160px; height:160px; border-radius:12px;">
 </div>
-<h1 style="text-align:center;">United Nations Meetings</h1>
-<p class="meta" style="text-align:center;">Browse transcripts, speeches, and voting records from the UN General Assembly and Security Council.</p>
+<h1 style="text-align:center;">
+  {% if current_body == 'GA' %}General Assembly
+  {% elif current_body == 'SC' %}Security Council
+  {% else %}United Nations Meetings{% endif %}
+</h1>
+<p class="meta" style="text-align:center;">
+  {% if current_body == 'GA' %}Browse General Assembly transcripts, speeches, and voting records.
+  {% elif current_body == 'SC' %}Browse Security Council transcripts and speeches.
+  {% else %}Browse transcripts, speeches, and voting records from the UN General Assembly and Security Council.{% endif %}
+</p>
 
 <div class="two-col" style="margin-top:2rem;">
 
   <section>
-    <div class="section-title">Recent Meetings</div>
+    <div class="section-title">Recent {% if current_body %}{{ current_body }}{% endif %} Meetings</div>
     {% for doc in recent_meetings %}
     <div class="card">
       <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
@@ -28,7 +36,7 @@
   </section>
 
   <section>
-    <div class="section-title">Recent Resolutions</div>
+    <div class="section-title">Recent {% if current_body %}{{ current_body }}{% endif %} Resolutions</div>
     {% for vote in recent_votes %}
     <div class="card">
       <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
