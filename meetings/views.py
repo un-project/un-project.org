@@ -21,9 +21,13 @@ def meeting_list(request):
     if year and year.isdigit():
         qs = qs.filter(date__year=int(year))
 
-    sessions = Document.objects.order_by('-session').values_list('session', flat=True).distinct()
+    filter_qs = Document.objects.all()
+    if body in ('GA', 'SC'):
+        filter_qs = filter_qs.filter(body=body)
+
+    sessions = filter_qs.order_by('-session').values_list('session', flat=True).distinct()
     years = (
-        Document.objects.filter(date__isnull=False)
+        filter_qs.filter(date__isnull=False)
         .order_by('-date__year')
         .dates('date', 'year')
     )

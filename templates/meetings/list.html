@@ -1,15 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Meetings{% endblock %}
+{% block title %}{% if current_body == 'GA' %}General Assembly{% elif current_body == 'SC' %}Security Council{% else %}Meetings{% endif %}{% endblock %}
 
 {% block content %}
+{% if current_body %}
+<div style="display:flex; align-items:center; gap:1.5rem; margin:2rem 0 1.5rem; flex-wrap:wrap;">
+  <img src="/static/img/un-emblem.svg" alt="UN emblem" style="width:80px; height:auto;">
+  <div>
+    <div style="font-size:0.82rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:0.2rem;">United Nations</div>
+    <h1 style="margin:0; font-size:1.75rem; line-height:1.2;">
+      {% if current_body == 'GA' %}General Assembly{% elif current_body == 'SC' %}Security Council{% endif %} — Meetings
+    </h1>
+  </div>
+</div>
+{% else %}
 <h1>Meetings</h1>
+{% endif %}
 
 <form class="filters" method="get">
+  {% if current_body %}<input type="hidden" name="body" value="{{ current_body }}">{% else %}
   <select name="body">
     <option value="">All bodies</option>
     <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
     <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
   </select>
+  {% endif %}
 
   <select name="session">
     <option value="">All sessions</option>
@@ -26,8 +40,8 @@
   </select>
 
   <button type="submit">Filter</button>
-  {% if current_body or current_session or current_year %}
-  <a href="/meeting/" class="btn btn-secondary btn-sm">Clear</a>
+  {% if current_session or current_year %}
+  <a href="/meeting/{% if current_body %}?body={{ current_body }}{% endif %}" class="btn btn-secondary btn-sm">Clear</a>
   {% endif %}
 </form>
 
