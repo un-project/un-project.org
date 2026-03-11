@@ -30,7 +30,22 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn un_site.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+             gunicorn un_site.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .git/
+            - .venv/
+            - __pycache__/
+            - "*.pyc"
+            - staticfiles/
+        - action: rebuild
+          path: requirements.txt
+        - action: rebuild
+          path: Dockerfile
 
 volumes:
   postgres_data:
