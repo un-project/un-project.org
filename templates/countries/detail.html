@@ -46,7 +46,7 @@
     <div class="label">Speeches</div>
   </div>
   <div class="stat-box">
-    <div class="num">{{ representatives.count }}</div>
+    <div class="num">{{ representatives_page.paginator.count }}</div>
     <div class="label">Speakers</div>
   </div>
   <div class="stat-box">
@@ -79,21 +79,22 @@
 {% endif %}
 
 <h2>Representatives</h2>
-{% if representatives %}
+{% if representatives_page %}
 <ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
-  {% for sp in representatives %}
+  {% for sp in representatives_page %}
   <li style="margin-bottom:0.4rem;">
     <a href="{{ sp.get_absolute_url }}">{{ sp.name }}</a>
     {% if sp.role %}<span class="meta">&mdash; {{ sp.role }}</span>{% endif %}
   </li>
   {% endfor %}
 </ul>
+{% include "partials/pagination_named.html" with page_obj=representatives_page param_name="reps_page" %}
 {% else %}
 <p class="meta">No speaker records found.</p>
 {% endif %}
 
 <h2>Voting History{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}</h2>
-{% if voting_history %}
+{% if voting_history_page %}
 <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
   <thead>
     <tr style="text-align:left; border-bottom:2px solid var(--border);">
@@ -104,7 +105,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for cv in voting_history %}
+    {% for cv in voting_history_page %}
     <tr style="border-bottom:1px solid var(--border);">
       <td style="padding:0.45rem 0.75rem;">{{ cv.vote.resolution }}</td>
       <td style="padding:0.45rem 0.75rem;">
@@ -120,6 +121,7 @@
     {% endfor %}
   </tbody>
 </table>
+{% include "partials/pagination_named.html" with page_obj=voting_history_page param_name="votes_page" %}
 {% else %}
 <p class="meta">No voting records found.</p>
 {% endif %}
@@ -159,6 +161,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      <div id="table-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; font-size:0.85rem; color:var(--muted);"></div>
     </div>
   </div>
 </div>

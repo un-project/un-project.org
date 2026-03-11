@@ -114,11 +114,34 @@
                     all:  'All <strong>%total-count</strong> votes'
                 });
 
-            // --- Data table ---
+            // --- Data table with client-side pagination ---
+            var TABLE_PAGE_SIZE = 25;
+            var tableOffset = 0;
+            var tableAll = ndx.groupAll();
+
+            var tableNavEl = document.querySelector(containerSel + ' #table-nav');
+
+            function updateTableNav() {
+                if (!tableNavEl) return;
+                var total = tableAll.value();
+                var start = total === 0 ? 0 : tableOffset + 1;
+                var end   = Math.min(tableOffset + TABLE_PAGE_SIZE, total);
+                var html  = '<span>' + start + '–' + end + ' of ' + total + '</span>';
+                if (tableOffset > 0) {
+                    html += ' <a href="#" id="tbl-prev" style="color:var(--un-blue);">&laquo; Prev</a>';
+                }
+                if (end < total) {
+                    html += ' <a href="#" id="tbl-next" style="color:var(--un-blue);">Next &raquo;</a>';
+                }
+                tableNavEl.innerHTML = html;
+            }
+
             var dataTable = dc.dataTable(containerSel + ' #data-table', GROUP);
             dataTable
                 .dimension(tableDim)
-                .size(50)
+                .size(Infinity)
+                .beginSlice(tableOffset)
+                .endSlice(tableOffset + TABLE_PAGE_SIZE)
                 .columns([
                     { label: 'Year',       format: function (d) { return d.year || '—'; } },
                     { label: 'Resolution', format: function (d) { return d.resolution; } },
@@ -145,15 +168,39 @@
                             '<span class="pos-badge pos-' + d.row.position + '">' + d.row.position + '</span>'
                         );
                     });
+                    updateTableNav();
                 });
 
             _charts = [posChart, yearChart, catChart, countWidget, dataTable];
             dc.renderAll(GROUP);
 
+            // Reset table page offset when filters change
+            dc.chartRegistry.list(GROUP).forEach(function (c) {
+                if (c !== dataTable) {
+                    c.on('filtered.tblreset', function () {
+                        tableOffset = 0;
+                        dataTable.beginSlice(0).endSlice(TABLE_PAGE_SIZE).redraw();
+                    });
+                }
+            });
+
+            // Table prev/next navigation via event delegation
+            if (tableNavEl) {
+                tableNavEl.addEventListener('click', function (e) {
+                    var el = e.target.closest('#tbl-prev, #tbl-next');
+                    if (!el) return;
+                    e.preventDefault();
+                    if (el.id === 'tbl-prev') tableOffset = Math.max(0, tableOffset - TABLE_PAGE_SIZE);
+                    if (el.id === 'tbl-next') tableOffset += TABLE_PAGE_SIZE;
+                    dataTable.beginSlice(tableOffset).endSlice(tableOffset + TABLE_PAGE_SIZE).redraw();
+                });
+            }
+
             // Clear-filters link inside data count
             containerEl.addEventListener('click', function (e) {
                 if (e.target && e.target.classList.contains('votes-clear-link')) {
                     e.preventDefault();
+                    tableOffset = 0;
                     VoteCharts.resetAll();
                 }
             });

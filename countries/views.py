@@ -19,7 +19,9 @@ def _render_country_detail(request, country):
     rep_qs = Speaker.objects.filter(country=country)
     if current_session:
         rep_qs = rep_qs.filter(speeches__document__session=current_session).distinct()
-    representatives = rep_qs.order_by('name')
+    rep_qs = rep_qs.order_by('name')
+    rep_paginator = Paginator(rep_qs, 20)
+    representatives_page = rep_paginator.get_page(request.GET.get('reps_page'))
 
     # Available sessions (union of speech sessions and vote sessions, descending)
     speech_sessions = set(
@@ -53,7 +55,8 @@ def _render_country_detail(request, country):
     )
     if current_session:
         voting_history = voting_history.filter(vote__document__session=current_session)
-    voting_history = voting_history[:20]
+    votes_paginator = Paginator(voting_history, 25)
+    voting_history_page = votes_paginator.get_page(request.GET.get('votes_page'))
 
     # Vote stats (filtered by session when active)
     vote_qs = CountryVote.objects.filter(country=country)
@@ -67,9 +70,9 @@ def _render_country_detail(request, country):
 
     return render(request, 'countries/detail.html', {
         'country': country,
-        'representatives': representatives,
+        'representatives_page': representatives_page,
         'speeches_page': speeches_page,
-        'voting_history': voting_history,
+        'voting_history_page': voting_history_page,
         'vote_stats': vote_stats,
         'sessions': sessions,
         'current_session': current_session,
