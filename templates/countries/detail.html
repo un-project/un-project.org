@@ -131,6 +131,10 @@
   Voting Analysis
   <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">open full page ↗</a>
   <button id="cv-reset-btn" style="display:none; margin-left:0.75rem;">Reset filters</button>
+  <label id="cv-majority-label" style="display:none; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.82rem; font-weight:400; margin-left:0.75rem; vertical-align:middle;">
+    <input type="checkbox" id="cv-majority-toggle" style="width:14px;height:14px;cursor:pointer;">
+    Compare to majority
+  </label>
 </h2>
 <div id="cv-charts">
   <div id="cv-loading" class="meta">Loading voting data…</div>
@@ -196,9 +200,14 @@
 <script src="/static/js/votes_charts.js"></script>
 <script>
 (function () {
-  var loading  = document.getElementById('cv-loading');
-  var inner    = document.getElementById('cv-inner');
-  var resetBtn = document.getElementById('cv-reset-btn');
+  var loading        = document.getElementById('cv-loading');
+  var inner          = document.getElementById('cv-inner');
+  var resetBtn       = document.getElementById('cv-reset-btn');
+  var majorityLabel  = document.getElementById('cv-majority-label');
+  var majorityToggle = document.getElementById('cv-majority-toggle');
+  var currentVotes   = null;
+
+  function currentMode() { return majorityToggle.checked ? 'majority' : 'normal'; }
 
   var apiUrl = '/votes/api/{{ country.iso3 }}/{% if current_session %}?session={{ current_session }}{% endif %}';
   fetch(apiUrl)
@@ -210,11 +219,17 @@
         document.getElementById('no-votes-msg').style.display = 'block';
         return;
       }
+      currentVotes = data.votes;
       inner.style.display  = 'block';
       resetBtn.style.display = 'inline';
-      VoteCharts.init('#cv-inner', data.votes);
+      majorityLabel.style.display = 'inline-flex';
+      VoteCharts.init('#cv-inner', currentVotes, currentMode());
     })
     .catch(function () { loading.style.display = 'none'; });
+
+  majorityToggle.addEventListener('change', function () {
+    if (currentVotes) VoteCharts.init('#cv-inner', currentVotes, currentMode());
+  });
 
   resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });
 }());

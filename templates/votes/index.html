@@ -109,6 +109,10 @@
   </select>
   <span id="loading-indicator" style="display:none;">Loading…</span>
   <button id="reset-btn" style="display:none;">Reset filters</button>
+  <label id="majority-label" style="display:none; align-items:center; gap:0.45rem; cursor:pointer; font-size:0.9rem; font-weight:400;">
+    <input type="checkbox" id="majority-toggle" style="width:15px;height:15px;cursor:pointer;">
+    Compare to majority
+  </label>
 </div>
 
 <div id="charts-panel">
@@ -158,26 +162,45 @@
 <script src="/static/js/votes_charts.js"></script>
 <script>
 (function () {
-  var select   = document.getElementById('country-select');
-  var loading  = document.getElementById('loading-indicator');
-  var panel    = document.getElementById('charts-panel');
-  var resetBtn = document.getElementById('reset-btn');
+  var select         = document.getElementById('country-select');
+  var loading        = document.getElementById('loading-indicator');
+  var panel          = document.getElementById('charts-panel');
+  var resetBtn       = document.getElementById('reset-btn');
+  var majorityLabel  = document.getElementById('majority-label');
+  var majorityToggle = document.getElementById('majority-toggle');
+  var currentVotes   = null;
+
+  function currentMode() { return majorityToggle.checked ? 'majority' : 'normal'; }
 
   select.addEventListener('change', function () {
     var iso3 = this.value;
-    if (!iso3) { panel.style.display = 'none'; resetBtn.style.display = 'none'; return; }
+    if (!iso3) {
+      panel.style.display = 'none';
+      resetBtn.style.display = 'none';
+      majorityLabel.style.display = 'none';
+      majorityToggle.checked = false;
+      currentVotes = null;
+      return;
+    }
     loading.style.display = 'inline';
     panel.style.display   = 'none';
     resetBtn.style.display = 'none';
+    majorityLabel.style.display = 'none';
     fetch('/votes/api/' + iso3 + '/')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         loading.style.display = 'none';
+        currentVotes = data.votes;
         panel.style.display   = 'block';
         resetBtn.style.display = 'inline';
-        VoteCharts.init('#charts-panel', data.votes);
+        majorityLabel.style.display = 'flex';
+        VoteCharts.init('#charts-panel', currentVotes, currentMode());
       })
       .catch(function () { loading.style.display = 'none'; });
+  });
+
+  majorityToggle.addEventListener('change', function () {
+    if (currentVotes) VoteCharts.init('#charts-panel', currentVotes, currentMode());
   });
 
   resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });
