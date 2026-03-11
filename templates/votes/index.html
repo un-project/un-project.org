@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Voting Analysis{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dc@4/dist/style/dc.min.css">
+<style>
+.votes-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1.25rem 0 1.5rem;
+}
+.votes-controls label { font-weight: 600; }
+.votes-controls select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  min-width: 220px;
+}
+#reset-btn {
+  padding: 0.4rem 0.9rem;
+  background: var(--un-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+#reset-btn:hover { opacity: 0.88; }
+#loading-indicator { color: var(--muted); font-size: 0.9rem; }
+
+/* Charts panel */
+#charts-panel { display: none; }
+.chart-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+.chart-box {
+  background: var(--un-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem 0.75rem;
+}
+.chart-box h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+#year-box { flex: 1; min-width: 320px; }
+#cat-box  { width: 100%; }
+
+/* Data count */
+#data-count {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+#data-count a { color: var(--un-blue); }
+
+/* Data table */
+#data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+#data-table thead tr { border-bottom: 2px solid var(--border); }
+#data-table th { padding: 0.4rem 0.6rem; text-align: left; color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; }
+#data-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
+
+/* Position badges */
+.pos-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+}
+.pos-yes     { background: #27ae60; }
+.pos-no      { background: #e74c3c; }
+.pos-abstain { background: #f39c12; }
+.pos-absent  { background: #95a7b5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Voting Analysis</h1>
+<p class="meta" style="margin-bottom:0;">
+  Explore how countries voted in UN General Assembly recorded votes.
+  Select a country to see interactive charts.
+</p>
+
+<div class="votes-controls">
+  <label for="country-select">Country:</label>
+  <select id="country-select">
+    <option value="">— select a country —</option>
+    {% for c in countries %}
+    <option value="{{ c.iso3 }}">{{ c.display_name }}</option>
+    {% endfor %}
+  </select>
+  <span id="loading-indicator" style="display:none;">Loading…</span>
+  <button id="reset-btn" style="display:none;">Reset filters</button>
+</div>
+
+<div id="charts-panel">
+  <div class="chart-row">
+    <div class="chart-box">
+      <h3>Vote position</h3>
+      <div id="position-chart"></div>
+    </div>
+    <div class="chart-box" id="year-box">
+      <h3>Votes by year <small style="font-size:0.75rem; font-weight:400; text-transform:none;">(drag to filter)</small></h3>
+      <div id="year-chart"></div>
+    </div>
+  </div>
+
+  <div class="chart-box" id="cat-box">
+    <h3>By category</h3>
+    <div id="category-chart"></div>
+  </div>
+
+  <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found for this country.</p>
+
+  <div id="data-count" style="margin-top:1rem;"></div>
+
+  <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
+    <h3>Vote records</h3>
+    <table id="data-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Resolution</th>
+          <th>Title</th>
+          <th>Position</th>
+          <th>Tally (Y/N/A)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/crossfilter2@1.5/crossfilter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dc@4/dist/dc.min.js"></script>
+<script src="/static/js/votes_charts.js"></script>
+<script>
+(function () {
+  var select   = document.getElementById('country-select');
+  var loading  = document.getElementById('loading-indicator');
+  var panel    = document.getElementById('charts-panel');
+  var resetBtn = document.getElementById('reset-btn');
+
+  select.addEventListener('change', function () {
+    var iso3 = this.value;
+    if (!iso3) { panel.style.display = 'none'; resetBtn.style.display = 'none'; return; }
+    loading.style.display = 'inline';
+    panel.style.display   = 'none';
+    resetBtn.style.display = 'none';
+    fetch('/votes/api/' + iso3 + '/')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        loading.style.display = 'none';
+        panel.style.display   = 'block';
+        resetBtn.style.display = 'inline';
+        VoteCharts.init('#charts-panel', data.votes);
+      })
+      .catch(function () { loading.style.display = 'none'; });
+  });
+
+  resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });
+
+  // Pre-select country from URL param ?country=XXX
+  var params = new URLSearchParams(window.location.search);
+  var preselect = params.get('country');
+  if (preselect) {
+    for (var i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === preselect) {
+        select.value = preselect;
+        select.dispatchEvent(new Event('change'));
+        break;
+      }
+    }
+  }
+}());
+</script>
+{% endblock %}

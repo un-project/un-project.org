@@ -1,6 +1,34 @@
 {% extends "base.html" %}
 {% block title %}{{ country.name }}{% endblock %}
 
+{% block extra_head %}
+{% if country.iso3 %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dc@4/dist/style/dc.min.css">
+<style>
+.session-filter { display:flex; align-items:center; gap:0.6rem; margin:0.75rem 0 1.5rem; font-size:0.9rem; }
+.session-filter select { padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.9rem; }
+.chart-row { display:flex; gap:1.25rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1.25rem; }
+.chart-box { background:var(--un-light); border:1px solid var(--border); border-radius:6px; padding:0.9rem 1.1rem 0.6rem; }
+.chart-box h3 { margin:0 0 0.5rem; font-size:0.78rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
+#cv-year-box { flex:1; min-width:280px; }
+#cv-cat-box  { width:100%; }
+#cv-data-count { font-size:0.85rem; color:var(--muted); margin-bottom:0.4rem; }
+#cv-data-count a { color:var(--un-blue); }
+#cv-data-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+#cv-data-table thead tr { border-bottom:2px solid var(--border); }
+#cv-data-table th { padding:0.35rem 0.55rem; text-align:left; color:var(--muted); font-weight:600; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em; }
+#cv-data-table td { padding:0.35rem 0.55rem; border-bottom:1px solid var(--border); }
+.pos-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:0.75rem; font-weight:700; color:#fff; text-transform:uppercase; }
+.pos-yes     { background:#27ae60; }
+.pos-no      { background:#e74c3c; }
+.pos-abstain { background:#f39c12; }
+.pos-absent  { background:#95a7b5; }
+#cv-reset-btn { padding:0.35rem 0.8rem; background:var(--un-blue); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem; }
+#cv-reset-btn:hover { opacity:0.88; }
+</style>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="profile-header">
   {% if country.flag_url %}
@@ -35,6 +63,21 @@
   </div>
 </div>
 
+{% if sessions %}
+<form class="session-filter" method="get" id="session-form">
+  <label for="session-select" style="font-weight:600; color:var(--muted);">GA Session:</label>
+  <select id="session-select" name="session" onchange="this.form.submit()">
+    <option value="">All sessions</option>
+    {% for s in sessions %}
+    <option value="{{ s }}"{% if s == current_session %} selected{% endif %}>Session {{ s }}</option>
+    {% endfor %}
+  </select>
+  {% if current_session %}
+  <a href="?" style="font-size:0.82rem; color:var(--muted);">✕ clear</a>
+  {% endif %}
+</form>
+{% endif %}
+
 <h2>Representatives</h2>
 {% if representatives %}
 <ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
@@ -49,7 +92,7 @@
 <p class="meta">No speaker records found.</p>
 {% endif %}
 
-<h2>Voting History</h2>
+<h2>Voting History{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}</h2>
 {% if voting_history %}
 <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
   <thead>
@@ -81,10 +124,51 @@
 <p class="meta">No voting records found.</p>
 {% endif %}
 
-<h2>Recent Speeches</h2>
+{% if country.iso3 %}
+<h2 style="margin-top:2rem;">
+  Voting Analysis
+  <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">open full page ↗</a>
+  <button id="cv-reset-btn" style="display:none; margin-left:0.75rem;">Reset filters</button>
+</h2>
+<div id="cv-charts">
+  <div id="cv-loading" class="meta">Loading voting data…</div>
+  <div id="cv-inner" style="display:none;">
+    <div class="chart-row">
+      <div class="chart-box">
+        <h3>Vote position</h3>
+        <div id="position-chart"></div>
+      </div>
+      <div class="chart-box" id="cv-year-box">
+        <h3>Votes by year <small style="font-size:0.72rem; font-weight:400; text-transform:none;">(drag to filter)</small></h3>
+        <div id="year-chart"></div>
+      </div>
+    </div>
+    <div class="chart-box" id="cv-cat-box">
+      <h3>By category</h3>
+      <div id="category-chart"></div>
+    </div>
+    <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found.</p>
+    <div id="data-count" style="margin-top:1rem;"></div>
+    <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
+      <h3>Vote records</h3>
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th>Year</th><th>Resolution</th><th>Title</th><th>Position</th><th>Tally (Y/N/A)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<h2>Recent Speeches{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}</h2>
 {% for speech in speeches_page %}
 <div class="card">
   <div class="speech-header">
+    <img src="/static/speakers/{{ speech.speaker.pk }}.jpg" class="speaker-avatar" alt="" onerror="this.style.display='none'">
     {% if country.flag_url %}
     <img src="{{ country.flag_url }}" alt="{{ country.iso3 }}" style="height:14px;vertical-align:middle;margin-right:3px;">
     {% endif %}
@@ -99,4 +183,38 @@
 {% endfor %}
 
 {% include "partials/pagination.html" with page_obj=speeches_page %}
+{% endblock %}
+
+{% block extra_js %}
+{% if country.iso3 %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/crossfilter2@1.5/crossfilter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dc@4/dist/dc.min.js"></script>
+<script src="/static/js/votes_charts.js"></script>
+<script>
+(function () {
+  var loading  = document.getElementById('cv-loading');
+  var inner    = document.getElementById('cv-inner');
+  var resetBtn = document.getElementById('cv-reset-btn');
+
+  var apiUrl = '/votes/api/{{ country.iso3 }}/{% if current_session %}?session={{ current_session }}{% endif %}';
+  fetch(apiUrl)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      loading.style.display = 'none';
+      if (!data.votes || data.votes.length === 0) {
+        inner.style.display = 'block';
+        document.getElementById('no-votes-msg').style.display = 'block';
+        return;
+      }
+      inner.style.display  = 'block';
+      resetBtn.style.display = 'inline';
+      VoteCharts.init('#cv-inner', data.votes);
+    })
+    .catch(function () { loading.style.display = 'none'; });
+
+  resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });
+}());
+</script>
+{% endif %}
 {% endblock %}

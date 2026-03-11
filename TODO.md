@@ -5,7 +5,7 @@ Tracked tasks and future features for the UN Project web application.
 ## In Progress / Near-term
 
 - [x] **Country ISO codes + flags** — 195 UN member states matched; `iso2`/`iso3` populated in DB; SVG flags in `static/flags/<ISO3>.svg`. Script: `scripts/populate_iso_and_flags.py`.
-- [ ] **Speaker photos** — add optional photos to `static/speakers/<id>.jpg`; the speaker page already shows them when present.
+- [x] **Speaker photos** — script `scripts/fetch_speaker_photos.py` downloads from Wikipedia; displayed on speaker page and inline in meeting/country speech lists. Coverage is limited (few matches found); left as-is.
 - [ ] **Meetings list — add speech count** — annotate each document with the number of speeches for display on the list page.
 
 ## Search
@@ -23,8 +23,8 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Country Page
 
-- [ ] **Voting alignment** — show which countries voted the same way most often (requires aggregation over `country_votes`).
-- [ ] **Session filter** — filter the country's speech and voting history by GA session.
+- [x] **Voting analysis charts** — dc.js interactive charts (position pie, year bar, category row, vote table) on each country page and at `/votes/` (dedicated page with country selector, accessible from More menu).
+- [x] **Session filter** — filter the country's speech and voting history by GA session; dropdown in the country page preserves pagination.
 
 ## Speaker Page
 
