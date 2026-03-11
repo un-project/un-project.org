@@ -232,10 +232,20 @@ h3 { font-size: 1.1rem; margin: 1rem 0 0.5rem; }
 
 .speech-header {
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.4rem;
   flex-wrap: wrap;
+}
+
+.speaker-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .speaker-name { font-weight: 600; }
@@ -334,7 +344,10 @@ mark { background: #fff59d; padding: 0 2px; border-radius: 2px; }
 
 .search-result { border-bottom: 1px solid var(--border); padding: 1rem 0; }
 .search-result:last-child { border-bottom: none; }
-.search-excerpt { font-size: 0.92rem; margin: 0.4rem 0; }
+.search-excerpt  { font-size: 0.92rem; margin: 0.4rem 0; }
+.search-headline { font-size: 0.92rem; margin: 0.4rem 0; line-height: 1.65; }
+.search-headline mark { background: #fff176; color: inherit; padding: 0 2px; border-radius: 2px; font-style: normal; }
+.search-result-resolution .search-headline { color: var(--muted); }
 
 /* ── Agenda sidebar ──────────────────────────────── */
 

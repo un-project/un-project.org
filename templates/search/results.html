@@ -31,33 +31,51 @@
 </form>
 
 {% if query %}
-
   {% if page %}
-  <p class="meta">{{ page.paginator.count }} result{{ page.paginator.count|pluralize }} for "<strong>{{ query }}</strong>"</p>
+  <p class="meta" style="margin-bottom:1rem;">
+    {{ page.paginator.count }} result{{ page.paginator.count|pluralize }} for
+    "<strong>{{ query }}</strong>"
+    <span style="font-size:0.82rem; margin-left:0.5rem; color:var(--muted);">
+      — supports phrases <code>"like this"</code>, exclusions <code>-word</code>, and OR
+    </span>
+  </p>
 
-  <div style="margin-top:1rem;">
-  {% for speech in page %}
+  {% for result in page %}
+
+  {% if result.item_type == 'speech' %}
+  {# ── Speech result ───────────────────────────────────────── #}
   <div class="search-result">
-    <div class="speech-header" style="margin-bottom:0.3rem;">
-      <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
-      {% if speech.speaker.country %}
+    <div class="speech-header" style="margin-bottom:0.3rem; flex-wrap:wrap; gap:0.3rem;">
+      <a class="speaker-name" href="/speaker/{{ result.speaker_id }}/">{{ result.speaker_name }}</a>
+      {% if result.country_name %}
       <span class="speech-country">
-        {% if speech.speaker.country.flag_url %}
-        <img src="{{ speech.speaker.country.flag_url }}" alt="" style="height:13px;vertical-align:middle;margin-right:3px;">
-        {% endif %}
-        <a href="{{ speech.speaker.country.get_absolute_url }}" style="color:inherit;">{{ speech.speaker.country.display_name }}</a>
+        {% if result.country_iso3 %}<img src="/static/flags/{{ result.country_iso3 }}.svg" alt="" style="height:13px;vertical-align:middle;margin-right:3px;">{% endif %}
+        {% if result.country_iso3 %}<a href="/country/{{ result.country_iso3 }}/" style="color:inherit;">{{ result.country_name }}</a>{% else %}{{ result.country_name }}{% endif %}
       </span>
       {% endif %}
-      <span class="badge badge-{{ speech.document.body|lower }}">{{ speech.document.body }}</span>
+      <span class="badge badge-{{ result.body|lower }}">{{ result.body }}</span>
     </div>
-    <p class="search-excerpt">{{ speech.excerpt }}</p>
-    <div class="meta">
-      <a href="{{ speech.document.get_absolute_url }}?q={{ query|urlencode }}#speech-{{ speech.pk }}">{{ speech.document.symbol }}</a>
-      {% if speech.document.date %}&mdash; {{ speech.document.date|date:"N j, Y" }}{% endif %}
+    <p class="search-headline">{{ result.headline|safe }}</p>
+    <div class="meta" style="font-size:0.82rem;">
+      <a href="/meeting/{{ result.document_slug }}/?q={{ query|urlencode }}#speech-{{ result.item_id }}">{{ result.document_symbol }}</a>
+      {% if result.date %}&mdash; {{ result.date|date:"N j, Y" }}{% endif %}
     </div>
   </div>
+
+  {% elif result.item_type == 'resolution' %}
+  {# ── Resolution result ───────────────────────────────────── #}
+  <div class="search-result search-result-resolution">
+    <div style="display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap;">
+      <span class="badge" style="background:var(--un-dark);">Resolution</span>
+      <strong style="font-size:0.95rem;">{{ result.document_symbol }}</strong>
+      {% if result.body %}<span class="badge badge-{{ result.body|lower }}">{{ result.body }}</span>{% endif %}
+      {% if result.session %}<span class="meta">Session {{ result.session }}</span>{% endif %}
+    </div>
+    <p class="search-headline">{{ result.headline|safe }}</p>
+  </div>
+
+  {% endif %}
   {% endfor %}
-  </div>
 
   {% include "partials/pagination.html" with page_obj=page %}
 

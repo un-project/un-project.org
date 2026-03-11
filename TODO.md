@@ -10,10 +10,11 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Search
 
-- [ ] **Use the materialized view** — `search/models.py` defines `SpeechSearchIndex` mapped to the `speech_search_index` materialized view. Switch `search/views.py` to query it instead of annotating `Speech` objects directly, for better performance at scale.
-- [ ] **Search result excerpts with highlighted context** — instead of `speech.excerpt` (first 300 chars), use `ts_headline()` from PostgreSQL to return the matching passage.
+- [x] **Unified search index** — `search_index` materialized view aggregates speeches (speaker A, country B, text C) and resolutions (symbol A, title B, category C) with pre-computed weighted tsvectors and GIN index. `SearchQuery(search_type='websearch')` + `SearchRank(cover_density=True)` used throughout.
+- [x] **Search result excerpts with highlighted context** — `SearchHeadline` (`ts_headline`) returns up to 3 matched fragments per result with `<mark>` highlights; resolution titles shown as a distinct result type.
+- [x] **Refresh management command** — `manage.py refresh_search_index` (uses `CONCURRENTLY` by default, `--full` for blocking refresh).
 - [ ] **Search within a meeting** — add an in-page search box on the meeting detail page.
-- [ ] **Auto-refresh materialized view** — add a PostgreSQL trigger or a scheduled management command to keep `speech_search_index` up to date when data changes.
+- [ ] **Auto-refresh materialized view** — schedule `manage.py refresh_search_index` via cron or a post-ingest hook to keep `search_index` current.
 
 ## Meeting Transcript
 
