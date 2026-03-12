@@ -7,7 +7,6 @@
     onerror="this.style.display='none'" alt="{{ speaker.name }}">
   <div>
     <h1 style="margin-bottom:0.25rem;">{{ speaker.name }}</h1>
-    {% if speaker.title %}<div class="meta">{{ speaker.title }}</div>{% endif %}
     {% if speaker.country %}
     <div style="margin-top:0.5rem;">
       {% if speaker.country.flag_url %}

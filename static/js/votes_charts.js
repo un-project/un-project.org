@@ -4,6 +4,7 @@
 
     var GROUP = 'uvotes';
     var _charts = [];
+    var _simCache = {}; /* iso3 → {similar, dissimilar} */
 
     function cleanup() {
         _charts.forEach(function (c) {
@@ -49,17 +50,82 @@
         };
     }
 
+    /* Render a simple d3 horizontal bar chart for similarity data */
+    function renderSimBar(sel, items, color) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        el.innerHTML = '';
+        if (!items || items.length === 0) {
+            el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Not enough shared votes to compute.</p>';
+            return;
+        }
+
+        var margin = { top: 4, right: 44, bottom: 4, left: 114 };
+        var barH = 18, gap = 5;
+        var containerW = el.parentElement ? el.parentElement.clientWidth - 30 : 260;
+        var W = Math.max(200, Math.min(containerW, 420));
+        var innerW = W - margin.left - margin.right;
+        var H = items.length * (barH + gap) + margin.top + margin.bottom;
+
+        var svg = d3.select(el).append('svg')
+            .attr('width', W)
+            .attr('height', H);
+
+        var g = svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+        items.forEach(function (d, i) {
+            var y = i * (barH + gap);
+            var barW = Math.max(0, innerW * d.score);
+
+            g.append('text')
+                .attr('x', -5)
+                .attr('y', y + barH / 2)
+                .attr('text-anchor', 'end')
+                .attr('dominant-baseline', 'middle')
+                .attr('font-size', '0.73rem')
+                .attr('fill', '#333')
+                .text(d.name.length > 17 ? d.name.slice(0, 16) + '…' : d.name);
+
+            g.append('rect')
+                .attr('x', 0)
+                .attr('y', y)
+                .attr('width', barW)
+                .attr('height', barH)
+                .attr('fill', color)
+                .attr('rx', 2);
+
+            g.append('text')
+                .attr('x', barW + 4)
+                .attr('y', y + barH / 2)
+                .attr('dominant-baseline', 'middle')
+                .attr('font-size', '0.72rem')
+                .attr('fill', '#666')
+                .text(Math.round(d.score * 100) + '%');
+        });
+    }
+
+    function applySimilarity(containerSel, data) {
+        renderSimBar(containerSel + ' #similarity-high-chart', data.similar,    '#009edb');
+        renderSimBar(containerSel + ' #similarity-low-chart',  data.dissimilar, '#e67e22');
+    }
+
     window.VoteCharts = {
 
-        init: function (containerSel, votes, mode) {
+        init: function (containerSel, votes, mode, iso3) {
             cleanup();
             var majorityMode = (mode === 'majority');
 
             /* Clear chart canvas divs */
-            ['#position-chart', '#year-chart', '#category-chart'].forEach(function (sel) {
+            ['#position-chart', '#year-chart', '#category-chart',
+             '#similarity-high-chart', '#similarity-low-chart'].forEach(function (sel) {
                 var el = document.querySelector(containerSel + ' ' + sel);
                 if (el) el.innerHTML = '';
             });
+
+            /* Show / hide similarity row */
+            var simRow = document.querySelector(containerSel + ' #similarity-row');
+            if (simRow) simRow.style.display = majorityMode ? 'flex' : 'none';
 
             if (!votes || votes.length === 0) {
                 var noData = document.querySelector(containerSel + ' #no-votes-msg');
@@ -111,7 +177,7 @@
                     .dimension(majDim).group(majGroup)
                     .colors(d3.scaleOrdinal()
                         .domain(['agree', 'against', 'abstain', 'absent'])
-                        .range(['#009edb', '#e67e22', '#2ecc71', '#95a7b5']))
+                        .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5']))
                     .colorAccessor(function (d) { return d.key; })
                     .title(function (d) { return d.key + ': ' + d.value; });
                 setH3(containerSel, '#position-chart', 'Vote position towards majority');
@@ -157,14 +223,14 @@
 
                 yearChart
                     .dimension(dateDim)
-                    .group(agreeYG,   'agree')
-                    .stack(againstYG, 'against')
-                    .stack(abstainYG, 'abstain')
-                    .colors(d3.scaleOrdinal()
-                        .domain(['agree', 'against', 'abstain'])
-                        .range(['#009edb', '#e67e22', '#2ecc71']))
-                    .colorAccessor(function (d) { return d.layer; });
-                setH3(containerSel, '#year-chart', 'Voting records toward majority');
+                    .group(agreeYG,   'Agree')
+                    .stack(againstYG, 'Against')
+                    .stack(abstainYG, 'Abstain')
+                    .valueAccessor(function (d) { return d.value; })
+                    .ordinalColors(['#27ae60', '#e74c3c', '#f39c12'])
+                    .legend(dc.legend().x(yearW - 110).y(6).itemHeight(12).gap(5));
+                setH3(containerSel, '#year-chart',
+                    'Voting records toward majority <small style="font-size:0.72rem;font-weight:400;text-transform:none;">(drag to filter)</small>');
             } else {
                 var yearGroup = dateDim.group(d3.timeYear);
                 yearChart
@@ -282,9 +348,9 @@
                     if (majorityMode) {
                         chart.selectAll('td.col4').each(function (d) {
                             var tm    = d.row.toward_majority;
-                            var color = tm === 'agree'   ? '#009edb'
-                                      : tm === 'against' ? '#e67e22'
-                                      : tm === 'abstain' ? '#2ecc71'
+                            var color = tm === 'agree'   ? '#27ae60'
+                                      : tm === 'against' ? '#e74c3c'
+                                      : tm === 'abstain' ? '#f39c12'
                                       : '#95a7b5';
                             var mp = d.row.majority_position ? ' (' + d.row.majority_position + ')' : '';
                             d3.select(this).html(
@@ -328,6 +394,29 @@
                     VoteCharts.resetAll();
                 }
             });
+
+            /* ── Similarity charts (majority mode only) ──────────────────── */
+            if (majorityMode && iso3) {
+                if (_simCache[iso3]) {
+                    applySimilarity(containerSel, _simCache[iso3]);
+                } else {
+                    /* Show loading placeholder */
+                    ['#similarity-high-chart', '#similarity-low-chart'].forEach(function (s) {
+                        var el = document.querySelector(containerSel + ' ' + s);
+                        if (el) el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Loading…</p>';
+                    });
+                    fetch('/votes/api/' + iso3 + '/similarity/')
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            _simCache[iso3] = data;
+                            /* Only paint if the similarity row is still visible */
+                            var row = document.querySelector(containerSel + ' #similarity-row');
+                            if (row && row.style.display !== 'none') {
+                                applySimilarity(containerSel, data);
+                            }
+                        });
+                }
+            }
         },
 
         resetAll: function () {

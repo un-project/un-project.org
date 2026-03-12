@@ -153,6 +153,16 @@
       <h3>By category</h3>
       <div id="category-chart"></div>
     </div>
+    <div id="similarity-row" style="display:none; gap:1.25rem; flex-wrap:wrap; margin-bottom:1.25rem;" class="chart-row">
+      <div class="chart-box" style="flex:1; min-width:260px;">
+        <h3>Most similar countries</h3>
+        <div id="similarity-high-chart"></div>
+      </div>
+      <div class="chart-box" style="flex:1; min-width:260px;">
+        <h3>Least similar countries</h3>
+        <div id="similarity-low-chart"></div>
+      </div>
+    </div>
     <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found.</p>
     <div id="data-count" style="margin-top:1rem;"></div>
     <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
@@ -223,12 +233,12 @@
       inner.style.display  = 'block';
       resetBtn.style.display = 'inline';
       majorityLabel.style.display = 'inline-flex';
-      VoteCharts.init('#cv-inner', currentVotes, currentMode());
+      VoteCharts.init('#cv-inner', currentVotes, currentMode(), '{{ country.iso3 }}');
     })
     .catch(function () { loading.style.display = 'none'; });
 
   majorityToggle.addEventListener('change', function () {
-    if (currentVotes) VoteCharts.init('#cv-inner', currentVotes, currentMode());
+    if (currentVotes) VoteCharts.init('#cv-inner', currentVotes, currentMode(), '{{ country.iso3 }}');
   });
 
   resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });

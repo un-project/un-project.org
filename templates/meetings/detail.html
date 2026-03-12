@@ -55,6 +55,7 @@
       {% with s=entry.obj %}
       <div class="speech" id="speech-{{ s.pk }}">
         <div class="speech-header">
+          <img src="/static/speakers/{{ s.speaker.pk }}.jpg" class="speaker-avatar" alt="" onerror="this.style.display='none'">
           <a class="speaker-name" href="{{ s.speaker.get_absolute_url }}">{{ s.speaker.name }}</a>
           {% if s.speaker.country %}
           <span class="speech-country">

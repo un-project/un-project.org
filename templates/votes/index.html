@@ -132,6 +132,17 @@
     <div id="category-chart"></div>
   </div>
 
+  <div id="similarity-row" style="display:none; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem;" class="chart-row">
+    <div class="chart-box" style="flex:1; min-width:280px;">
+      <h3>Most similar countries</h3>
+      <div id="similarity-high-chart"></div>
+    </div>
+    <div class="chart-box" style="flex:1; min-width:280px;">
+      <h3>Least similar countries</h3>
+      <div id="similarity-low-chart"></div>
+    </div>
+  </div>
+
   <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found for this country.</p>
 
   <div id="data-count" style="margin-top:1rem;"></div>
@@ -169,6 +180,7 @@
   var majorityLabel  = document.getElementById('majority-label');
   var majorityToggle = document.getElementById('majority-toggle');
   var currentVotes   = null;
+  var currentIso3    = null;
 
   function currentMode() { return majorityToggle.checked ? 'majority' : 'normal'; }
 
@@ -180,6 +192,7 @@
       majorityLabel.style.display = 'none';
       majorityToggle.checked = false;
       currentVotes = null;
+      currentIso3 = null;
       return;
     }
     loading.style.display = 'inline';
@@ -191,16 +204,17 @@
       .then(function (data) {
         loading.style.display = 'none';
         currentVotes = data.votes;
+        currentIso3  = iso3;
         panel.style.display   = 'block';
         resetBtn.style.display = 'inline';
         majorityLabel.style.display = 'flex';
-        VoteCharts.init('#charts-panel', currentVotes, currentMode());
+        VoteCharts.init('#charts-panel', currentVotes, currentMode(), currentIso3);
       })
       .catch(function () { loading.style.display = 'none'; });
   });
 
   majorityToggle.addEventListener('change', function () {
-    if (currentVotes) VoteCharts.init('#charts-panel', currentVotes, currentMode());
+    if (currentVotes) VoteCharts.init('#charts-panel', currentVotes, currentMode(), currentIso3);
   });
 
   resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });
