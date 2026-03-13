@@ -32,11 +32,24 @@ docker compose watch
 
 Enables hot-reloading during development: source files, templates, and static assets are synced into the container instantly. Changes to `requirements.txt` or `Dockerfile` trigger a full rebuild. Gunicorn runs with `--reload` so Python changes are picked up automatically.
 
-> **Note:** The database starts empty. To load data, restore a dump into the `db` service or point `DB_HOST` at an existing PostgreSQL instance.
+> **Note:** The database starts empty. The Docker container uses its own isolated PostgreSQL volume, separate from any local database populated by [un-extractor](https://github.com/un-project/un-extractor). To load data, dump your local database and restore it into the `db` service:
+>
+> ```bash
+> pg_dump -U myuser -d unproject --data-only > unproject_data.sql
+> docker compose exec -T db psql -U myuser -d unproject < unproject_data.sql
+> ```
+>
+> After loading data, the search index will be refreshed automatically on the next container start. To refresh it immediately:
+>
+> ```bash
+> docker compose exec web python manage.py refresh_search_index --full
+> ```
+>
+> Alternatively, point `DB_HOST` in your `.env` at an existing PostgreSQL instance on the host machine.
 
 ## Tech Stack
 
-- **Backend:** Django 4.2, PostgreSQL, Django ORM
+- **Backend:** Django 5.2, PostgreSQL, Django ORM
 - **Frontend:** Django templates, plain CSS (no framework)
 - **Search:** PostgreSQL full-text search via `django.contrib.postgres`
 - **Serving:** Gunicorn + WhiteNoise
@@ -107,7 +120,9 @@ The Django models map to a pre-existing PostgreSQL schema:
 | `votes` | `Vote` | One voting event per resolution per meeting |
 | `country_votes` | `CountryVote` | Per-country vote position |
 
-A materialized view `speech_search_index` is created by the initial migration to support fast full-text search.
+Two materialized views are created by migrations:
+- `speech_search_index` — legacy per-speech index (migration 0001)
+- `search_index` — unified index covering speeches and resolutions with weighted tsvectors (migration 0002); refreshed automatically on every container startup via `manage.py refresh_search_index`
 
 ## Development
 
