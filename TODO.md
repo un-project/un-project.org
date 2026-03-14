@@ -57,5 +57,5 @@ Tracked tasks and future features for the UN Project web application.
 ## Future / Research
 
 - [ ] **LLM summarization** — integrate Claude API to generate debate summaries per agenda item.
-- [ ] **Country voting alignment graph** — interactive visualization of voting similarity between countries.
+- [x] **Country voting alignment graph** — voting-similarity charts (most/least similar countries) implemented on the votes page in majority mode.
 - [ ] **Full data pipeline** — automate ingestion of new UN meeting PDFs into the database.

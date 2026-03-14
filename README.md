@@ -32,20 +32,58 @@ docker compose watch
 
 Enables hot-reloading during development: source files, templates, and static assets are synced into the container instantly. Changes to `requirements.txt` or `Dockerfile` trigger a full rebuild. Gunicorn runs with `--reload` so Python changes are picked up automatically.
 
-> **Note:** The database starts empty. The Docker container uses its own isolated PostgreSQL volume, separate from any local database populated by [un-extractor](https://github.com/un-project/un-extractor). To load data, dump your local database and restore it into the `db` service:
->
-> ```bash
-> pg_dump -U myuser -d unproject --data-only > unproject_data.sql
-> docker compose exec -T db psql -U myuser -d unproject < unproject_data.sql
-> ```
->
-> After loading data, the search index will be refreshed automatically on the next container start. To refresh it immediately:
->
-> ```bash
-> docker compose exec web python manage.py refresh_search_index --full
-> ```
->
-> Alternatively, point `DB_HOST` in your `.env` at an existing PostgreSQL instance on the host machine.
+## Loading Data
+
+The database starts empty. Use [un-extractor](https://github.com/un-project/un-extractor) to extract meeting records from UN documents and import them.
+
+### 1. Extract meeting records
+
+Follow the un-extractor instructions to produce a directory of `meeting_*.json` files (e.g. `output/`).
+
+### 2. Expose the database port
+
+The `db` service must expose port 5432 to localhost. This is already set in `docker-compose.yml`:
+
+```yaml
+ports:
+  - "5432:5432"
+```
+
+Start the database if it isn't running:
+
+```bash
+docker compose up db -d
+```
+
+### 3. Import the JSON files
+
+From the un-extractor repo directory:
+
+```bash
+python import_json_to_db.py /path/to/output/ \
+  --db "postgresql://myuser:mypassword@localhost:5432/unproject"
+```
+
+The script is idempotent — documents already present in the database are skipped.
+
+### 4. Populate country ISO codes and flags
+
+Countries are imported with only their name. Run this script to fill in ISO2/ISO3 codes and download SVG flags:
+
+```bash
+pip install pycountry
+DB_HOST=localhost python scripts/populate_iso_and_flags.py
+```
+
+This is required for country profiles and the votes page country selector to work.
+
+### 5. Refresh the search index
+
+```bash
+docker compose exec web python manage.py refresh_search_index --full
+```
+
+The index is also refreshed automatically on every container start.
 
 ## Tech Stack
 
@@ -78,6 +116,7 @@ static/           CSS and static assets (flags, speaker photos)
 | `/meeting/<slug>/` | Meeting transcript (e.g. `/meeting/A-78-PV-12/`) |
 | `/country/<ISO3>/` | Country profile |
 | `/speaker/<id>/` | Speaker profile |
+| `/votes/` | Voting analysis — country selector, charts, vote table |
 | `/search/?q=...` | Full-text speech search |
 
 Meeting slugs are derived from the UN document symbol by replacing `/` and `.` with `-` (e.g. `A/78/PV.12` → `A-78-PV-12`).

@@ -251,14 +251,18 @@ The agent must implement:
 - indexed search
 - lazy loading of transcripts if needed
 
-# Future Features (Do Not Implement Yet)
+# Implemented Features (Originally Future)
+
+These were listed as future features and have since been implemented:
+- voting visualizations — interactive dc.js charts (position, year, category) on country pages and at `/votes/`
+- country voting alignment graphs — similarity charts comparing a country's votes to others
+
+# Future Features (Not Yet Implemented)
 
 The architecture must allow future support for:
 - Security Council transcripts
 - amendment tracking
-- voting visualizations
 - timeline of debates
-- country voting alignment graphs
 - JSON API access
 - LLM-based summarization of debates
 

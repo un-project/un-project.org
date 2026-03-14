@@ -8,7 +8,7 @@ A Django web application for exploring United Nations meetings, transcripts, spe
 
 ## Stack
 
-- Python 3.12, Django 4.2, PostgreSQL 16
+- Python 3.12, Django 5.2, PostgreSQL 16
 - No CSS framework — plain CSS in `static/css/style.css`
 - No JavaScript framework — minimal vanilla JS only
 - Docker Compose for local and production deployment
@@ -64,10 +64,16 @@ All custom models use `managed = False` — their tables are pre-existing in Pos
 
 Django's own tables (auth, admin, sessions) are managed normally.
 
-The search materialized view `speech_search_index` is created by `search/migrations/0001_create_search_index.py`. To refresh it after a data load:
+Two search materialized views are created by migrations:
+- `speech_search_index` — legacy per-speech index (migration 0001)
+- `search_index` — unified index covering speeches and resolutions with weighted tsvectors (migration 0002)
 
-```sql
-REFRESH MATERIALIZED VIEW speech_search_index;
+To refresh after a data load, use the management command:
+
+```bash
+python manage.py refresh_search_index --full
+# or inside Docker:
+docker compose exec web python manage.py refresh_search_index --full
 ```
 
 ## Key Conventions
