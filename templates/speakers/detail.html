@@ -14,6 +14,8 @@
       {% endif %}
       <a href="{{ speaker.country.get_absolute_url }}">{{ speaker.country.name }}</a>
     </div>
+    {% elif speaker.organization %}
+    <div class="meta" style="margin-top:0.5rem;">{{ speaker.organization }}</div>
     {% endif %}
   </div>
 </div>
@@ -46,7 +48,7 @@
 {% for speech in speeches_page %}
 <div class="card">
   <div class="speech-header">
-    {% if speaker.country.flag_url %}
+    {% if speaker.country and speaker.country.flag_url %}
     <img src="{{ speaker.country.flag_url }}" alt="{{ speaker.country.iso3 }}" style="height:14px;vertical-align:middle;margin-right:3px;">
     {% endif %}
     <a href="{{ speech.get_absolute_url }}" class="meta">{{ speech.document.symbol }}</a>

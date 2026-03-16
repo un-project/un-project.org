@@ -12,13 +12,14 @@ class Speaker(models.Model):
     )
     role = models.CharField(max_length=100, null=True, blank=True)
     title = models.CharField(max_length=20, null=True, blank=True)
+    organization = models.CharField(max_length=400, null=True, blank=True)
 
     class Meta:
         managed = False
         db_table = 'speakers'
         ordering = ['name']
         constraints = [
-            models.UniqueConstraint(fields=['name', 'country'], name='uq_speaker')
+            models.UniqueConstraint(fields=['name', 'country', 'organization'], name='uq_speaker')
         ]
 
     def __str__(self):

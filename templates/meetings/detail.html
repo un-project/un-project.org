@@ -64,6 +64,8 @@
             {% endif %}
             <a href="{{ s.speaker.country.get_absolute_url }}" style="color:inherit;">{{ s.speaker.country.display_name }}</a>
           </span>
+          {% elif s.speaker.organization %}
+          <span class="speech-country meta">{{ s.speaker.organization }}</span>
           {% endif %}
           {% if s.on_behalf_of %}
           <span class="meta" style="font-size:0.82rem;">on behalf of {{ s.on_behalf_of }}</span>
