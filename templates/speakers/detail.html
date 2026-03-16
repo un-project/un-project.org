@@ -2,6 +2,7 @@
 {% block title %}{{ speaker.name }}{% endblock %}
 
 {% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
 <div class="profile-header">
   <img class="speaker-photo" src="/static/speakers/{{ speaker.pk }}.jpg"
     onerror="this.style.display='none'" alt="{{ speaker.name }}">

@@ -97,8 +97,16 @@ def meeting_detail(request, slug):
             seen_items.add(item_id)
         final_transcript.append(entry)
 
+    body_label = document.body_display
+    crumbs = [
+        {'label': 'Home', 'url': f'/?body={document.body}'},
+        {'label': f'{body_label} Meetings', 'url': f'/meeting/?body={document.body}'},
+        {'label': document.symbol, 'url': None},
+    ]
+
     return render(request, 'meetings/detail.html', {
         'document': document,
         'items': items,
         'transcript': final_transcript,
+        'crumbs': crumbs,
     })

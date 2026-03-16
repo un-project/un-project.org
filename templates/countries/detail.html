@@ -30,6 +30,7 @@
 {% endblock %}
 
 {% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
 <div class="profile-header">
   {% if country.flag_url %}
   <img class="flag-img" src="{{ country.flag_url }}" alt="{{ country.name }} flag">

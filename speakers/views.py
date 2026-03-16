@@ -23,10 +23,16 @@ def speaker_detail(request, pk):
         .order_by('-date')
     )
 
+    crumbs = [{'label': 'Home', 'url': '/'}]
+    if speaker.country:
+        crumbs.append({'label': speaker.country.display_name, 'url': speaker.country.get_absolute_url()})
+    crumbs.append({'label': speaker.name, 'url': None})
+
     return render(request, 'speakers/detail.html', {
         'speaker': speaker,
         'speeches_page': speeches_page,
         'speech_count': speeches.count(),
         'meetings_count': meetings_attended.count(),
         'recent_meetings': meetings_attended[:5],
+        'crumbs': crumbs,
     })

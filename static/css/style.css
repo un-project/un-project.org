@@ -164,6 +164,15 @@ h3 { font-size: 1.1rem; margin: 1rem 0 0.5rem; }
 
 .meta { color: var(--muted); font-size: 0.85rem; }
 
+.breadcrumb {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 1.25rem;
+}
+.breadcrumb a { color: var(--muted); }
+.breadcrumb a:hover { color: var(--un-blue); }
+.breadcrumb span + span::before { content: " / "; }
+
 .badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;

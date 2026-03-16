@@ -68,6 +68,11 @@ def _render_country_detail(request, country):
         'abstain': vote_qs.filter(vote_position='abstain').count(),
     }
 
+    crumbs = [
+        {'label': 'Home', 'url': '/'},
+        {'label': country.display_name, 'url': None},
+    ]
+
     return render(request, 'countries/detail.html', {
         'country': country,
         'representatives_page': representatives_page,
@@ -76,6 +81,7 @@ def _render_country_detail(request, country):
         'vote_stats': vote_stats,
         'sessions': sessions,
         'current_session': current_session,
+        'crumbs': crumbs,
     })
 
 

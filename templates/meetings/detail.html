@@ -2,9 +2,7 @@
 {% block title %}{{ document.symbol }}{% endblock %}
 
 {% block content %}
-<div style="margin-bottom:1rem;">
-  <a href="/meeting/" class="meta">← All meetings</a>
-</div>
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
 
 <h1>
   {{ document.symbol }}
