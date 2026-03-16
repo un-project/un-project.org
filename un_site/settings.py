@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'speakers',
     'votes',
     'search',
+    'api',
 ]
 
 MIDDLEWARE = [

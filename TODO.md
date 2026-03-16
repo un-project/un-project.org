@@ -33,7 +33,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Navigation & UI
 
-- [ ] **Breadcrumbs** — add breadcrumb navigation on meeting, country, and speaker pages.
+- [x] **Breadcrumbs** — add breadcrumb navigation on meeting, country, and speaker pages.
 - [ ] **Mobile nav** — the dropdown menu is hover-only; add a touch-friendly toggle for small screens.
 - [ ] **Dark mode** — add a `prefers-color-scheme` media query variant.
 
@@ -45,14 +45,14 @@ Tracked tasks and future features for the UN Project web application.
 
 ## API
 
-- [ ] **JSON API** — expose meetings, speeches, and votes as a read-only REST API (Django REST Framework or simple `JsonResponse` views) to support external tools and the LLM summarization feature.
+- [x] **JSON API** — read-only `JsonResponse` endpoints at `/api/meetings/`, `/api/meetings/<slug>/`, `/api/resolutions/`, `/api/resolutions/<slug>/`. Filterable by `body`, `session`, `year`; paginated at 50 per page.
 
 ## Infrastructure
 
 - [ ] **Production settings** — extract a `un_site/settings_prod.py` with proper `SECURE_*` headers, `CONN_MAX_AGE`, and `STATIC_ROOT` configuration.
 - [ ] **Health check endpoint** — add `/health/` returning 200 for load-balancer probes.
 - [ ] **Logging** — configure Django logging to write structured logs in production.
-- [ ] **CI** — add a GitHub Actions workflow that runs `manage.py check` and basic view tests on push.
+- [x] **CI** — GitHub Actions workflow runs pytest (model unit tests + view integration tests) against a PostgreSQL 16 service on every push/PR to main.
 
 ## Future / Research
 

@@ -9,4 +9,5 @@ urlpatterns = [
     path('speaker/', include('speakers.urls')),
     path('search/', include('search.urls')),
     path('votes/', include('votes.urls')),
+    path('api/', include('api.urls')),
 ]
