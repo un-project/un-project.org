@@ -52,15 +52,17 @@ def search(request):
 
     from countries.models import Country
     from speakers.models import Speaker
-    countries     = Country.objects.filter(iso3__isnull=False).order_by('name')
-    speakers_list = Speaker.objects.select_related('country').order_by('name')[:200]
+    countries        = Country.objects.filter(iso3__isnull=False).order_by('name')
+    selected_speaker = None
+    if speaker_id and speaker_id.isdigit():
+        selected_speaker = Speaker.objects.filter(pk=int(speaker_id)).select_related('country').first()
 
     return render(request, 'search/results.html', {
-        'query':           query_str,
-        'page':            page,
-        'current_body':    body,
-        'current_country': country_id,
-        'current_speaker': speaker_id,
-        'countries':       countries,
-        'speakers':        speakers_list,
+        'query':            query_str,
+        'page':             page,
+        'current_body':     body,
+        'current_country':  country_id,
+        'current_speaker':  speaker_id,
+        'countries':        countries,
+        'selected_speaker': selected_speaker,
     })

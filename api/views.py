@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 from meetings.models import Document
 from votes.models import Resolution
@@ -24,6 +25,30 @@ def _paginate(request, qs, serializer):
         'previous': page_url(page.previous_page_number()) if page.has_previous() else None,
         'results': [serializer(obj) for obj in page],
     })
+
+
+# ── Speakers ───────────────────────────────────────────────────────────────────
+
+def speaker_search(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse([], safe=False)
+    from speakers.models import Speaker
+    qs = (
+        Speaker.objects
+        .filter(Q(name__icontains=q) | Q(organization__icontains=q))
+        .select_related('country')
+        .order_by('name')[:30]
+    )
+    results = [
+        {
+            'id': s.pk,
+            'name': s.name,
+            'detail': s.country.display_name if s.country else (s.organization or ''),
+        }
+        for s in qs
+    ]
+    return JsonResponse(results, safe=False)
 
 
 # ── Meetings ───────────────────────────────────────────────────────────────────

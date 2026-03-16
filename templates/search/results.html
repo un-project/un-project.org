@@ -20,11 +20,11 @@
     {% endfor %}
   </select>
 
-  <select name="speaker" data-searchable>
+  <select name="speaker" data-search-url="/api/speakers/">
     <option value="">All speakers</option>
-    {% for sp in speakers %}
-    <option value="{{ sp.pk }}" {% if current_speaker == sp.pk|stringformat:"s" %}selected{% endif %}>{{ sp.name }}</option>
-    {% endfor %}
+    {% if selected_speaker %}
+    <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>
+    {% endif %}
   </select>
 
   <button type="submit">Search</button>

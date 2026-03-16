@@ -62,6 +62,35 @@
 document.querySelectorAll('select[data-searchable]').forEach(function(el) {
   new TomSelect(el, { maxOptions: null });
 });
+
+document.querySelectorAll('select[data-search-url]').forEach(function(el) {
+  var url = el.dataset.searchUrl;
+  new TomSelect(el, {
+    valueField: 'id',
+    labelField: 'name',
+    searchField: 'name',
+    load: function(query, callback) {
+      if (query.length < 2) return callback();
+      fetch(url + '?q=' + encodeURIComponent(query))
+        .then(function(r) { return r.json(); })
+        .then(function(data) { callback(data); })
+        .catch(function() { callback(); });
+    },
+    render: {
+      option: function(item, escape) {
+        return '<div>' + escape(item.name) +
+          (item.detail ? ' <span style="color:var(--muted);font-size:0.85em;">(' + escape(item.detail) + ')</span>' : '') +
+          '</div>';
+      },
+      item: function(item, escape) {
+        return '<div>' + escape(item.name) +
+          (item.detail ? ' <span style="color:var(--muted);font-size:0.85em;">(' + escape(item.detail) + ')</span>' : '') +
+          '</div>';
+      },
+    },
+    shouldLoad: function(query) { return query.length >= 2; },
+  });
+});
 </script>
 {% block extra_js %}{% endblock %}
 </body>
