@@ -37,6 +37,10 @@ class Document(models.Model):
     def body_display(self):
         return dict(self.BODY_CHOICES).get(self.body, self.body)
 
+    @property
+    def docs_un_url(self):
+        return f'https://docs.un.org/en/{self.symbol}'
+
 
 class DocumentItem(models.Model):
     ITEM_TYPE_AGENDA = 'agenda_item'
