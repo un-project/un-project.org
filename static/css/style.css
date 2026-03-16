@@ -477,6 +477,109 @@ mark { background: #fff59d; padding: 0 2px; border-radius: 2px; }
 .ts-dropdown .option.active { background: var(--un-light); color: var(--text); }
 .ts-dropdown .option.selected { background: #e0f0ff; color: var(--un-dark); }
 
+/* ── Dark mode ───────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+
+  :root {
+    --un-blue:  #4db8f0;
+    --un-dark:  #0d1a2a;
+    --un-light: #1a2235;
+    --text:     #e2e8f0;
+    --muted:    #94a3b8;
+    --border:   #2d3a4f;
+  }
+
+  body { background: #0f1724; color: var(--text); }
+
+  /* ── Nav ── */
+  nav.topnav form.search-form input[type=search] {
+    background: #1a2235;
+    color: var(--text);
+  }
+
+  /* ── General surfaces ── */
+  .card { background: #1a2235; }
+  .vote-block { background: var(--un-light); }
+  .agenda-sidebar { background: var(--un-light); }
+
+  /* ── Inputs ── */
+  input[type=text], input[type=search], input[type=date],
+  select, textarea {
+    background: #1a2235;
+    color: var(--text);
+    border-color: var(--border);
+    color-scheme: dark;
+  }
+  .filters select,
+  .filters input[type=text],
+  .filters input[type=search],
+  .filters input[type=date] { background: #1a2235; color: var(--text); }
+
+  /* ── Buttons ── */
+  .btn-secondary { background: #2d3a4f; color: var(--text); }
+
+  /* ── Badges ── */
+  .badge { background: var(--un-light); color: var(--text); }
+  .badge-ga { background: #0c2440; color: #7dd3fc; border-color: #1e4060; }
+  .badge-sc { background: #362200; color: #fcd34d; border-color: #5c3a00; }
+
+  /* ── Transcript ── */
+  .transcript-search-floating { background: #1a2235; }
+  .speech:target { background: #0c2440; border-left-color: var(--un-blue); }
+
+  /* ── Vote position labels ── */
+  .vote-pos-yes     { background: #14532d; color: #86efac; }
+  .vote-pos-no      { background: #7f1d1d; color: #fca5a5; }
+  .vote-pos-abstain { background: #78350f; color: #fcd34d; }
+  .vote-pos-absent  { background: #1f2937; color: #9ca3af; }
+
+  /* Vote comparison matrix cells */
+  .cell-agree    { background: #14532d; color: #86efac; }
+  .cell-disagree { background: #78350f; color: #fcd34d; }
+
+  /* ── Highlights ── */
+  mark { background: #5c4a00; color: #fef3c7; }
+  .search-headline mark { background: #5c4a00; color: #fef3c7; }
+
+  /* ── Pagination ── */
+  .pagination a, .pagination span { background: var(--un-light); color: var(--text); }
+  .pagination a:hover { background: #2d3a4f; }
+
+  /* ── Stat box numbers ── */
+  .stat-box .num { color: var(--un-blue); }
+
+  /* ── Footer ── */
+  footer { background: #1a2235; }
+
+  /* ── Tom Select (overrides CDN hardcoded whites) ── */
+  .ts-wrapper.single .ts-control,
+  .ts-control {
+    background: #1a2235 !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  .ts-dropdown {
+    background: #1a2235 !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+  .ts-dropdown .option { color: var(--text); }
+  .ts-dropdown .option:hover,
+  .ts-dropdown .option.active { background: #2d3a4f !important; color: var(--text) !important; }
+  .ts-dropdown .option.selected { background: #0c2440 !important; color: var(--un-blue) !important; }
+  .ts-wrapper.focus .ts-control,
+  .ts-wrapper.input-active .ts-control { border-color: var(--un-blue) !important; }
+  .ts-control input { color: var(--text) !important; }
+  .ts-control input::placeholder { color: var(--muted) !important; }
+
+  /* ── Country comparison cards ── */
+  .compare-country-card { background: var(--un-light); }
+  .matrix-table thead th,
+  .matrix-table tbody th { background: var(--un-light); }
+
+}
+
 /* ── Footer ──────────────────────────────────────── */
 
 footer {
