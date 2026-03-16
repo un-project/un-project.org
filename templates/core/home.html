@@ -40,7 +40,7 @@
     {% empty %}
     <p class="meta">No meetings found.</p>
     {% endfor %}
-    <a href="/meeting/" class="btn btn-secondary btn-sm">View all meetings →</a>
+    <a href="/meeting/{% if current_body %}?body={{ current_body }}{% endif %}" class="btn btn-secondary btn-sm">View all meetings →</a>
   </section>
 
   <section>
