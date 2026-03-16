@@ -325,6 +325,36 @@ h3 { font-size: 1.1rem; margin: 1rem 0 0.5rem; }
 
 .vote-tally { font-size: 0.88rem; color: var(--muted); margin-top: 0.4rem; }
 
+.vote-details { margin-top: 0.75rem; }
+.vote-details summary { cursor: pointer; font-size: 0.85rem; color: var(--un-blue); user-select: none; }
+.vote-details summary:hover { text-decoration: underline; }
+
+.vote-country-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.vote-country-grid ul { list-style: none; margin: 0.3rem 0 0; padding: 0; }
+.vote-country-grid ul li { font-size: 0.82rem; margin-bottom: 0.2rem; }
+
+.vote-group-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 0.25rem;
+}
+
+.vote-pos-yes     { background: #d4edda; color: #155724; }
+.vote-pos-no      { background: #f8d7da; color: #721c24; }
+.vote-pos-abstain { background: #fff3cd; color: #856404; }
+.vote-pos-absent  { background: #e2e3e5; color: #383d41; }
+
 mark { background: #fff59d; padding: 0 2px; border-radius: 2px; }
 
 /* ── Pagination ──────────────────────────────────── */

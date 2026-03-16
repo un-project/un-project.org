@@ -91,13 +91,47 @@
       {% elif entry.type == "vote" %}
       {% with v=entry.obj %}
       <div class="vote-block">
-        <strong>Vote:</strong>
-        {{ v.resolution }}
-        <span class="badge">{{ v.vote_type }}</span>
+        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+          <strong>Vote:</strong>
+          <a href="{{ v.resolution.get_absolute_url }}">{{ v.resolution }}</a>
+          <span class="badge">{{ v.get_vote_type_display }}</span>
+          {% if v.vote_scope != 'whole_resolution' %}
+          <span class="meta">{{ v.get_vote_scope_display }}{% if v.paragraph_number %} {{ v.paragraph_number }}{% endif %}</span>
+          {% endif %}
+        </div>
         {% if v.yes_count is not None %}
         <div class="vote-tally">
-          Yes: {{ v.yes_count }} &mdash; No: {{ v.no_count }} &mdash; Abstain: {{ v.abstain_count }}
+          <span style="color:#27ae60;">✓ {{ v.yes_count }}</span> &nbsp;
+          <span style="color:#e74c3c;">✗ {{ v.no_count }}</span> &nbsp;
+          <span style="color:#f39c12;">{{ v.abstain_count }} abs.</span>
         </div>
+        {% endif %}
+        {% if v.country_votes.all %}
+        <details class="vote-details">
+          <summary>Show country votes</summary>
+          {% regroup v.country_votes.all|dictsort:"vote_position" by vote_position as position_groups %}
+          <div class="vote-country-grid">
+            {% for group in position_groups %}
+            <div>
+              <div class="vote-group-label vote-pos-{{ group.grouper }}">
+                {% if group.grouper == 'yes' %}✓ Yes
+                {% elif group.grouper == 'no' %}✗ No
+                {% elif group.grouper == 'abstain' %}— Abstain
+                {% else %}Absent{% endif %}
+                ({{ group.list|length }})
+              </div>
+              <ul>
+                {% for cv in group.list %}
+                <li>
+                  {% if cv.country.flag_url %}<img src="{{ cv.country.flag_url }}" alt="" style="height:11px;vertical-align:middle;margin-right:3px;">{% endif %}
+                  <a href="{{ cv.country.get_absolute_url }}">{{ cv.country.display_name }}</a>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endfor %}
+          </div>
+        </details>
         {% endif %}
       </div>
       {% endwith %}

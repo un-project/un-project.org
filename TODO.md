@@ -20,7 +20,7 @@ Tracked tasks and future features for the UN Project web application.
 
 - [x] **Pagination on long transcripts** — transcripts with 50+ entries show the first 50 with a "Show more" button; searching automatically reveals all entries.
 - [ ] **Per-item permalink** — clicking the agenda item number in the sidebar should copy the anchor URL to clipboard.
-- [ ] **Votes inline detail** — expand the vote block to show the full country-by-country vote table (currently only shows totals).
+- [x] **Votes inline detail** — expand the vote block to show the full country-by-country vote table (currently only shows totals).
 
 ## Country Page
 
