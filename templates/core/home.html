@@ -48,7 +48,7 @@
     {% for vote in recent_votes %}
     <div class="card">
       <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-        <strong>{{ vote.resolution }}</strong>
+        <a href="{{ vote.resolution.get_absolute_url }}"><strong>{{ vote.resolution }}</strong></a>
         <span class="badge">{{ vote.vote_type }}</span>
         {% if vote.yes_count is not None %}
         <span class="meta">✓&nbsp;{{ vote.yes_count }} &nbsp;✗&nbsp;{{ vote.no_count }} &nbsp;{{ vote.abstain_count }}&nbsp;abs.</span>
@@ -65,6 +65,7 @@
     {% empty %}
     <p class="meta">No resolutions found.</p>
     {% endfor %}
+    <a href="/votes/resolutions/{% if current_body %}?body={{ current_body }}{% endif %}" class="btn btn-secondary btn-sm">View all resolutions →</a>
   </section>
 
 </div>

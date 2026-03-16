@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{% if current_body == 'GA' %}General Assembly{% elif current_body == 'SC' %}Security Council{% else %}Resolutions{% endif %}{% endblock %}
+
+{% block content %}
+{% if current_body %}
+<div style="display:flex; align-items:center; gap:1.5rem; margin:2rem 0 1.5rem; flex-wrap:wrap;">
+  <img src="/static/img/un-emblem.svg" alt="UN emblem" style="width:80px; height:auto;">
+  <div>
+    <div style="font-size:0.82rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:0.2rem;">United Nations</div>
+    <h1 style="margin:0; font-size:1.75rem; line-height:1.2;">
+      {% if current_body == 'GA' %}General Assembly{% elif current_body == 'SC' %}Security Council{% endif %} — Resolutions
+    </h1>
+  </div>
+</div>
+{% else %}
+<h1>Resolutions</h1>
+{% endif %}
+
+<form class="filters" method="get">
+  {% if current_body %}<input type="hidden" name="body" value="{{ current_body }}">{% else %}
+  <select name="body">
+    <option value="">All bodies</option>
+    <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
+    <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
+  </select>
+  {% endif %}
+
+  <select name="session">
+    <option value="">All sessions</option>
+    {% for s in sessions %}
+    <option value="{{ s }}" {% if current_session == s|stringformat:"s" %}selected{% endif %}>Session {{ s }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Filter</button>
+  {% if current_session %}
+  <a href="/votes/resolutions/{% if current_body %}?body={{ current_body }}{% endif %}" class="btn btn-secondary btn-sm">Clear</a>
+  {% endif %}
+</form>
+
+<p class="meta">{{ page.paginator.count }} resolution{{ page.paginator.count|pluralize }} found</p>
+
+{% for resolution in page %}
+<div class="card">
+  <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+    <a href="{{ resolution.get_absolute_url }}"><strong>{{ resolution }}</strong></a>
+    <span class="badge badge-{{ resolution.body|lower }}">{{ resolution.body }}</span>
+    {% if resolution.session %}<span class="meta">Session {{ resolution.session }}</span>{% endif %}
+    {% if resolution.category %}<span class="meta">{{ resolution.category }}</span>{% endif %}
+  </div>
+  {% if resolution.title %}
+  <p class="meta" style="margin:0.3rem 0 0;">{{ resolution.title|truncatechars:140 }}</p>
+  {% endif %}
+</div>
+{% empty %}
+<p class="meta">No resolutions match the selected filters.</p>
+{% endfor %}
+
+{% include "partials/pagination.html" with page_obj=page %}
+{% endblock %}

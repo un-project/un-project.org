@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ resolution }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="/votes/" class="meta">← Votes</a>
+</div>
+
+<h1 style="margin-bottom:0.25rem;">
+  {{ resolution }}
+  <span class="badge badge-{{ resolution.body|lower }}">{{ resolution.body }}</span>
+</h1>
+
+{% if resolution.title %}
+<p style="font-size:1.05rem; margin:0.5rem 0 1rem; color:var(--muted);">{{ resolution.title }}</p>
+{% endif %}
+
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+  {% if resolution.session %}
+  <div class="stat-box">
+    <div class="num">{{ resolution.session }}</div>
+    <div class="label">Session</div>
+  </div>
+  {% endif %}
+  {% for vote in votes %}
+  {% if vote.yes_count is not None %}
+  <div class="stat-box">
+    <div class="num" style="color:#27ae60;">{{ vote.yes_count }}</div>
+    <div class="label">Yes</div>
+  </div>
+  <div class="stat-box">
+    <div class="num" style="color:#e74c3c;">{{ vote.no_count }}</div>
+    <div class="label">No</div>
+  </div>
+  <div class="stat-box">
+    <div class="num" style="color:#f39c12;">{{ vote.abstain_count }}</div>
+    <div class="label">Abstentions</div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<table style="width:100%; border-collapse:collapse; font-size:0.92rem; margin-bottom:1.5rem;">
+  <tbody>
+    {% if resolution.draft_symbol %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted); width:180px;">Draft symbol</th>
+      <td style="padding:0.45rem 0.75rem;">{{ resolution.draft_symbol }}</td>
+    </tr>
+    {% endif %}
+    {% if resolution.adopted_symbol %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">Adopted symbol</th>
+      <td style="padding:0.45rem 0.75rem;">{{ resolution.adopted_symbol }}</td>
+    </tr>
+    {% endif %}
+    {% if resolution.category %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">Category</th>
+      <td style="padding:0.45rem 0.75rem;">{{ resolution.category }}</td>
+    </tr>
+    {% endif %}
+    {% if resolution.docs_un_url %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">UN Document</th>
+      <td style="padding:0.45rem 0.75rem;">
+        <a href="{{ resolution.docs_un_url }}" target="_blank" rel="noopener">
+          {{ resolution.adopted_symbol }} ↗
+        </a>
+      </td>
+    </tr>
+    {% endif %}
+  </tbody>
+</table>
+
+{% for vote in votes %}
+<div style="margin-bottom:2rem;">
+  <h2 style="font-size:1rem; margin-bottom:0.75rem;">
+    Vote
+    {% if vote.vote_scope == 'paragraph' %}on paragraph {{ vote.paragraph_number }}
+    {% elif vote.vote_scope == 'amendment' %}on amendment
+    {% endif %}
+    <span class="badge">{{ vote.get_vote_type_display }}</span>
+    &mdash; <a href="{{ vote.document.get_absolute_url }}" class="meta">{{ vote.document.symbol }}</a>
+    {% if vote.document.date %}<span class="meta">{{ vote.document.date|date:"N j, Y" }}</span>{% endif %}
+  </h2>
+
+  {% if vote.country_votes.all %}
+  {% regroup vote.country_votes.all|dictsort:"vote_position" by vote_position as position_groups %}
+  <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+    {% for group in position_groups %}
+    <div>
+      <div class="meta" style="font-weight:600; margin-bottom:0.4rem; text-transform:uppercase; font-size:0.78rem; letter-spacing:0.06em;">
+        {% if group.grouper == 'yes' %}✓ Yes
+        {% elif group.grouper == 'no' %}✗ No
+        {% elif group.grouper == 'abstain' %}— Abstain
+        {% else %}Absent{% endif %}
+        ({{ group.list|length }})
+      </div>
+      <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; line-height:1.7;">
+        {% for cv in group.list %}
+        <li>
+          {% if cv.country.flag_url %}
+          <img src="{{ cv.country.flag_url }}" alt="" style="height:12px; vertical-align:middle; margin-right:3px;">
+          {% endif %}
+          <a href="{{ cv.country.get_absolute_url }}">{{ cv.country.display_name }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

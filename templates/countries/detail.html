@@ -107,7 +107,9 @@
   <tbody>
     {% for cv in voting_history_page %}
     <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:0.45rem 0.75rem;">{{ cv.vote.resolution }}</td>
+      <td style="padding:0.45rem 0.75rem;">
+        <a href="{{ cv.vote.resolution.get_absolute_url }}">{{ cv.vote.resolution }}</a>
+      </td>
       <td style="padding:0.45rem 0.75rem;">
         <a href="{{ cv.vote.document.get_absolute_url }}">{{ cv.vote.document.symbol }}</a>
       </td>

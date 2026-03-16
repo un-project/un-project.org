@@ -17,6 +17,25 @@ class Resolution(models.Model):
     def __str__(self):
         return self.adopted_symbol or self.draft_symbol
 
+    @property
+    def slug(self):
+        symbol = self.adopted_symbol or self.draft_symbol
+        return symbol.replace('/', '-').replace('.', '-')
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('votes:resolution_detail', args=[self.slug])
+
+    @property
+    def docs_un_url(self):
+        if not self.adopted_symbol:
+            return None
+        if self.body == 'GA':
+            return f'https://docs.un.org/en/a/res/{self.adopted_symbol}'
+        if self.body == 'SC':
+            return f'https://docs.un.org/en/s/res/{self.adopted_symbol}'
+        return None
+
 
 class Vote(models.Model):
     VOTE_TYPE_CHOICES = [

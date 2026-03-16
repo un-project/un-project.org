@@ -1,10 +1,59 @@
 from collections import defaultdict
 
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 
 from countries.models import Country
-from .models import CountryVote
+from .models import CountryVote, Resolution
+
+
+def resolution_list(request):
+    body = request.GET.get('body', '')
+    session = request.GET.get('session', '')
+
+    qs = Resolution.objects.all()
+    if body in ('GA', 'SC'):
+        qs = qs.filter(body=body)
+    if session and session.isdigit():
+        qs = qs.filter(session=int(session))
+
+    filter_qs = Resolution.objects.all()
+    if body in ('GA', 'SC'):
+        filter_qs = filter_qs.filter(body=body)
+    sessions = filter_qs.order_by('-session').values_list('session', flat=True).distinct()
+
+    paginator = Paginator(qs.order_by('-session', 'adopted_symbol', 'draft_symbol'), 50)
+    page = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'votes/resolutions.html', {
+        'page': page,
+        'sessions': sessions,
+        'current_body': body,
+        'current_session': session,
+    })
+
+
+def resolution_detail(request, slug):
+    resolution = None
+    for r in Resolution.objects.all():
+        if r.slug == slug:
+            resolution = r
+            break
+    if resolution is None:
+        raise Http404('Resolution not found')
+
+    votes = (
+        resolution.votes
+        .select_related('document')
+        .prefetch_related('country_votes__country')
+        .order_by('position_in_item')
+    )
+
+    return render(request, 'votes/resolution.html', {
+        'resolution': resolution,
+        'votes': votes,
+    })
 
 
 def votes_page(request):
