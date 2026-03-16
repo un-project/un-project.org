@@ -27,6 +27,13 @@
     {% endif %}
   </select>
 
+  <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.88rem; color:var(--muted);">
+    From <input type="date" name="date_from" value="{{ date_from }}" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:var(--radius); font-size:0.88rem;">
+  </label>
+  <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.88rem; color:var(--muted);">
+    To <input type="date" name="date_to" value="{{ date_to }}" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:var(--radius); font-size:0.88rem;">
+  </label>
+
   <button type="submit">Search</button>
 </form>
 
