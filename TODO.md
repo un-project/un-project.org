@@ -44,7 +44,7 @@ Tracked tasks and future features for the UN Project web application.
 
 - [ ] **Dark mode** — add a `prefers-color-scheme` media query variant.
 - [ ] **OpenGraph / meta tags** — add `og:title`, `og:description`, and `og:image` to meeting, country, speaker, and resolution pages for social sharing previews.
-- [ ] **Sitemap** — generate `sitemap.xml` covering meetings, countries, speakers, and resolutions for SEO.
+- [x] **Sitemap** — generate `sitemap.xml` covering meetings, countries, speakers, and resolutions for SEO.
 
 ## Data & Backend
 

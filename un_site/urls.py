@@ -1,7 +1,11 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.sitemaps.views import index as sitemap_index, sitemap
+from .sitemaps import sitemaps
 
 urlpatterns = [
+    path('sitemap.xml', sitemap_index, {'sitemaps': sitemaps, 'sitemap_url_name': 'sitemap_section'}, name='sitemap_index'),
+    path('sitemap-<section>.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap_section'),
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path('meeting/', include('meetings.urls')),
