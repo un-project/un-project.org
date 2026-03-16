@@ -3,9 +3,10 @@ from collections import defaultdict
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import Http404, JsonResponse
+from django.db.models import Count, F
 
 from countries.models import Country
-from .models import CountryVote, Resolution
+from .models import CountryVote, Resolution, Vote
 
 
 def resolution_list(request):
@@ -62,7 +63,61 @@ def votes_page(request):
         .distinct()
         .order_by('name')
     )
-    return render(request, 'votes/index.html', {'countries': countries})
+
+    # Summary counts
+    total_resolutions = Resolution.objects.filter(votes__vote_type='recorded').distinct().count()
+    total_recorded_votes = Vote.objects.filter(vote_type='recorded', yes_count__isnull=False).count()
+    total_country_votes = CountryVote.objects.count()
+
+    # Overall position breakdown (exclude absent from percentages)
+    pos_counts = {
+        p['vote_position']: p['n']
+        for p in CountryVote.objects.values('vote_position').annotate(n=Count('id'))
+    }
+    present_total = (
+        pos_counts.get('yes', 0) + pos_counts.get('no', 0) + pos_counts.get('abstain', 0)
+    )
+    yes_pct     = round(100 * pos_counts.get('yes', 0)     / present_total) if present_total else 0
+    no_pct      = round(100 * pos_counts.get('no', 0)      / present_total) if present_total else 0
+    abstain_pct = round(100 * pos_counts.get('abstain', 0) / present_total) if present_total else 0
+
+    # Most contested (highest no_count)
+    most_contested = (
+        Vote.objects
+        .filter(vote_type='recorded', no_count__isnull=False, no_count__gt=0)
+        .select_related('resolution', 'document')
+        .order_by('-no_count')[:6]
+    )
+
+    # Most recent votes
+    recent_votes = (
+        Vote.objects
+        .filter(vote_type='recorded', yes_count__isnull=False)
+        .select_related('resolution', 'document')
+        .order_by('-document__date')[:8]
+    )
+
+    # Countries casting the most No votes (politically revealing)
+    top_no_voters = list(
+        CountryVote.objects
+        .filter(vote_position='no')
+        .values('country__name', 'country__iso3', 'country__short_name')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:8]
+    )
+
+    return render(request, 'votes/index.html', {
+        'countries':           countries,
+        'total_resolutions':   total_resolutions,
+        'total_recorded_votes': total_recorded_votes,
+        'total_country_votes': total_country_votes,
+        'yes_pct':             yes_pct,
+        'no_pct':              no_pct,
+        'abstain_pct':         abstain_pct,
+        'most_contested':      most_contested,
+        'recent_votes':        recent_votes,
+        'top_no_voters':       top_no_voters,
+    })
 
 
 def country_votes_json(request, iso3):
