@@ -7,11 +7,14 @@ from django.db import connection
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_FILE = os.path.join(BASE_DIR, 'docker', 'init', '01_schema.sql')
 
-# Extra DDL for tables/columns added after the schema dump
+# Extra DDL for tables/columns added after the schema dump.
+# Uses schema-qualified names because the schema SQL sets search_path = ''.
 _EXTRA_SQL = """
-ALTER TABLE speakers ADD COLUMN IF NOT EXISTS organization VARCHAR(400);
+SET search_path TO public;
 
-CREATE TABLE IF NOT EXISTS search_index (
+ALTER TABLE public.speakers ADD COLUMN IF NOT EXISTS organization VARCHAR(400);
+
+CREATE TABLE IF NOT EXISTS public.search_index (
     id          bigserial PRIMARY KEY,
     item_type   varchar(20),
     item_id     integer,
@@ -29,7 +32,7 @@ CREATE TABLE IF NOT EXISTS search_index (
     search_vector tsvector
 );
 
-CREATE TABLE IF NOT EXISTS speech_search_index (
+CREATE TABLE IF NOT EXISTS public.speech_search_index (
     speech_id   integer PRIMARY KEY,
     document_id integer,
     symbol      varchar(30),
@@ -59,5 +62,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
         with connection.cursor() as cursor:
             cursor.execute(sql)
 
+        # Reset search_path (the schema dump sets it to '' for the session)
+        # then apply post-dump additions.
         with connection.cursor() as cursor:
             cursor.execute(_EXTRA_SQL)
