@@ -12,13 +12,8 @@
   margin: 1.25rem 0 1.5rem;
 }
 .votes-controls label { font-weight: 600; }
-.votes-controls select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.95rem;
-  min-width: 220px;
-}
+.votes-controls select,
+.votes-controls .ts-wrapper { min-width: 220px; font-size: 0.95rem; }
 #reset-btn {
   padding: 0.4rem 0.9rem;
   background: var(--un-blue);
@@ -101,7 +96,7 @@
 
 <div class="votes-controls">
   <label for="country-select">Country:</label>
-  <select id="country-select">
+  <select id="country-select" data-searchable>
     <option value="">— select a country —</option>
     {% for c in countries %}
     <option value="{{ c.iso3 }}">{{ c.display_name }}</option>

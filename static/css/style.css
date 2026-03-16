@@ -460,6 +460,23 @@ mark { background: #fff59d; padding: 0 2px; border-radius: 2px; }
 .agenda-sidebar ul li a { color: var(--text); font-size: 0.85rem; }
 .agenda-sidebar ul li a:hover { color: var(--un-blue); }
 
+/* ── Tom Select overrides ────────────────────────── */
+
+.ts-wrapper { min-width: 160px; }
+.ts-wrapper.single .ts-control {
+  padding: 0.32rem 2rem 0.32rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  background: #fff;
+  cursor: pointer;
+}
+.ts-wrapper.single.input-active .ts-control { border-color: var(--un-blue); }
+.ts-dropdown { border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 0.9rem; }
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active { background: var(--un-light); color: var(--text); }
+.ts-dropdown .option.selected { background: #e0f0ff; color: var(--un-dark); }
+
 /* ── Footer ──────────────────────────────────────── */
 
 footer {

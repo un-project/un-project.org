@@ -13,14 +13,14 @@
     <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
   </select>
 
-  <select name="country">
+  <select name="country" data-searchable>
     <option value="">All countries</option>
     {% for c in countries %}
     <option value="{{ c.pk }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
     {% endfor %}
   </select>
 
-  <select name="speaker">
+  <select name="speaker" data-searchable>
     <option value="">All speakers</option>
     {% for sp in speakers %}
     <option value="{{ sp.pk }}" {% if current_speaker == sp.pk|stringformat:"s" %}selected{% endif %}>{{ sp.name }}</option>
