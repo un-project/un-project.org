@@ -57,6 +57,137 @@ def resolution_detail(request, slug):
     })
 
 
+def country_compare(request):
+    iso3_a = request.GET.get('a', '').strip().upper()
+    iso3_b = request.GET.get('b', '').strip().upper()
+
+    countries = (
+        Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
+        .distinct().order_by('name')
+    )
+
+    country_a = country_b = comparison = None
+
+    if iso3_a and iso3_b and iso3_a != iso3_b:
+        country_a = Country.objects.filter(iso3=iso3_a).first()
+        country_b = Country.objects.filter(iso3=iso3_b).first()
+
+    if country_a and country_b:
+        POSITIONS = ['yes', 'no', 'abstain']
+
+        votes_a = dict(
+            CountryVote.objects
+            .filter(country=country_a).exclude(vote_position='absent')
+            .values_list('vote_id', 'vote_position')
+        )
+        votes_b = dict(
+            CountryVote.objects
+            .filter(country=country_b, vote_id__in=votes_a.keys())
+            .exclude(vote_position='absent')
+            .values_list('vote_id', 'vote_position')
+        )
+        shared_ids = set(votes_a) & set(votes_b)
+        total = len(shared_ids)
+
+        agree_count = sum(1 for vid in shared_ids if votes_a[vid] == votes_b[vid])
+        agreement_rate = round(100 * agree_count / total) if total else 0
+
+        # Position cross-matrix
+        matrix = {pa: {pb: 0 for pb in POSITIONS} for pa in POSITIONS}
+        for vid in shared_ids:
+            pa, pb = votes_a[vid], votes_b[vid]
+            if pa in matrix and pb in matrix[pa]:
+                matrix[pa][pb] += 1
+
+        # Agreement by session
+        shared_vote_qs = (
+            Vote.objects
+            .filter(id__in=shared_ids)
+            .select_related('resolution', 'document')
+        )
+        session_stats = defaultdict(lambda: {'agree': 0, 'total': 0, 'year': None})
+        vote_map = {}
+        for v in shared_vote_qs:
+            vote_map[v.id] = v
+            sess = v.resolution.session
+            if not sess:
+                continue
+            if v.document.date:
+                session_stats[sess]['year'] = v.document.date.year
+            session_stats[sess]['total'] += 1
+            if votes_a[v.id] == votes_b[v.id]:
+                session_stats[sess]['agree'] += 1
+
+        by_session = sorted([
+            {
+                'session': sess,
+                'year': stats['year'],
+                'total': stats['total'],
+                'agree': stats['agree'],
+                'rate': round(100 * stats['agree'] / stats['total']) if stats['total'] else 0,
+            }
+            for sess, stats in session_stats.items()
+            if stats['total'] >= 2
+        ], key=lambda x: x['session'])
+
+        # Most divergent votes (disagreed, sorted by contestedness)
+        divergent = [
+            {'vote': vote_map[vid], 'pos_a': votes_a[vid], 'pos_b': votes_b[vid]}
+            for vid in shared_ids
+            if votes_a[vid] != votes_b[vid] and vid in vote_map
+        ]
+        divergent.sort(key=lambda x: -(x['vote'].no_count or 0))
+        divergent = divergent[:12]
+
+        # Rare agreements on contested votes (no_count > 10, both same)
+        agreed_contested = [
+            {'vote': vote_map[vid], 'position': votes_a[vid]}
+            for vid in shared_ids
+            if votes_a[vid] == votes_b[vid] and vid in vote_map
+            and (vote_map[vid].no_count or 0) > 10
+        ]
+        agreed_contested.sort(key=lambda x: -(x['vote'].no_count or 0))
+        agreed_contested = agreed_contested[:8]
+
+        # Restructure matrix as a list of rows for template rendering
+        matrix_rows = [
+            {
+                'pos': pa,
+                'cells': [
+                    {'pos': pb, 'count': matrix[pa][pb], 'same': pa == pb}
+                    for pb in POSITIONS
+                ],
+            }
+            for pa in POSITIONS
+        ]
+
+        comparison = {
+            'total': total,
+            'agree_count': agree_count,
+            'disagree_count': total - agree_count,
+            'agreement_rate': agreement_rate,
+            'matrix_rows': matrix_rows,
+            'matrix_positions': POSITIONS,
+            'by_session': by_session,
+            'divergent': divergent,
+            'agreed_contested': agreed_contested,
+        }
+
+    return render(request, 'votes/compare.html', {
+        'countries':  countries,
+        'country_a':  country_a,
+        'country_b':  country_b,
+        'iso3_a':     iso3_a,
+        'iso3_b':     iso3_b,
+        'comparison': comparison,
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Compare'},
+        ],
+    })
+
+
 def votes_page(request):
     countries = (
         Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
