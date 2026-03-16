@@ -335,12 +335,12 @@
   var params = new URLSearchParams(window.location.search);
   var preselect = params.get('country');
   if (preselect) {
-    for (var i = 0; i < select.options.length; i++) {
-      if (select.options[i].value === preselect) {
-        select.value = preselect;
-        select.dispatchEvent(new Event('change'));
-        break;
-      }
+    var ts = select.tomselect;
+    if (ts) {
+      ts.setValue(preselect);  // updates Tom Select UI and fires change on the native select
+    } else {
+      select.value = preselect;
+      select.dispatchEvent(new Event('change'));
     }
   }
 }());
