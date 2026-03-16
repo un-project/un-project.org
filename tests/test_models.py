@@ -65,3 +65,22 @@ def test_search_index_document_slug():
 
 def test_search_index_document_slug_none_when_no_symbol():
     assert SearchIndex().document_slug is None
+
+
+# ── Resolution ─────────────────────────────────────────────────────────────────
+
+def test_resolution_docs_un_url_ga():
+    from votes.models import Resolution
+    r = Resolution(body='GA', adopted_symbol='78/100')
+    assert r.docs_un_url == 'https://docs.un.org/en/a/res/78/100'
+
+
+def test_resolution_docs_un_url_sc():
+    from votes.models import Resolution
+    r = Resolution(body='SC', adopted_symbol='2503(2019)')
+    assert r.docs_un_url == 'https://docs.un.org/en/S/RES/2503(2019)'
+
+
+def test_resolution_docs_un_url_none_without_adopted_symbol():
+    from votes.models import Resolution
+    assert Resolution(body='GA', draft_symbol='A/C.1/78/L.1').docs_un_url is None

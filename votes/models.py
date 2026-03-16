@@ -26,15 +26,18 @@ class Resolution(models.Model):
         from django.urls import reverse
         return reverse('votes:resolution_detail', args=[self.slug])
 
+    # URL prefixes as constants to prevent the linter from lowercasing them.
+    _DOCS_PREFIX = {
+        'GA': 'https://docs.un.org/en/a/res/',
+        'SC': 'https://docs.un.org/en/S/RES/',
+    }
+
     @property
     def docs_un_url(self):
-        if not self.adopted_symbol:
+        prefix = self._DOCS_PREFIX.get(self.body)
+        if not self.adopted_symbol or prefix is None:
             return None
-        if self.body == 'GA':
-            return f'https://docs.un.org/en/a/res/{self.adopted_symbol}'
-        if self.body == 'SC':
-            return f'https://docs.un.org/en/s/res/{self.adopted_symbol}'
-        return None
+        return prefix + self.adopted_symbol
 
 
 class Vote(models.Model):
