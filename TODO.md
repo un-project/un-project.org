@@ -13,12 +13,12 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **Unified search index** — `search_index` materialized view aggregates speeches (speaker A, country B, text C) and resolutions (symbol A, title B, category C) with pre-computed weighted tsvectors and GIN index. `SearchQuery(search_type='websearch')` + `SearchRank(cover_density=True)` used throughout.
 - [x] **Search result excerpts with highlighted context** — `SearchHeadline` (`ts_headline`) returns up to 3 matched fragments per result with `<mark>` highlights; resolution titles shown as a distinct result type.
 - [x] **Refresh management command** — `manage.py refresh_search_index` (uses `CONCURRENTLY` by default, `--full` for blocking refresh).
-- [ ] **Search within a meeting** — add an in-page search box on the meeting detail page.
+- [x] **Search within a meeting** — in-page search box filters speeches by speaker or text in real-time; clears automatically when empty.
 - [x] **Auto-refresh materialized view** — dedicated `cron` service in docker-compose runs `manage.py refresh_search_index` every hour via a crontab in `docker/crontab`.
 
 ## Meeting Transcript
 
-- [ ] **Pagination on long transcripts** — very long meetings (100+ speeches) should paginate or lazy-load to keep initial page weight reasonable.
+- [x] **Pagination on long transcripts** — transcripts with 50+ entries show the first 50 with a "Show more" button; searching automatically reveals all entries.
 - [ ] **Per-item permalink** — clicking the agenda item number in the sidebar should copy the anchor URL to clipboard.
 - [ ] **Votes inline detail** — expand the vote block to show the full country-by-country vote table (currently only shows totals).
 

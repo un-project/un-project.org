@@ -16,6 +16,13 @@
   &mdash; <a href="{{ document.docs_un_url }}" target="_blank" rel="noopener">UN Document ↗</a>
 </div>
 
+<div id="transcript-search-bar" class="transcript-search-floating">
+  <input type="search" id="transcript-search" placeholder="Search speeches…" autocomplete="off">
+  <span id="transcript-search-count"></span>
+  <button id="transcript-search-prev" title="Previous match" disabled>↑</button>
+  <button id="transcript-search-next" title="Next match" disabled>↓</button>
+</div>
+
 <div class="meeting-layout">
 
   <!-- Agenda sidebar -->
@@ -106,18 +113,141 @@
 {% block extra_js %}
 <script>
 (function () {
+  var BATCH = 50;
+  var transcriptEl = document.querySelector('.transcript');
+  var searchInput  = document.getElementById('transcript-search');
+  var countEl      = document.getElementById('transcript-search-count');
+  var prevBtn      = document.getElementById('transcript-search-prev');
+  var nextBtn      = document.getElementById('transcript-search-next');
+  var allEntries   = transcriptEl ? Array.from(transcriptEl.children) : [];
+  var loadMoreBtn  = null;
+  var lazyStart    = allEntries.length;
+  var matchList    = [];   // visible matching .speech elements
+  var currentIdx   = -1;  // which match the user navigated to
+
+  // ── Lazy-load setup ───────────────────────────────────────────────────────
+  if (allEntries.length > BATCH) {
+    lazyStart = BATCH;
+    var shown = BATCH;
+    allEntries.slice(BATCH).forEach(function (el) { el.hidden = true; });
+
+    loadMoreBtn = document.createElement('button');
+    loadMoreBtn.className = 'btn btn-secondary';
+    loadMoreBtn.style.margin = '1rem 0';
+
+    function updateBtn() {
+      var remaining = allEntries.length - shown;
+      loadMoreBtn.textContent =
+        'Show more (' + Math.min(BATCH, remaining) + ' of ' + remaining + ' remaining)';
+    }
+    updateBtn();
+
+    loadMoreBtn.addEventListener('click', function () {
+      allEntries.slice(shown, shown + BATCH).forEach(function (el) { el.hidden = false; });
+      shown = Math.min(shown + BATCH, allEntries.length);
+      if (shown >= allEntries.length) { loadMoreBtn.remove(); loadMoreBtn = null; }
+      else updateBtn();
+    });
+    transcriptEl.appendChild(loadMoreBtn);
+  }
+
+  // ── In-page search ────────────────────────────────────────────────────────
+  var speeches = Array.from(document.querySelectorAll('.speech'));
+  speeches.forEach(function (el) {
+    var t = el.querySelector('.speech-text');
+    if (t) t.dataset.original = t.innerHTML;
+  });
+
+  function goToMatch(idx) {
+    if (!matchList.length) return;
+    idx = (idx + matchList.length) % matchList.length;
+    if (currentIdx >= 0 && currentIdx < matchList.length) {
+      matchList[currentIdx].classList.remove('current-match');
+    }
+    currentIdx = idx;
+    matchList[idx].classList.add('current-match');
+    var firstMark = matchList[idx].querySelector('mark');
+    (firstMark || matchList[idx]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (countEl) countEl.textContent = (idx + 1) + ' / ' + matchList.length;
+  }
+
+  function applySearch(query) {
+    var q = query.trim().toLowerCase();
+
+    // Clear current-match highlight
+    if (currentIdx >= 0 && currentIdx < matchList.length) {
+      matchList[currentIdx].classList.remove('current-match');
+    }
+    currentIdx = -1;
+    matchList = [];
+
+    if (q) {
+      allEntries.forEach(function (el) { el.hidden = false; });
+      if (loadMoreBtn) loadMoreBtn.hidden = true;
+    } else {
+      allEntries.slice(lazyStart).forEach(function (el) { el.hidden = true; });
+      if (loadMoreBtn) loadMoreBtn.hidden = false;
+    }
+
+    var re = q ? new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi') : null;
+
+    speeches.forEach(function (el) {
+      var textEl = el.querySelector('.speech-text');
+      if (textEl && textEl.dataset.original !== undefined) {
+        textEl.innerHTML = textEl.dataset.original;
+      }
+      if (!q) { el.hidden = false; return; }
+      var speaker = (el.querySelector('.speaker-name') || {}).textContent || '';
+      var text    = textEl ? textEl.textContent : '';
+      var visible = speaker.toLowerCase().includes(q) || text.toLowerCase().includes(q);
+      el.hidden = !visible;
+      if (visible) {
+        matchList.push(el);
+        if (re && textEl) textEl.innerHTML = textEl.innerHTML.replace(re, '<mark>$1</mark>');
+      }
+    });
+
+    var hasMatches = matchList.length > 0;
+    if (countEl) {
+      countEl.textContent = q ? (matchList.length + ' match' + (matchList.length !== 1 ? 'es' : '')) : '';
+    }
+    if (prevBtn) prevBtn.disabled = !hasMatches;
+    if (nextBtn) nextBtn.disabled = !hasMatches;
+
+    // Auto-navigate to first match
+    if (hasMatches) goToMatch(0);
+  }
+
+  if (searchInput) searchInput.addEventListener('input', function () { applySearch(this.value); });
+  if (nextBtn) nextBtn.addEventListener('click', function () { goToMatch(currentIdx + 1); });
+  if (prevBtn) prevBtn.addEventListener('click', function () { goToMatch(currentIdx - 1); });
+
+  // Keyboard: Enter = next, Shift+Enter = prev
+  if (searchInput) {
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.shiftKey ? goToMatch(currentIdx - 1) : goToMatch(currentIdx + 1);
+      }
+    });
+  }
+
+  // ── URL ?q= highlight (search result deep-link) ───────────────────────────
   var params = new URLSearchParams(window.location.search);
-  var q = params.get('q');
-  if (!q) return;
-  var hash = window.location.hash;
-  if (!hash) return;
-  var target = document.getElementById(hash.slice(1));
-  if (!target) return;
-  var textEl = target.querySelector('.speech-text');
-  if (!textEl) return;
-  var escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  var re = new RegExp('(' + escaped + ')', 'gi');
-  textEl.innerHTML = textEl.innerHTML.replace(re, '<mark>$1</mark>');
+  var urlQ = params.get('q');
+  if (urlQ) {
+    var hash = window.location.hash;
+    if (hash) {
+      var target = document.getElementById(hash.slice(1));
+      if (target) {
+        var textEl = target.querySelector('.speech-text');
+        if (textEl) {
+          var esc = urlQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          textEl.innerHTML = textEl.innerHTML.replace(new RegExp('(' + esc + ')', 'gi'), '<mark>$1</mark>');
+        }
+      }
+    }
+  }
 })();
 </script>
 {% endblock %}
