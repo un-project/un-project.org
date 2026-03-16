@@ -1,0 +1,2 @@
+# Refresh the search index every hour (CONCURRENTLY — non-blocking)
+0 * * * * cd /app && python manage.py refresh_search_index >> /var/log/refresh_search_index.log 2>&1

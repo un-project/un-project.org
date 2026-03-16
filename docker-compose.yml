@@ -50,5 +50,22 @@ services:
         - action: rebuild
           path: Dockerfile
 
+  cron:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    # Export Docker env vars to /etc/environment so cron jobs inherit them,
+    # then install the crontab and start the daemon in the foreground.
+    command: >
+      sh -c "printenv | grep -E '^(DB_|DJANGO_)' >> /etc/environment &&
+             crontab /app/docker/crontab &&
+             cron -f"
+
 volumes:
   postgres_data:

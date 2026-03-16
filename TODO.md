@@ -14,7 +14,7 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **Search result excerpts with highlighted context** — `SearchHeadline` (`ts_headline`) returns up to 3 matched fragments per result with `<mark>` highlights; resolution titles shown as a distinct result type.
 - [x] **Refresh management command** — `manage.py refresh_search_index` (uses `CONCURRENTLY` by default, `--full` for blocking refresh).
 - [ ] **Search within a meeting** — add an in-page search box on the meeting detail page.
-- [ ] **Auto-refresh materialized view** — schedule `manage.py refresh_search_index` via cron or a post-ingest hook to keep `search_index` current.
+- [x] **Auto-refresh materialized view** — dedicated `cron` service in docker-compose runs `manage.py refresh_search_index` every hour via a crontab in `docker/crontab`.
 
 ## Meeting Transcript
 
