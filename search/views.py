@@ -52,7 +52,7 @@ def search(request):
 
     from countries.models import Country
     from speakers.models import Speaker
-    countries     = Country.objects.order_by('name')
+    countries     = Country.objects.filter(iso3__isnull=False).order_by('name')
     speakers_list = Speaker.objects.select_related('country').order_by('name')[:200]
 
     return render(request, 'search/results.html', {
