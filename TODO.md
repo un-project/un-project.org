@@ -7,14 +7,12 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Meetings list — speech count** — annotate each document with the number of speeches for display on the list page.
 - [ ] **Per-item permalink** — clicking an agenda item in the sidebar should copy the anchor URL (`#item-<pk>`) to clipboard and give brief visual feedback.
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate them from the data and display on the speaker page.
-- [x] **Mobile nav** — the top nav dropdown is hover-only; add a hamburger toggle for small screens.
 
 ## Search
 
 - [ ] **Search filters: speaker photos / flags** — show a small flag or avatar next to country/speaker options in the search filter dropdowns.
 - [ ] **Save/share search URL** — ensure all active filters (body, country, speaker, page) round-trip through the URL so searches are shareable and restorable from the URL.
 - [ ] **Search autocomplete** — suggest matching speakers or countries in the global nav search box as the user types.
-- [x] **Filter by date range** — add from/to date inputs to the speech search filters.
 
 ## Meeting Transcript
 
@@ -25,8 +23,6 @@ Tracked tasks and future features for the UN Project web application.
 ## Country Page
 
 - [ ] **Most active speakers** — list the top speakers for the country (by speech count) on the country page.
-- [x] **Country comparison** — select two countries to view their voting records side by side: agreement rate, divergence on specific topics, alignment chart.
-- [x] **Voting trend over time** — line chart showing a country's yes/no/abstain share per session on the country page.
 - [ ] **Top topics** — show the agenda categories a country speaks on most often.
 
 ## Speaker Page
@@ -42,9 +38,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Navigation & UI
 
-- [x] **Dark mode** — add a `prefers-color-scheme` media query variant.
 - [ ] **OpenGraph / meta tags** — add `og:title`, `og:description`, and `og:image` to meeting, country, speaker, and resolution pages for social sharing previews.
-- [x] **Sitemap** — generate `sitemap.xml` covering meetings, countries, speakers, and resolutions for SEO.
 
 ## Data & Backend
 
@@ -53,17 +47,11 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Timeline of debates** — visualize when countries spoke on a topic across sessions; useful for tracking evolving positions.
 - [ ] **Agenda item pages** — dedicate a page to each recurring agenda item, listing all meetings and countries that discussed it.
 
-## API
-
-- [x] **API: speakers endpoint** — add `/api/speakers/<pk>/` and list endpoint (paginated, filterable by country) to complement the existing meetings and resolutions endpoints.
-- [x] **API documentation** — add a `/api/` root endpoint that lists available routes and parameters.
-
 ## Infrastructure
 
 - [ ] **Production settings** — extract `un_site/settings_prod.py` with proper `SECURE_*` headers, `CONN_MAX_AGE`, and `STATIC_ROOT` configuration.
 - [ ] **Health check endpoint** — add `/health/` returning 200 for load-balancer probes.
 - [ ] **Structured logging** — configure Django logging to write structured JSON logs in production.
-- [x] **Rate limiting** — add basic rate limiting to the search and API endpoints.
 
 ## Future / Research
 
