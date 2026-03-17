@@ -177,3 +177,87 @@ def test_resolution_detail_fields(client, ga_resolution):
     assert data['adopted_symbol'] == '78/100'
     assert data['session'] == 78
     assert data['votes'] == []
+
+
+# ── Speaker list ────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def country(db):
+    return Country.objects.create(name='Testland', iso3='TST', iso2='TS')
+
+
+@pytest.fixture
+def speaker(db, country):
+    return Speaker.objects.create(name='Jane Doe', country=country)
+
+
+@pytest.fixture
+def org_speaker(db):
+    return Speaker.objects.create(name='UN Rep', organization='UN Secretariat')
+
+
+@pytest.mark.django_db
+def test_speaker_list_returns_200(client):
+    assert client.get('/api/speakers/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_speaker_list_shape(client, speaker):
+    data = client.get('/api/speakers/').json()
+    assert 'count' in data
+    assert 'results' in data
+    assert 'next' in data
+    assert 'previous' in data
+
+
+@pytest.mark.django_db
+def test_speaker_list_result_fields(client, speaker):
+    result = client.get('/api/speakers/').json()['results'][0]
+    assert result['name'] == 'Jane Doe'
+    assert result['country'] == 'Testland'
+    assert result['country_iso3'] == 'TST'
+    assert result['id'] == speaker.pk
+
+
+@pytest.mark.django_db
+def test_speaker_list_filter_by_country_iso3(client, speaker, org_speaker):
+    data = client.get('/api/speakers/?country=TST').json()
+    names = [r['name'] for r in data['results']]
+    assert 'Jane Doe' in names
+    assert 'UN Rep' not in names
+
+
+@pytest.mark.django_db
+def test_speaker_list_filter_by_country_id(client, speaker, org_speaker, country):
+    data = client.get(f'/api/speakers/?country={country.pk}').json()
+    names = [r['name'] for r in data['results']]
+    assert 'Jane Doe' in names
+    assert 'UN Rep' not in names
+
+
+@pytest.mark.django_db
+def test_speaker_list_org_speaker(client, org_speaker):
+    result = client.get('/api/speakers/').json()['results'][0]
+    assert result['name'] == 'UN Rep'
+    assert result['country'] is None
+    assert result['organization'] == 'UN Secretariat'
+
+
+# ── Speaker detail ──────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_speaker_detail_returns_200(client, speaker):
+    assert client.get(f'/api/speakers/{speaker.pk}/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_speaker_detail_fields(client, speaker):
+    data = client.get(f'/api/speakers/{speaker.pk}/').json()
+    assert data['name'] == 'Jane Doe'
+    assert data['country'] == 'Testland'
+    assert data['country_iso3'] == 'TST'
+
+
+@pytest.mark.django_db
+def test_speaker_detail_404(client):
+    assert client.get('/api/speakers/999999/').status_code == 404

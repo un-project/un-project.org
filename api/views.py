@@ -3,6 +3,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from meetings.models import Document
+from speakers.models import Speaker
 from votes.models import Resolution
 from un_site.ratelimit import ratelimit
 
@@ -28,6 +29,42 @@ def _paginate(request, qs, serializer):
 
 
 # ── Speakers ───────────────────────────────────────────────────────────────────
+
+def _speaker_summary(s):
+    return {
+        'id': s.pk,
+        'name': s.name,
+        'country': s.country.display_name if s.country else None,
+        'country_iso3': s.country.iso3 if s.country else None,
+        'organization': s.organization,
+        'role': s.role,
+        'title': s.title,
+        'url': s.get_absolute_url(),
+    }
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def speaker_list(request):
+    qs = Speaker.objects.select_related('country').order_by('name')
+
+    country = request.GET.get('country', '')
+    if country:
+        if country.isdigit():
+            qs = qs.filter(country_id=int(country))
+        elif len(country) == 3:
+            qs = qs.filter(country__iso3__iexact=country)
+
+    return _paginate(request, qs, _speaker_summary)
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def speaker_detail(request, pk):
+    try:
+        speaker = Speaker.objects.select_related('country').get(pk=pk)
+    except Speaker.DoesNotExist:
+        return JsonResponse({'error': 'Speaker not found'}, status=404)
+    return JsonResponse(_speaker_summary(speaker))
+
 
 @ratelimit(60, key_prefix='rl:api', json=True)
 def speaker_search(request):
