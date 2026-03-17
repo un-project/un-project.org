@@ -26,7 +26,7 @@ Tracked tasks and future features for the UN Project web application.
 
 - [ ] **Most active speakers** — list the top speakers for the country (by speech count) on the country page.
 - [x] **Country comparison** — select two countries to view their voting records side by side: agreement rate, divergence on specific topics, alignment chart.
-- [ ] **Voting trend over time** — line chart showing a country's yes/no/abstain share per session on the country page.
+- [x] **Voting trend over time** — line chart showing a country's yes/no/abstain share per session on the country page.
 - [ ] **Top topics** — show the agenda categories a country speaks on most often.
 
 ## Speaker Page

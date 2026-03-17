@@ -110,6 +110,124 @@
         renderSimBar(containerSel + ' #similarity-low-chart',  data.dissimilar, '#e67e22');
     }
 
+    /* ── Session trend line chart ────────────────────────────────────────────── */
+
+    function renderSessionTrend(containerSel, votes) {
+        var el = document.querySelector(containerSel + ' #session-trend-chart');
+        if (!el) return;
+        el.innerHTML = '';
+
+        /* Aggregate by session (exclude absent) */
+        var bySession = {};
+        votes.forEach(function (d) {
+            var sess = d.session;
+            if (!sess) return;
+            if (!bySession[sess]) {
+                bySession[sess] = { session: sess, year: d.year, yes: 0, no: 0, abstain: 0, total: 0 };
+            }
+            if (d.position === 'absent') return;
+            bySession[sess].total++;
+            if (d.position === 'yes')     bySession[sess].yes++;
+            else if (d.position === 'no') bySession[sess].no++;
+            else                          bySession[sess].abstain++;
+        });
+
+        var data = Object.values(bySession)
+            .filter(function (d) { return d.total >= 3; })
+            .sort(function (a, b) { return a.session - b.session; })
+            .map(function (d) { return {
+                session: d.session,
+                year:    d.year,
+                yes:     d.total ? d.yes     / d.total * 100 : 0,
+                no:      d.total ? d.no      / d.total * 100 : 0,
+                abstain: d.total ? d.abstain / d.total * 100 : 0,
+            }; });
+
+        if (data.length < 2) {
+            el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Not enough sessions to show a trend.</p>';
+            return;
+        }
+
+        var containerW = el.parentElement ? el.parentElement.clientWidth - 30 : 640;
+        var W  = Math.max(320, Math.min(containerW, 860));
+        var H  = 210;
+        var m  = { top: 16, right: 24, bottom: 38, left: 44 };
+        var iW = W - m.left - m.right;
+        var iH = H - m.top  - m.bottom;
+
+        var svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+        var g   = svg.append('g').attr('transform', 'translate(' + m.left + ',' + m.top + ')');
+
+        var x = d3.scaleLinear()
+            .domain(d3.extent(data, function (d) { return d.session; }))
+            .range([0, iW]);
+
+        var y = d3.scaleLinear().domain([0, 100]).range([iH, 0]);
+
+        /* Gridlines */
+        g.append('g')
+            .call(d3.axisLeft(y).tickSize(-iW).ticks(5).tickFormat(''))
+            .call(function (ax) {
+                ax.select('.domain').remove();
+                ax.selectAll('line').style('stroke', '#e0e0e0').style('stroke-dasharray', '3,3');
+            });
+
+        /* Axes */
+        g.append('g')
+            .attr('transform', 'translate(0,' + iH + ')')
+            .call(d3.axisBottom(x).ticks(Math.min(data.length, 12)).tickFormat(d3.format('d')))
+            .selectAll('text').style('font-size', '0.72rem');
+
+        g.append('g')
+            .call(d3.axisLeft(y).ticks(5).tickFormat(function (d) { return d + '%'; }))
+            .selectAll('text').style('font-size', '0.72rem');
+
+        /* X label */
+        g.append('text')
+            .attr('x', iW / 2).attr('y', iH + 34)
+            .attr('text-anchor', 'middle').attr('font-size', '0.72rem').attr('fill', '#888')
+            .text('GA Session');
+
+        /* Lines + dots */
+        var SERIES = [
+            { key: 'yes',     color: '#27ae60', label: 'Yes' },
+            { key: 'no',      color: '#e74c3c', label: 'No' },
+            { key: 'abstain', color: '#f39c12', label: 'Abstain' },
+        ];
+
+        var dotR = data.length > 20 ? 2 : 3;
+
+        SERIES.forEach(function (s) {
+            var lineFn = d3.line()
+                .defined(function (d) { return d[s.key] != null; })
+                .x(function (d) { return x(d.session); })
+                .y(function (d) { return y(d[s.key]); })
+                .curve(d3.curveMonotoneX);
+
+            g.append('path')
+                .datum(data)
+                .attr('fill', 'none')
+                .attr('stroke', s.color)
+                .attr('stroke-width', 2)
+                .attr('d', lineFn);
+
+            g.selectAll('.dot-' + s.key).data(data).enter()
+                .append('circle')
+                .attr('cx', function (d) { return x(d.session); })
+                .attr('cy', function (d) { return y(d[s.key]); })
+                .attr('r', dotR)
+                .attr('fill', s.color);
+        });
+
+        /* Legend */
+        SERIES.forEach(function (s, i) {
+            var lx = iW - 190 + i * 66;
+            g.append('rect').attr('x', lx).attr('y', -13).attr('width', 14).attr('height', 4).attr('fill', s.color).attr('rx', 2);
+            g.append('text').attr('x', lx + 17).attr('y', -9).attr('font-size', '0.72rem').attr('fill', '#555').text(s.label);
+        });
+    }
+
+
     window.VoteCharts = {
 
         init: function (containerSel, votes, mode, iso3) {
@@ -363,6 +481,8 @@
 
             _charts = [posChart, yearChart, catChart, countWidget, dataTable];
             dc.renderAll(GROUP);
+
+            renderSessionTrend(containerSel, votes);
 
             /* Reset table page offset when any filter changes */
             dc.chartRegistry.list(GROUP).forEach(function (c) {
