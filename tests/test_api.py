@@ -261,3 +261,29 @@ def test_speaker_detail_fields(client, speaker):
 @pytest.mark.django_db
 def test_speaker_detail_404(client):
     assert client.get('/api/speakers/999999/').status_code == 404
+
+
+# ── API root ────────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_api_root_returns_200(client):
+    assert client.get('/api/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_api_root_lists_endpoints(client):
+    data = client.get('/api/').json()
+    assert 'endpoints' in data
+    urls = [e['url'] for e in data['endpoints']]
+    assert any('speakers' in u and '<id>' not in u and 'search' not in u for u in urls)
+    assert any('meetings' in u and '<slug>' not in u for u in urls)
+    assert any('resolutions' in u and '<slug>' not in u for u in urls)
+
+
+@pytest.mark.django_db
+def test_api_root_endpoint_has_required_keys(client):
+    endpoints = client.get('/api/').json()['endpoints']
+    for ep in endpoints:
+        assert 'url' in ep
+        assert 'description' in ep
+        assert 'parameters' in ep

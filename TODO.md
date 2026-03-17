@@ -56,7 +56,7 @@ Tracked tasks and future features for the UN Project web application.
 ## API
 
 - [x] **API: speakers endpoint** — add `/api/speakers/<pk>/` and list endpoint (paginated, filterable by country) to complement the existing meetings and resolutions endpoints.
-- [ ] **API documentation** — add a `/api/` root endpoint that lists available routes and parameters.
+- [x] **API documentation** — add a `/api/` root endpoint that lists available routes and parameters.
 
 ## Infrastructure
 

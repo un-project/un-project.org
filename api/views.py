@@ -10,6 +10,52 @@ from un_site.ratelimit import ratelimit
 PAGE_SIZE = 50
 
 
+# ── API root ────────────────────────────────────────────────────────────────────
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def api_root(request):
+    base = request.build_absolute_uri('/api')
+    return JsonResponse({
+        'endpoints': [
+            {
+                'url': f'{base}/speakers/',
+                'description': 'List all speakers (paginated)',
+                'parameters': {'country': 'ISO3 code or numeric ID to filter by country', 'page': 'Page number'},
+            },
+            {
+                'url': f'{base}/speakers/<id>/',
+                'description': 'Retrieve a single speaker by ID',
+                'parameters': {},
+            },
+            {
+                'url': f'{base}/speakers/search/',
+                'description': 'Autocomplete speaker search',
+                'parameters': {'q': 'Name fragment (min 2 characters)'},
+            },
+            {
+                'url': f'{base}/meetings/',
+                'description': 'List all meetings (paginated)',
+                'parameters': {'body': 'GA or SC', 'session': 'Session number', 'year': 'Year', 'page': 'Page number'},
+            },
+            {
+                'url': f'{base}/meetings/<slug>/',
+                'description': 'Retrieve a single meeting with full speech list',
+                'parameters': {},
+            },
+            {
+                'url': f'{base}/resolutions/',
+                'description': 'List all resolutions (paginated)',
+                'parameters': {'body': 'GA or SC', 'session': 'Session number', 'page': 'Page number'},
+            },
+            {
+                'url': f'{base}/resolutions/<slug>/',
+                'description': 'Retrieve a single resolution with vote breakdown',
+                'parameters': {},
+            },
+        ]
+    })
+
+
 def _paginate(request, qs, serializer):
     paginator = Paginator(qs, PAGE_SIZE)
     page = paginator.get_page(request.GET.get('page', 1))
