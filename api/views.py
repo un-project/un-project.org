@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from meetings.models import Document
 from votes.models import Resolution
-
+from un_site.ratelimit import ratelimit
 
 PAGE_SIZE = 50
 
@@ -29,6 +29,7 @@ def _paginate(request, qs, serializer):
 
 # ── Speakers ───────────────────────────────────────────────────────────────────
 
+@ratelimit(60, key_prefix='rl:api', json=True)
 def speaker_search(request):
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
@@ -66,6 +67,7 @@ def _meeting_summary(doc):
     }
 
 
+@ratelimit(60, key_prefix='rl:api', json=True)
 def meeting_list(request):
     qs = Document.objects.all()
 
@@ -84,6 +86,7 @@ def meeting_list(request):
     return _paginate(request, qs, _meeting_summary)
 
 
+@ratelimit(60, key_prefix='rl:api', json=True)
 def meeting_detail(request, slug):
     document = None
     for doc in Document.objects.only('id', 'symbol', 'body', 'meeting_number', 'session', 'date', 'location'):
@@ -147,6 +150,7 @@ def _resolution_summary(res):
     }
 
 
+@ratelimit(60, key_prefix='rl:api', json=True)
 def resolution_list(request):
     qs = Resolution.objects.prefetch_related('votes__document')
 
@@ -162,6 +166,7 @@ def resolution_list(request):
     return _paginate(request, qs, _resolution_summary)
 
 
+@ratelimit(60, key_prefix='rl:api', json=True)
 def resolution_detail(request, slug):
     resolution = None
     for r in Resolution.objects.prefetch_related('votes__document', 'votes__country_votes__country'):

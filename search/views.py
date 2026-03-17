@@ -3,9 +3,11 @@ from django.core.paginator import Paginator
 from django.conf import settings
 from django.contrib.postgres.search import SearchHeadline, SearchQuery, SearchRank
 
+from un_site.ratelimit import ratelimit
 from .models import SearchIndex
 
 
+@ratelimit(30, key_prefix='rl:search')
 def search(request):
     query_str  = request.GET.get('q', '').strip()
     body       = request.GET.get('body', '')
