@@ -24,6 +24,23 @@
   {% else %}Browse transcripts, speeches, and voting records from the UN General Assembly and Security Council.{% endif %}
 </p>
 
+{% if not current_body %}
+<div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin:1.5rem 0 2rem;">
+  <a href="/search" class="card" style="text-decoration:none; text-align:center; padding:1.25rem 1.75rem; min-width:160px; flex:1; max-width:220px;">
+    <div style="font-size:1.5rem; margin-bottom:0.5rem;">🔍</div>
+    <strong>Search Speeches</strong>
+  </a>
+  <a href="/votes/" class="card" style="text-decoration:none; text-align:center; padding:1.25rem 1.75rem; min-width:160px; flex:1; max-width:220px;">
+    <div style="font-size:1.5rem; margin-bottom:0.5rem;">📊</div>
+    <strong>Voting Analysis</strong>
+  </a>
+  <a href="/votes/compare/" class="card" style="text-decoration:none; text-align:center; padding:1.25rem 1.75rem; min-width:160px; flex:1; max-width:220px;">
+    <div style="font-size:1.5rem; margin-bottom:0.5rem;">🌍</div>
+    <strong>Compare Countries</strong>
+  </a>
+</div>
+{% endif %}
+
 <div class="two-col" style="margin-top:2rem;">
 
   <section>
