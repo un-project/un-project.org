@@ -137,6 +137,53 @@ nav.topnav .dropdown-menu li a:hover {
   text-decoration: none;
 }
 
+/* ── Hamburger / mobile nav ──────────────────────── */
+
+.nav-toggle {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .nav-toggle { display: block; }
+
+  nav.topnav form.search-form,
+  nav.topnav .nav-links {
+    display: none;
+    width: 100%;
+  }
+
+  nav.topnav.nav-open form.search-form { display: flex; }
+
+  nav.topnav.nav-open .nav-links {
+    display: flex;
+    flex-direction: column;
+  }
+
+  nav.topnav .nav-links > li > a,
+  nav.topnav .nav-links > li > span { line-height: 2.6rem; }
+
+  /* Disable hover-based dropdowns on mobile */
+  nav.topnav .nav-links li:hover .dropdown-menu { display: none; }
+
+  nav.topnav .dropdown-menu {
+    position: static;
+    border-top: none;
+    border-left: 3px solid var(--un-blue);
+    margin-left: 1.2rem;
+    padding: 0;
+  }
+
+  nav.topnav .nav-links li.dropdown-open .dropdown-menu { display: block; }
+}
+
 /* ── Layout ──────────────────────────────────────── */
 
 .container {

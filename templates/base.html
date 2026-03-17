@@ -46,6 +46,8 @@
       </ul>
     </li>
   </ul>
+
+  <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
 </nav>
 
 <div class="container">
@@ -59,6 +61,37 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+// Hamburger toggle
+(function () {
+  var toggle = document.querySelector('.nav-toggle');
+  var nav    = document.querySelector('nav.topnav');
+  if (!toggle) return;
+
+  toggle.addEventListener('click', function () {
+    var open = nav.classList.toggle('nav-open');
+    toggle.setAttribute('aria-expanded', open);
+    toggle.textContent = open ? '✕' : '☰';
+  });
+
+  // Mobile dropdown triggers — click to open/close
+  nav.querySelectorAll('.nav-links > li > span').forEach(function (trigger) {
+    trigger.addEventListener('click', function () {
+      if (getComputedStyle(toggle).display === 'none') return; // desktop: hover handles it
+      trigger.closest('li').classList.toggle('dropdown-open');
+    });
+  });
+
+  // Close menu when a link inside it is followed
+  nav.querySelectorAll('.nav-links a').forEach(function (link) {
+    link.addEventListener('click', function () {
+      nav.classList.remove('nav-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.textContent = '☰';
+    });
+  });
+}());
+</script>
 <script>
 document.querySelectorAll('select[data-searchable]').forEach(function(el) {
   new TomSelect(el, { maxOptions: null });
