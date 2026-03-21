@@ -50,7 +50,7 @@ Tracked tasks and future features for the UN Project web application.
 ## Infrastructure
 
 - [x] **Production settings** — extract `un_site/settings_prod.py` with proper `SECURE_*` headers, `CONN_MAX_AGE`, and `STATIC_ROOT` configuration.
-- [ ] **Health check endpoint** — add `/health/` returning 200 for load-balancer probes.
+- [x] **Health check endpoint** — add `/health/` returning 200 for load-balancer probes.
 - [ ] **Structured logging** — configure Django logging to write structured JSON logs in production.
 
 ## Future / Research
