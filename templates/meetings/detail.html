@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load speech_tags %}
 {% block title %}{{ document.symbol }}{% endblock %}
 
 {% block content %}
@@ -79,7 +80,7 @@
           {% if s.language %}<span class="meta" style="font-size:0.78rem;">[{{ s.language }}]</span>{% endif %}
           <a href="#speech-{{ s.pk }}" class="meta" style="font-size:0.78rem;margin-left:auto;">#{{ s.pk }}</a>
         </div>
-        <div class="speech-text">{{ s.text }}</div>
+        <div class="speech-text">{{ s.text|linkify_symbols }}</div>
       </div>
       {% endwith %}
 
