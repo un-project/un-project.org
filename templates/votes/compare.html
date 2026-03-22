@@ -46,11 +46,12 @@
 .cell-disagree { background: #fff3cd; color: #856404; }
 .cell-zero     { color: var(--muted); }
 
-.session-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin: 0.75rem 0 0.25rem; }
-.session-bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; height: 100%; }
+.session-bars-scroll { overflow-x: auto; margin: 0.75rem 0 0.25rem; }
+.session-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; width: max-content; }
+.session-bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 0 0 28px; width: 28px; height: 100%; }
 .session-bar-bg { width: 100%; flex: 1; background: #e5e7eb; border-radius: 2px 2px 0 0; position: relative; }
 .session-bar-fill { width: 100%; border-radius: 2px 2px 0 0; position: absolute; bottom: 0; left: 0; }
-.session-bar-label { font-size: 0.6rem; color: var(--muted); margin-top: 3px; }
+.session-bar-label { font-size: 0.6rem; color: var(--muted); margin-top: 3px; white-space: nowrap; }
 
 .compare-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
 .compare-table th { padding: 0.4rem 0.6rem; text-align: left; color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
@@ -161,6 +162,7 @@
   <div>
     <h2 class="section-title">Agreement by Year</h2>
     <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per year (years with ≥2 shared votes).</p>
+    <div class="session-bars-scroll">
     <div class="session-bars">
       {% for s in comparison.by_session %}
       <div class="session-bar-wrap" title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes">
@@ -172,6 +174,7 @@
         <div class="session-bar-label">{{ s.year }}</div>
       </div>
       {% endfor %}
+    </div>
     </div>
     <div class="meta" style="font-size:0.78rem; display:flex; gap:1rem;">
       <span style="color:#27ae60;">■ ≥60%</span>
