@@ -77,15 +77,18 @@
         items.forEach(function (d, i) {
             var y = i * (barH + gap);
             var barW = Math.max(0, innerW * d.score);
-
-            g.append('text')
+            var label = d.name.length > 17 ? d.name.slice(0, 16) + '…' : d.name;
+            g.append('a')
+                .attr('href', d.iso3 ? '/country/' + d.iso3 + '/' : null)
+                .style('text-decoration', 'none')
+              .append('text')
                 .attr('x', -5)
                 .attr('y', y + barH / 2)
                 .attr('text-anchor', 'end')
                 .attr('dominant-baseline', 'middle')
                 .attr('font-size', '0.73rem')
-                .attr('fill', '#333')
-                .text(d.name.length > 17 ? d.name.slice(0, 16) + '…' : d.name);
+                .attr('fill', d.iso3 ? 'var(--un-blue, #1a6fa8)' : '#333')
+                .text(label);
 
             g.append('rect')
                 .attr('x', 0)
