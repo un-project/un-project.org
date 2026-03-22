@@ -208,7 +208,7 @@ HISTORICAL_ISO2 = {
     'DHY': 'DY',   # Dahomey
     'RHO': 'RH',   # Southern Rhodesia
     'BUR': 'BU',   # Burma
-    'BYS': None,   # Byelorussian SSR — 'BY' is now Belarus; skip auto-download
+    'BYS': None,   # Byelorussian SSR — 'BY' is now Belarus; flag via Wikimedia instead
 }
 
 
@@ -273,6 +273,12 @@ WIKIMEDIA_FLAG_URLS = {
     'CSK': 'https://upload.wikimedia.org/wikipedia/commons/c/cb/Flag_of_the_Czech_Republic.svg',
     # Serbia and Montenegro shares iso2='CS' with Czechoslovakia; must use Wikimedia directly
     'SCG': 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Flag_of_Serbia_and_Montenegro_%281992%E2%80%932006%29.svg',
+    # flagcdn.com no longer serves these historical iso2 codes
+    'SUN': 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_the_Soviet_Union.svg',
+    'DDR': 'https://upload.wikimedia.org/wikipedia/commons/9/97/Flag_of_the_German_Democratic_Republic.svg',
+    'YMD': 'https://upload.wikimedia.org/wikipedia/commons/d/db/Flag_of_South_Yemen.svg',
+    'HVO': 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Flag_of_Upper_Volta.svg',
+    'BYS': 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Flag_of_the_Byelorussian_Soviet_Socialist_Republic_%281951%E2%80%931991%29.svg',
 }
 
 
