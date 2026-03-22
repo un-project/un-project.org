@@ -66,7 +66,18 @@ python import_json_to_db.py /path/to/output/ \
 
 The script is idempotent — documents already present in the database are skipped.
 
-### 4. Populate country ISO codes and flags
+### 4. Deduplicate countries
+
+Bulk imports can introduce duplicate country rows (e.g. slightly different spellings of the same delegation name). Run this script from the un-extractor repo first to merge them:
+
+```bash
+python fix_country_duplicates.py \
+  --db "postgresql://myuser:mypassword@localhost:5432/unproject"
+```
+
+**This must be run before step 5.** If duplicate rows exist when ISO codes are assigned, garbage/unmatched rows will race for the same ISO3 code and corrupt country lookups.
+
+### 5. Populate country ISO codes and flags
 
 Countries are imported with only their name. Run this script to fill in ISO2/ISO3 codes and download SVG flags:
 
@@ -77,7 +88,7 @@ DB_HOST=localhost python scripts/populate_iso_and_flags.py
 
 This is required for country profiles and the votes page country selector to work.
 
-### 5. Refresh the search index
+### 6. Refresh the search index
 
 ```bash
 docker compose exec web python manage.py refresh_search_index --full
