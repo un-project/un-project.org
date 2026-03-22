@@ -2,3 +2,4 @@ Django==5.2.12
 psycopg2-binary==2.9.9
 gunicorn==21.2.0
 whitenoise==6.7.0
+python-json-logger==4.0.0
