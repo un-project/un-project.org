@@ -86,4 +86,8 @@
   </section>
 
 </div>
+
+{% if wc_url %}
+{% include "partials/wordcloud.html" with wc_title="Most Used Keywords" %}
+{% endif %}
 {% endblock %}

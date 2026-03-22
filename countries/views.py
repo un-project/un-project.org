@@ -73,6 +73,9 @@ def _render_country_detail(request, country):
         {'label': country.display_name, 'url': None},
     ]
 
+    wc_base = f'/api/wordcloud/?country_id={country.pk}'
+    wc_url = f'{wc_base}&session={current_session}' if current_session else wc_base
+
     return render(request, 'countries/detail.html', {
         'country': country,
         'representatives_page': representatives_page,
@@ -82,6 +85,7 @@ def _render_country_detail(request, country):
         'sessions': sessions,
         'current_session': current_session,
         'crumbs': crumbs,
+        'wc_url': wc_url,
     })
 
 

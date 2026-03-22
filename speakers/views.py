@@ -35,4 +35,5 @@ def speaker_detail(request, pk):
         'meetings_count': meetings_attended.count(),
         'recent_meetings': meetings_attended[:5],
         'crumbs': crumbs,
+        'wc_url': f'/api/wordcloud/?speaker_id={speaker.pk}',
     })

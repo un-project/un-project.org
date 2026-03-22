@@ -14,10 +14,13 @@ def homepage(request):
         meetings_qs = meetings_qs.filter(body=body)
         votes_qs = votes_qs.filter(document__body=body)
 
+    wc_url = f'/api/wordcloud/?body={body}' if body in ('GA', 'SC') else ''
+
     return render(request, 'core/home.html', {
         'recent_meetings': meetings_qs[:10],
         'recent_votes': votes_qs[:10],
         'current_body': body,
+        'wc_url': wc_url,
     })
 
 

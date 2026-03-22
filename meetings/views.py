@@ -164,4 +164,5 @@ def session_detail(request, body, session):
         'year_min': year_min,
         'year_max': year_max,
         'crumbs': crumbs,
+        'wc_url': f'/api/wordcloud/?body={body}&session={session}',
     })

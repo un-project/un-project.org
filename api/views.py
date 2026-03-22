@@ -1,3 +1,6 @@
+import math
+
+from django.db import connection
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -293,3 +296,142 @@ def resolution_detail(request, slug):
         'docs_un_url': resolution.docs_un_url,
         'votes': votes,
     })
+
+
+# ── Word cloud ──────────────────────────────────────────────────────────────────
+
+# Common English words + UN procedural boilerplate to exclude.
+# Raw (unstemmed) forms because we count words directly with regexp_matches.
+_WC_STOPWORDS = frozenset([
+    # ── English function words (≥4 chars; shorter ones cut by SQL) ──────────
+    'that', 'this', 'with', 'have', 'from', 'they', 'been', 'were',
+    'will', 'what', 'when', 'whom', 'your', 'also', 'each', 'such',
+    'into', 'over', 'more', 'most', 'only', 'very', 'just', 'even',
+    'then', 'than', 'some', 'well', 'here', 'both', 'once', 'back',
+    'many', 'must', 'does', 'said', 'says', 'like', 'make', 'made',
+    'take', 'took', 'know', 'come', 'came', 'need', 'want', 'look',
+    'them', 'time', 'year', 'call', 'upon', 'thus', 'goes', 'done',
+    'used', 'seem', 'help', 'work', 'long', 'note', 'part', 'case',
+    'side', 'ways', 'give', 'gave', 'gets', 'puts', 'left', 'keep',
+    'held', 'sent', 'seen', 'felt', 'told', 'said', 'much', 'less',
+    'able', 'away', 'among', 'open', 'full', 'high', 'wide', 'deep',
+    'free', 'true', 'real', 'main', 'next', 'last', 'same', 'good',
+    'best', 'held', 'show', 'find', 'move', 'turn', 'play', 'lead',
+    # ── English words 5+ chars ──────────────────────────────────────────────
+    'being', 'about', 'after', 'again', 'these', 'those', 'there',
+    'their', 'while', 'where', 'which', 'under', 'other', 'every',
+    'given', 'going', 'three', 'still', 'since', 'before', 'could',
+    'would', 'should', 'might', 'shall', 'years', 'times', 'makes',
+    'taken', 'comes', 'needs', 'looks', 'seems', 'through', 'without',
+    'between', 'during', 'further', 'however', 'therefore', 'although',
+    'including', 'already', 'always', 'within', 'toward', 'towards',
+    'having', 'taking', 'making', 'working', 'possible', 'following',
+    'itself', 'himself', 'herself', 'themselves', 'yourself', 'ourselves',
+    'cannot', 'truly', 'fully', 'highly', 'deeply', 'widely', 'clearly',
+    'strongly', 'broadly', 'largely', 'mainly', 'really', 'rather',
+    'quite', 'indeed', 'often', 'ahead', 'today', 'forth', 'hence',
+    'whole', 'means', 'point', 'basis', 'level', 'areas', 'great',
+    'small', 'large', 'major', 'right', 'close', 'clear', 'short',
+    'early', 'known', 'their', 'where', 'given', 'taken', 'given',
+    'whether', 'together', 'forward', 'already', 'continue', 'continued',
+    'continuing', 'continues', 'remain', 'remains', 'remaining',
+    'ensure', 'ensures', 'ensuring', 'ensured', 'certain', 'number',
+    'important', 'general', 'special', 'various', 'certain', 'common',
+    'address', 'addressed', 'addressing', 'consider', 'considered',
+    'focus', 'focused', 'focusing', 'achieve', 'achieved', 'achieving',
+    'provide', 'provided', 'providing', 'reflect', 'support', 'supported',
+    'supporting', 'emphasize', 'emphasizing', 'emphasize', 'stress',
+    'stressed', 'stressing', 'highlight', 'highlighted', 'welcome',
+    'welcomed', 'welcoming', 'commit', 'commits', 'committed',
+    'commitment', 'commitments', 'invite', 'invited', 'inviting',
+    'invites', 'decide', 'decided', 'decides', 'deciding',
+    'wish', 'wishes', 'wishing', 'hope', 'hopes', 'hoping',
+    'believe', 'believes', 'believed', 'believing', 'think', 'thought',
+    'efforts', 'effort', 'goals', 'items', 'item', 'needs',
+    # ── Number words (session ordinals: "seventy-ninth session") ────────────
+    'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh',
+    'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'twentieth',
+    'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty',
+    'ninety', 'hundred', 'thousand',
+    # ── UN structural / procedural ──────────────────────────────────────────
+    'united', 'nations', 'assembly', 'council', 'security',
+    'president', 'presidents', 'presidency', 'chair', 'chairman',
+    'chairperson', 'madam', 'mister', 'excellency', 'excellencies',
+    'honour', 'honored', 'honoured', 'behalf', 'behalf',
+    'delegation', 'delegations', 'representative', 'representatives',
+    'statement', 'statements', 'speaker', 'speakers', 'speaking',
+    'thank', 'thanks', 'please', 'floor', 'member', 'members',
+    'session', 'sessions', 'meeting', 'meetings', 'agenda', 'item',
+    'plenary', 'committee', 'committees', 'credentials',
+    'resolution', 'resolutions', 'paragraph', 'paragraphs',
+    'article', 'articles', 'draft', 'drafts', 'adopted', 'adopt',
+    'document', 'documents', 'order', 'orders', 'record', 'recorded',
+    'vote', 'votes', 'voting', 'voted', 'cent', 'percent',
+    'noted', 'noting', 'notes', 'recall', 'recalls', 'recalling',
+    'reaffirm', 'reaffirms', 'reaffirming', 'reaffirmed',
+    'affirm', 'affirms', 'affirming', 'affirmed',
+    'recognize', 'recognizes', 'recognizing', 'recognized',
+    'concern', 'concerned', 'concerns', 'urge', 'urges', 'urging',
+    'request', 'requests', 'requesting', 'requested',
+    'secretary', 'secretariat', 'rapporteur',
+    # ── Generic adjectives / prepositions that slipped through ──────────────
+    'against', 'behind', 'entire', 'across', 'above', 'below',
+    'role', 'roles', 'kind', 'kinds', 'type', 'types', 'form', 'forms',
+    'aspect', 'aspects', 'issue', 'issues', 'matter', 'matters',
+    'strengthening', 'strengthen', 'strengthened', 'strengthens',
+    'highest', 'lower', 'upper', 'least', 'greater', 'lesser',
+])
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def wordcloud(request):
+    body = request.GET.get('body', '')
+    session = request.GET.get('session', '')
+    speaker_id = request.GET.get('speaker_id', '')
+    country_id = request.GET.get('country_id', '')
+
+    conditions = ["item_type = 'speech'"]
+    if body in ('GA', 'SC'):
+        conditions.append(f"body = '{body}'")
+    if session and session.isdigit():
+        conditions.append(f"session = {int(session)}")
+    if speaker_id and speaker_id.isdigit():
+        conditions.append(f"speaker_id = {int(speaker_id)}")
+    if country_id and country_id.isdigit():
+        conditions.append(f"country_id = {int(country_id)}")
+
+    where = ' AND '.join(conditions)
+    limit = 3000 if (speaker_id or country_id) else 5000
+
+    # Count raw (unstemmed) words directly from speech text using regexp_matches.
+    # ORDER BY id makes the inner LIMIT deterministic across requests.
+    sql = f"""
+        SELECT word, count(*) AS n
+        FROM (
+            SELECT lower(m[1]) AS word
+            FROM   search_index,
+                   LATERAL regexp_matches(content, '[a-zA-Z]{{4,}}', 'g') AS m
+            WHERE  {where}
+            ORDER BY id
+            LIMIT  {limit}
+        ) sub
+        GROUP BY word
+        ORDER BY n DESC
+        LIMIT  80
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+
+    words = [
+        {'word': word, 'count': n}
+        for word, n in rows
+        if word not in _WC_STOPWORDS
+    ][:40]
+    # Raw counts are returned; the JS scales them linearly between the
+    # actual min and max so the most-frequent words are always largest.
+
+    resp = JsonResponse({'words': words})
+    resp['Cache-Control'] = 'public, max-age=3600'
+    return resp

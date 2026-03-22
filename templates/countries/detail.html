@@ -72,6 +72,8 @@
   </div>
 </div>
 
+{% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
+
 {% if sessions %}
 <form class="session-filter" method="get" id="session-form">
   <label for="session-select" style="font-weight:600; color:var(--muted);">GA Session:</label>
@@ -219,7 +221,6 @@
 
 {% block extra_js %}
 {% if country.iso3 %}
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/crossfilter2@1.5/crossfilter.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dc@4/dist/dc.min.js"></script>
 <script src="/static/js/votes_charts.js"></script>
