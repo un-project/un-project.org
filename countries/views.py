@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.db.models import Min, Max, Count, Q
 from .models import Country
 from speakers.models import Speaker
 from speeches.models import Speech
@@ -15,11 +16,14 @@ def _render_country_detail(request, country):
     except ValueError:
         current_session = None
 
-    # Representatives — scoped to session when active
+    # Representatives — scoped to session when active, annotated with career year range
     rep_qs = Speaker.objects.filter(country=country)
     if current_session:
-        rep_qs = rep_qs.filter(speeches__document__session=current_session).distinct()
-    rep_qs = rep_qs.order_by('name')
+        rep_qs = rep_qs.filter(speeches__document__session=current_session)
+    rep_qs = rep_qs.annotate(
+        first_year=Min('speeches__document__date__year'),
+        last_year=Max('speeches__document__date__year'),
+    ).order_by('name')
     rep_paginator = Paginator(rep_qs, 20)
     representatives_page = rep_paginator.get_page(request.GET.get('reps_page'))
 
@@ -37,39 +41,30 @@ def _render_country_detail(request, country):
     sessions = sorted(speech_sessions | vote_sessions, reverse=True)
 
     # Speeches (filtered by session when active)
-    recent_speeches = (
+    speech_qs = (
         Speech.objects.filter(speaker__country=country)
         .select_related('speaker', 'document')
         .order_by('-document__date', '-position_in_document')
     )
     if current_session:
-        recent_speeches = recent_speeches.filter(document__session=current_session)
-    paginator = Paginator(recent_speeches, getattr(settings, 'SPEECHES_PER_PAGE', 20))
+        speech_qs = speech_qs.filter(document__session=current_session)
+    paginator = Paginator(speech_qs, getattr(settings, 'SPEECHES_PER_PAGE', 20))
     speeches_page = paginator.get_page(request.GET.get('page'))
 
-    # Voting history (filtered by session when active)
-    voting_history = (
-        CountryVote.objects.filter(country=country)
-        .select_related('vote__resolution', 'vote__document')
-        .order_by('-vote__document__date')
-    )
-    if current_session:
-        voting_history = voting_history.filter(vote__document__session=current_session)
-    votes_paginator = Paginator(voting_history, 25)
-    voting_history_page = votes_paginator.get_page(request.GET.get('votes_page'))
-
-    # Vote stats (filtered by session when active)
+    # Vote stats — single aggregate query (filtered by session when active)
     vote_qs = CountryVote.objects.filter(country=country)
     if current_session:
         vote_qs = vote_qs.filter(vote__document__session=current_session)
-    vote_stats = {
-        'yes':     vote_qs.filter(vote_position='yes').count(),
-        'no':      vote_qs.filter(vote_position='no').count(),
-        'abstain': vote_qs.filter(vote_position='abstain').count(),
-    }
+    vote_stats = vote_qs.aggregate(
+        yes=Count('pk', filter=Q(vote_position='yes')),
+        no=Count('pk', filter=Q(vote_position='no')),
+        abstain=Count('pk', filter=Q(vote_position='abstain')),
+        total=Count('pk'),
+    )
 
     crumbs = [
         {'label': 'Home', 'url': '/'},
+        {'label': 'Countries', 'url': '/country/'},
         {'label': country.display_name, 'url': None},
     ]
 
@@ -80,7 +75,6 @@ def _render_country_detail(request, country):
         'country': country,
         'representatives_page': representatives_page,
         'speeches_page': speeches_page,
-        'voting_history_page': voting_history_page,
         'vote_stats': vote_stats,
         'sessions': sessions,
         'current_session': current_session,

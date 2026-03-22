@@ -33,19 +33,24 @@
 .pos-absent  { background:#95a7b5; }
 #cv-reset-btn { padding:0.35rem 0.8rem; background:var(--un-blue); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem; }
 #cv-reset-btn:hover { opacity:0.88; }
+
 </style>
 {% endif %}
 {% endblock %}
 
 {% block content %}
 {% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
 <div class="profile-header">
   {% if country.flag_url %}
   <img class="flag-img" src="{{ country.flag_url }}" alt="{{ country.name }} flag">
   {% endif %}
   <div>
     <h1 style="margin-bottom:0.25rem;">{{ country.name }}</h1>
-    {% if country.iso3 %}<div class="meta">ISO: {{ country.iso3 }}</div>{% endif %}
+    <div class="meta" style="display:flex; gap:1rem; flex-wrap:wrap;">
+      {% if country.iso3 %}<span>ISO: {{ country.iso3 }}</span>{% endif %}
+      {% if country.un_member_since %}<span>UN member since {{ country.un_member_since|date:"Y" }}</span>{% endif %}
+    </div>
   </div>
 </div>
 
@@ -59,12 +64,16 @@
     <div class="label">Speakers</div>
   </div>
   <div class="stat-box">
+    <div class="num">{{ vote_stats.total }}</div>
+    <div class="label">Votes</div>
+  </div>
+  <div class="stat-box">
     <div class="num">{{ vote_stats.yes }}</div>
-    <div class="label">Yes votes</div>
+    <div class="label">Yes</div>
   </div>
   <div class="stat-box">
     <div class="num">{{ vote_stats.no }}</div>
-    <div class="label">No votes</div>
+    <div class="label">No</div>
   </div>
   <div class="stat-box">
     <div class="num">{{ vote_stats.abstain }}</div>
@@ -72,11 +81,15 @@
   </div>
 </div>
 
-{% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
+<nav style="display:flex; gap:1.25rem; margin:1rem 0 0.25rem; font-size:0.88rem; border-bottom:1px solid var(--border); padding-bottom:0.6rem;">
+  <a href="#representatives" style="color:var(--un-blue);">Representatives</a>
+  {% if country.iso3 %}<a href="#voting" style="color:var(--un-blue);">Voting</a>{% endif %}
+  <a href="#speeches" style="color:var(--un-blue);">Speeches</a>
+</nav>
 
 {% if sessions %}
 <form class="session-filter" method="get" id="session-form">
-  <label for="session-select" style="font-weight:600; color:var(--muted);">GA Session:</label>
+  <label for="session-select" style="font-weight:600; color:var(--muted);">Session:</label>
   <select id="session-select" name="session" onchange="this.form.submit()">
     <option value="">All sessions</option>
     {% for s in sessions %}
@@ -89,13 +102,20 @@
 </form>
 {% endif %}
 
-<h2>Representatives</h2>
+{% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
+
+<h2 id="representatives">Representatives</h2>
 {% if representatives_page %}
 <ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
   {% for sp in representatives_page %}
   <li style="margin-bottom:0.4rem;">
     <a href="{{ sp.get_absolute_url }}">{{ sp.name }}</a>
     {% if sp.role %}<span class="meta">&mdash; {{ sp.role }}</span>{% endif %}
+    {% if sp.first_year %}
+      <span class="meta" style="font-size:0.78rem;">
+        ({% if sp.first_year == sp.last_year %}{{ sp.first_year }}{% else %}{{ sp.first_year }}–{{ sp.last_year }}{% endif %})
+      </span>
+    {% endif %}
   </li>
   {% endfor %}
 </ul>
@@ -104,43 +124,8 @@
 <p class="meta">No speaker records found.</p>
 {% endif %}
 
-<h2>Voting History{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}</h2>
-{% if voting_history_page %}
-<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-  <thead>
-    <tr style="text-align:left; border-bottom:2px solid var(--border);">
-      <th style="padding:0.5rem 0.75rem;">Resolution</th>
-      <th style="padding:0.5rem 0.75rem;">Meeting</th>
-      <th style="padding:0.5rem 0.75rem;">Date</th>
-      <th style="padding:0.5rem 0.75rem;">Position</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for cv in voting_history_page %}
-    <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:0.45rem 0.75rem;">
-        <a href="{{ cv.vote.resolution.get_absolute_url }}">{{ cv.vote.resolution }}</a>
-      </td>
-      <td style="padding:0.45rem 0.75rem;">
-        <a href="{{ cv.vote.document.get_absolute_url }}">{{ cv.vote.document.symbol }}</a>
-      </td>
-      <td style="padding:0.45rem 0.75rem; color:var(--muted);">
-        {% if cv.vote.document.date %}{{ cv.vote.document.date|date:"N j, Y" }}{% endif %}
-      </td>
-      <td style="padding:0.45rem 0.75rem;">
-        <span class="badge">{{ cv.vote_position }}</span>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% include "partials/pagination_named.html" with page_obj=voting_history_page param_name="votes_page" %}
-{% else %}
-<p class="meta">No voting records found.</p>
-{% endif %}
-
 {% if country.iso3 %}
-<h2 style="margin-top:2rem;">
+<h2 id="voting" style="margin-top:2rem;">
   Voting Analysis
   <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">open full page ↗</a>
   <button id="cv-reset-btn" style="display:none; margin-left:0.75rem;">Reset filters</button>
@@ -198,14 +183,13 @@
 </div>
 {% endif %}
 
-<h2>Recent Speeches{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}</h2>
+<h2 id="speeches" style="margin-top:2rem;">
+  Speeches{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}
+</h2>
 {% for speech in speeches_page %}
 <div class="card">
   <div class="speech-header">
     <img src="/static/speakers/{{ speech.speaker.pk }}.jpg" class="speaker-avatar" alt="" onerror="this.style.display='none'">
-    {% if country.flag_url %}
-    <img src="{{ country.flag_url }}" alt="{{ country.iso3 }}" style="height:14px;vertical-align:middle;margin-right:3px;">
-    {% endif %}
     <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
     <a href="{{ speech.get_absolute_url }}" class="meta">{{ speech.document.symbol }}</a>
     {% if speech.document.date %}<span class="meta">{{ speech.document.date|date:"N j, Y" }}</span>{% endif %}
