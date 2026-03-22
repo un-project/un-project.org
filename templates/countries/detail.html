@@ -82,8 +82,8 @@
 </div>
 
 <nav style="display:flex; gap:1.25rem; margin:1rem 0 0.25rem; font-size:0.88rem; border-bottom:1px solid var(--border); padding-bottom:0.6rem;">
-  <a href="#representatives" style="color:var(--un-blue);">Representatives</a>
   {% if country.iso3 %}<a href="#voting" style="color:var(--un-blue);">Voting</a>{% endif %}
+  <a href="#representatives" style="color:var(--un-blue);">Representatives</a>
   <a href="#speeches" style="color:var(--un-blue);">Speeches</a>
 </nav>
 
@@ -103,26 +103,6 @@
 {% endif %}
 
 {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
-
-<h2 id="representatives">Representatives</h2>
-{% if representatives_page %}
-<ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
-  {% for sp in representatives_page %}
-  <li style="margin-bottom:0.4rem;">
-    <a href="{{ sp.get_absolute_url }}">{{ sp.name }}</a>
-    {% if sp.role %}<span class="meta">&mdash; {{ sp.role }}</span>{% endif %}
-    {% if sp.first_year %}
-      <span class="meta" style="font-size:0.78rem;">
-        ({% if sp.first_year == sp.last_year %}{{ sp.first_year }}{% else %}{{ sp.first_year }}–{{ sp.last_year }}{% endif %})
-      </span>
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
-{% include "partials/pagination_named.html" with page_obj=representatives_page param_name="reps_page" %}
-{% else %}
-<p class="meta">No speaker records found.</p>
-{% endif %}
 
 {% if country.iso3 %}
 <h2 id="voting" style="margin-top:2rem;">
@@ -181,6 +161,26 @@
     </div>
   </div>
 </div>
+{% endif %}
+
+<h2 id="representatives" style="margin-top:2rem;">Representatives</h2>
+{% if representatives_page %}
+<ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
+  {% for sp in representatives_page %}
+  <li style="margin-bottom:0.4rem;">
+    <a href="{{ sp.get_absolute_url }}">{{ sp.name }}</a>
+    {% if sp.role %}<span class="meta">&mdash; {{ sp.role }}</span>{% endif %}
+    {% if sp.first_year %}
+      <span class="meta" style="font-size:0.78rem;">
+        ({% if sp.first_year == sp.last_year %}{{ sp.first_year }}{% else %}{{ sp.first_year }}–{{ sp.last_year }}{% endif %})
+      </span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% include "partials/pagination_named.html" with page_obj=representatives_page param_name="reps_page" %}
+{% else %}
+<p class="meta">No speaker records found.</p>
 {% endif %}
 
 <h2 id="speeches" style="margin-top:2rem;">
