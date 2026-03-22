@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}UN Meetings{% endblock %} — UN Project</title>
+  <link rel="alternate" type="application/atom+xml" title="UN Project — Latest Meetings"     href="/feed/meetings/">
+  <link rel="alternate" type="application/atom+xml" title="UN Project — Latest Resolutions" href="/feed/resolutions/">
   {% block og_tags %}
   <meta property="og:type"        content="website">
   <meta property="og:site_name"   content="UN Project">
@@ -70,7 +72,9 @@
     <a href="/about/">About</a> &middot;
     <a href="https://github.com/un-project/un-project.org/blob/main/API.md" target="_blank" rel="noopener">API</a> &middot;
     <a href="https://github.com/un-project/un-project.org" target="_blank" rel="noopener">Source code</a> &middot;
-    <a href="/legal/">Legal notices</a>
+    <a href="/legal/">Legal notices</a> &middot;
+    <a href="/feed/meetings/" title="Atom feed">Meetings feed</a> &middot;
+    <a href="/feed/resolutions/" title="Atom feed">Resolutions feed</a>
   </p>
 </footer>
 

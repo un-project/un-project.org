@@ -49,4 +49,4 @@ Tracked tasks and future features for the UN Project web application.
 
 - [ ] **LLM summarization** — use the Claude API to generate concise debate summaries per agenda item, displayed as a collapsible section on the meeting page.
 - [ ] **Sentiment / position analysis** — classify speeches as supportive, critical, or neutral toward a resolution using the Claude API.
-- [ ] **RSS / Atom feed** — publish new meetings and resolutions as a feed so users can subscribe to updates.
+- [x] **RSS / Atom feed** — publish new meetings and resolutions as a feed so users can subscribe to updates.
