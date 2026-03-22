@@ -49,7 +49,7 @@ def resolution_detail(request, slug):
         resolution.votes
         .select_related('document')
         .prefetch_related('country_votes__country')
-        .order_by('position_in_item')
+        .order_by('-document__date', 'position_in_item')
     )
 
     return render(request, 'votes/resolution.html', {
