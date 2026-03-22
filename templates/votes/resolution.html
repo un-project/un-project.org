@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ resolution }}{% endblock %}
+{% block og_tags %}
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="UN Project">
+<meta property="og:title"       content="{{ resolution }}{% if resolution.title %} — {{ resolution.title|truncatechars:60 }}{% endif %}">
+<meta property="og:description" content="UN {{ resolution.body_display }} resolution{% if resolution.session %}, session {{ resolution.session }}{% endif %}{% if resolution.title %}: {{ resolution.title|truncatechars:100 }}{% endif %}.">
+<meta property="og:url"         content="{{ request.build_absolute_uri }}">
+<meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/img/logo.png">
+{% endblock %}
 
 {% block content %}
 <div style="margin-bottom:1rem;">

@@ -4,6 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}UN Meetings{% endblock %} — UN Project</title>
+  {% block og_tags %}
+  <meta property="og:type"        content="website">
+  <meta property="og:site_name"   content="UN Project">
+  <meta property="og:title"       content="UN Project — Meetings, Speeches &amp; Votes">
+  <meta property="og:description" content="Explore United Nations meetings, speeches, and voting records from the General Assembly and Security Council.">
+  <meta property="og:url"         content="{{ request.build_absolute_uri }}">
+  <meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/img/logo.png">
+  {% endblock %}
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
   {% block extra_head %}{% endblock %}

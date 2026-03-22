@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ country.name }}{% endblock %}
+{% block og_tags %}
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="UN Project">
+<meta property="og:title"       content="{{ country.display_name }} — UN Speeches &amp; Votes">
+<meta property="og:description" content="Browse UN speeches and voting records for {{ country.display_name }} at the General Assembly and Security Council.">
+<meta property="og:url"         content="{{ request.build_absolute_uri }}">
+<meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/flags/{{ country.iso3 }}.svg">
+{% endblock %}
 
 {% block extra_head %}
 {% if country.iso3 %}

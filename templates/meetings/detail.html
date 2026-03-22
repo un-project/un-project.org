@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% load speech_tags %}
 {% block title %}{{ document.symbol }}{% endblock %}
+{% block og_tags %}
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="UN Project">
+<meta property="og:title"       content="{{ document.symbol }} — {{ document.body_display }}">
+<meta property="og:description" content="Session {{ document.session }}, Meeting {{ document.meeting_number }}{% if document.date %} — {{ document.date|date:"N j, Y" }}{% endif %}. Full transcript with speeches{% if document.location %} in {{ document.location }}{% endif %}.">
+<meta property="og:url"         content="{{ request.build_absolute_uri }}">
+<meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/img/logo.png">
+{% endblock %}
 
 {% block content %}
 {% include "partials/breadcrumb.html" with crumbs=crumbs %}

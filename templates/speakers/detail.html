@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ speaker.name }}{% endblock %}
+{% block og_tags %}
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="UN Project">
+<meta property="og:title"       content="{{ speaker.name }}{% if speaker.country %} ({{ speaker.country.display_name }}){% endif %} — UN Speeches">
+<meta property="og:description" content="UN speeches and meeting appearances by {{ speaker.name }}{% if speaker.country %}, {{ speaker.country.display_name }}{% endif %}.">
+<meta property="og:url"         content="{{ request.build_absolute_uri }}">
+<meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}{% if speaker.country and speaker.country.iso3 %}/static/flags/{{ speaker.country.iso3 }}.svg{% else %}/static/img/logo.png{% endif %}">
+{% endblock %}
 
 {% block content %}
 {% include "partials/breadcrumb.html" with crumbs=crumbs %}

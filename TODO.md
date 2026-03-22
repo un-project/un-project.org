@@ -32,7 +32,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Navigation & UI
 
-- [ ] **OpenGraph / meta tags** — add `og:title`, `og:description`, and `og:image` to meeting, country, speaker, and resolution pages for social sharing previews.
+- [x] **OpenGraph / meta tags** — add `og:title`, `og:description`, and `og:image` to meeting, country, speaker, and resolution pages for social sharing previews.
 
 ## Data & Backend
 
