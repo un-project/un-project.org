@@ -5,7 +5,7 @@ Tracked tasks and future features for the UN Project web application.
 ## Near-term
 
 - [ ] **Meetings list — speech count** — annotate each document with the number of speeches for display on the list page.
-- [ ] **Per-item permalink** — clicking an agenda item in the sidebar should copy the anchor URL (`#item-<pk>`) to clipboard and give brief visual feedback.
+- [x] **Per-item permalink** — clicking an agenda item in the sidebar should copy the anchor URL (`#item-<pk>`) to clipboard and give brief visual feedback.
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate them from the data and display on the speaker page.
 
 ## Search

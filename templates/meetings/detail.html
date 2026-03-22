@@ -284,6 +284,27 @@
     }
   }
 })();
+
+// ── Agenda sidebar: copy anchor URL on click ──────────────────────────────
+(function () {
+  var sidebar = document.querySelector('.agenda-sidebar');
+  if (!sidebar) return;
+  sidebar.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href^="#item-"]');
+    if (!link) return;
+    var url = location.origin + location.pathname + link.getAttribute('href');
+    navigator.clipboard.writeText(url).then(function () {
+      var prev = link.textContent;
+      link.dataset.prevText = prev;
+      link.textContent = 'Copied ✓';
+      link.style.color = 'var(--un-blue)';
+      setTimeout(function () {
+        link.textContent = prev;
+        link.style.color = '';
+      }, 1500);
+    });
+  });
+})();
 </script>
 {% endblock %}
 {% endblock %}
