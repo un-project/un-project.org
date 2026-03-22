@@ -216,7 +216,7 @@
   <select id="country-select" data-searchable>
     <option value="">— select a country —</option>
     {% for c in countries %}
-    <option value="{{ c.iso3 }}">{{ c.display_name }}</option>
+    <option value="{{ c.iso3 }}" data-iso3="{{ c.iso3 }}">{{ c.display_name }}</option>
     {% endfor %}
   </select>
   <span id="loading-indicator" style="display:none;">Loading…</span>

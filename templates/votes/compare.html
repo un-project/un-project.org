@@ -73,14 +73,14 @@
     <select name="a" data-searchable>
       <option value="">— Country A —</option>
       {% for c in countries %}
-      <option value="{{ c.iso3 }}"{% if c.iso3 == iso3_a %} selected{% endif %}>{{ c.display_name }}</option>
+      <option value="{{ c.iso3 }}" data-iso3="{{ c.iso3 }}"{% if c.iso3 == iso3_a %} selected{% endif %}>{{ c.display_name }}</option>
       {% endfor %}
     </select>
     <span style="font-weight:700; color:var(--muted);">vs</span>
     <select name="b" data-searchable>
       <option value="">— Country B —</option>
       {% for c in countries %}
-      <option value="{{ c.iso3 }}"{% if c.iso3 == iso3_b %} selected{% endif %}>{{ c.display_name }}</option>
+      <option value="{{ c.iso3 }}" data-iso3="{{ c.iso3 }}"{% if c.iso3 == iso3_b %} selected{% endif %}>{{ c.display_name }}</option>
       {% endfor %}
     </select>
     <button type="submit" class="btn">Compare</button>

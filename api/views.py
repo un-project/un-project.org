@@ -129,6 +129,7 @@ def speaker_search(request):
             'id': s.pk,
             'name': s.name,
             'detail': s.country.display_name if s.country else (s.organization or ''),
+            'country_iso3': s.country.iso3 if s.country else None,
         }
         for s in qs
     ]

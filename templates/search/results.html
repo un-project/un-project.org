@@ -16,11 +16,11 @@
   <select name="country" data-searchable>
     <option value="">All countries</option>
     {% for c in countries %}
-    <option value="{{ c.pk }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+    <option value="{{ c.pk }}" data-iso3="{{ c.iso3|default:'' }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
     {% endfor %}
   </select>
 
-  <select name="speaker" data-search-url="/api/speakers/">
+  <select name="speaker" data-search-url="/api/speakers/search/">
     <option value="">All speakers</option>
     {% if selected_speaker %}
     <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>

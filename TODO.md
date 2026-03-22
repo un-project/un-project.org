@@ -10,7 +10,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Search
 
-- [ ] **Search filters: speaker photos / flags** — show a small flag or avatar next to country/speaker options in the search filter dropdowns.
+- [x] **Search filters: speaker photos / flags** — show a small flag or avatar next to country/speaker options in the search filter dropdowns.
 - [ ] **Save/share search URL** — ensure all active filters (body, country, speaker, page) round-trip through the URL so searches are shareable and restorable from the URL.
 - [ ] **Search autocomplete** — suggest matching speakers or countries in the global nav search box as the user types.
 

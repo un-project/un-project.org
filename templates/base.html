@@ -93,8 +93,27 @@
 }());
 </script>
 <script>
+function flagImg(iso3) {
+  if (!iso3) return '';
+  return '<img src="/static/flags/' + iso3 + '.svg" alt="" ' +
+    'style="height:13px;width:20px;object-fit:cover;vertical-align:middle;' +
+    'margin-right:5px;border-radius:1px;border:1px solid #e0e0e0;flex-shrink:0;">';
+}
+
 document.querySelectorAll('select[data-searchable]').forEach(function(el) {
-  new TomSelect(el, { maxOptions: null });
+  new TomSelect(el, {
+    maxOptions: null,
+    render: {
+      option: function(item, escape) {
+        return '<div style="display:flex;align-items:center;">' +
+          flagImg(item.iso3) + escape(item.text) + '</div>';
+      },
+      item: function(item, escape) {
+        return '<div style="display:flex;align-items:center;">' +
+          flagImg(item.iso3) + escape(item.text) + '</div>';
+      },
+    },
+  });
 });
 
 document.querySelectorAll('select[data-search-url]').forEach(function(el) {
@@ -112,13 +131,15 @@ document.querySelectorAll('select[data-search-url]').forEach(function(el) {
     },
     render: {
       option: function(item, escape) {
-        return '<div>' + escape(item.name) +
-          (item.detail ? ' <span style="color:var(--muted);font-size:0.85em;">(' + escape(item.detail) + ')</span>' : '') +
+        return '<div style="display:flex;align-items:center;">' +
+          flagImg(item.country_iso3) + escape(item.name) +
+          (item.detail ? ' <span style="color:var(--muted);font-size:0.85em;margin-left:4px;">(' + escape(item.detail) + ')</span>' : '') +
           '</div>';
       },
       item: function(item, escape) {
-        return '<div>' + escape(item.name) +
-          (item.detail ? ' <span style="color:var(--muted);font-size:0.85em;">(' + escape(item.detail) + ')</span>' : '') +
+        return '<div style="display:flex;align-items:center;">' +
+          flagImg(item.country_iso3) + escape(item.name) +
+          (item.detail ? ' <span style="color:var(--muted);font-size:0.85em;margin-left:4px;">(' + escape(item.detail) + ')</span>' : '') +
           '</div>';
       },
     },
