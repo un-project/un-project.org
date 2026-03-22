@@ -38,7 +38,7 @@ def _render_country_detail(request, country):
         .values_list('vote__document__session', flat=True)
         .distinct()
     )
-    sessions = sorted(speech_sessions | vote_sessions, reverse=True)
+    sessions = sorted((speech_sessions | vote_sessions) - {None}, reverse=True)
 
     # Speeches (filtered by session when active)
     speech_qs = (
