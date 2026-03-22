@@ -159,17 +159,17 @@
 
   {% if comparison.by_session %}
   <div>
-    <h2 class="section-title">Agreement by Session</h2>
-    <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per GA session (sessions with ≥2 shared votes).</p>
+    <h2 class="section-title">Agreement by Year</h2>
+    <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per year (years with ≥2 shared votes).</p>
     <div class="session-bars">
       {% for s in comparison.by_session %}
-      <div class="session-bar-wrap" title="Session {{ s.session }}{% if s.year %} ({{ s.year }}){% endif %}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes">
+      <div class="session-bar-wrap" title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes">
         <div class="session-bar-bg">
           <div class="session-bar-fill"
                style="height:{{ s.rate }}%; background:{% if s.rate >= 60 %}#27ae60{% elif s.rate >= 35 %}#f39c12{% else %}#e74c3c{% endif %};">
           </div>
         </div>
-        <div class="session-bar-label">{{ s.year|default:s.session }}</div>
+        <div class="session-bar-label">{{ s.year }}</div>
       </div>
       {% endfor %}
     </div>

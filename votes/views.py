@@ -105,30 +105,27 @@ def country_compare(request):
             .filter(id__in=shared_ids)
             .select_related('resolution', 'document')
         )
-        session_stats = defaultdict(lambda: {'agree': 0, 'total': 0, 'years': set()})
+        year_stats = defaultdict(lambda: {'agree': 0, 'total': 0})
         vote_map = {}
         for v in shared_vote_qs:
             vote_map[v.id] = v
-            sess = v.resolution.session
-            if not sess:
+            if not v.document.date:
                 continue
-            if v.document.date:
-                session_stats[sess]['years'].add(v.document.date.year)
-            session_stats[sess]['total'] += 1
+            year = v.document.date.year
+            year_stats[year]['total'] += 1
             if votes_a[v.id] == votes_b[v.id]:
-                session_stats[sess]['agree'] += 1
+                year_stats[year]['agree'] += 1
 
         by_session = sorted([
             {
-                'session': sess,
-                'year': min(stats['years']) if stats['years'] else None,
+                'year': year,
                 'total': stats['total'],
                 'agree': stats['agree'],
                 'rate': round(100 * stats['agree'] / stats['total']) if stats['total'] else 0,
             }
-            for sess, stats in session_stats.items()
+            for year, stats in year_stats.items()
             if stats['total'] >= 2
-        ], key=lambda x: (x['year'] or 0, x['session']))
+        ], key=lambda x: x['year'])
 
         # Most divergent votes (disagreed, sorted by contestedness)
         divergent = [
