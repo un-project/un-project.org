@@ -61,6 +61,10 @@ def resolution_detail(request, slug):
 def country_compare(request):
     iso3_a = request.GET.get('a', '').strip().upper()
     iso3_b = request.GET.get('b', '').strip().upper()
+    try:
+        selected_year = int(request.GET.get('year', ''))
+    except (ValueError, TypeError):
+        selected_year = None
 
     countries = (
         Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
@@ -128,6 +132,24 @@ def country_compare(request):
             if stats['total'] >= 2
         ], key=lambda x: x['year'])
 
+        # Votes filtered to selected year
+        year_votes = None
+        if selected_year and selected_year in year_stats:
+            year_rows = [
+                {
+                    'vote': vote_map[vid],
+                    'pos_a': votes_a[vid],
+                    'pos_b': votes_b[vid],
+                    'agree': votes_a[vid] == votes_b[vid],
+                }
+                for vid in shared_ids
+                if vid in vote_map
+                and vote_map[vid].document.date
+                and vote_map[vid].document.date.year == selected_year
+            ]
+            year_rows.sort(key=lambda x: (x['agree'], str(x['vote'].resolution)))
+            year_votes = year_rows
+
         # Most divergent votes (disagreed, sorted by contestedness)
         divergent = [
             {'vote': vote_map[vid], 'pos_a': votes_a[vid], 'pos_b': votes_b[vid]}
@@ -169,15 +191,18 @@ def country_compare(request):
             'by_session': by_session,
             'divergent': divergent,
             'agreed_contested': agreed_contested,
+            'year_votes': year_votes,
+            'selected_year': selected_year,
         }
 
     return render(request, 'votes/compare.html', {
-        'countries':  countries,
-        'country_a':  country_a,
-        'country_b':  country_b,
-        'iso3_a':     iso3_a,
-        'iso3_b':     iso3_b,
-        'comparison': comparison,
+        'countries':     countries,
+        'country_a':     country_a,
+        'country_b':     country_b,
+        'iso3_a':        iso3_a,
+        'iso3_b':        iso3_b,
+        'comparison':    comparison,
+        'selected_year': selected_year,
         'crumbs': [
             {'label': 'Home', 'url': '/'},
             {'label': 'Voting Analysis', 'url': '/votes/'},

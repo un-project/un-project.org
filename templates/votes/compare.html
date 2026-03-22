@@ -161,22 +161,30 @@
   {% if comparison.by_session %}
   <div style="min-width:0;">
     <h2 class="section-title">Agreement by Year</h2>
-    <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per year (years with ≥2 shared votes).</p>
+    <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per year (years with ≥2 shared votes). Click a bar to filter votes.</p>
     <div class="session-bars-scroll">
     <div class="session-bars">
       {% for s in comparison.by_session %}
-      <div class="session-bar-wrap" title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes">
+      {% if s.year == selected_year %}
+      <a href="?a={{ iso3_a }}&amp;b={{ iso3_b }}" class="session-bar-wrap"
+         title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes"
+         style="text-decoration:none; outline:2px solid #1b4f87; border-radius:3px;">
+      {% else %}
+      <a href="?a={{ iso3_a }}&amp;b={{ iso3_b }}&amp;year={{ s.year }}#year-votes" class="session-bar-wrap"
+         title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes"
+         style="text-decoration:none;">
+      {% endif %}
         <div class="session-bar-bg">
           <div class="session-bar-fill"
                style="height:{{ s.rate }}%; background:{% if s.rate >= 60 %}#27ae60{% elif s.rate >= 35 %}#f39c12{% else %}#e74c3c{% endif %};">
           </div>
         </div>
         <div class="session-bar-label">{{ s.year }}</div>
-      </div>
+      </a>
       {% endfor %}
     </div>
     </div>
-    <div class="meta" style="font-size:0.78rem; display:flex; gap:1rem;">
+    <div class="meta" style="font-size:0.78rem; display:flex; gap:1rem; margin-top:0.4rem;">
       <span style="color:#27ae60;">■ ≥60%</span>
       <span style="color:#f39c12;">■ 35–59%</span>
       <span style="color:#e74c3c;">■ &lt;35%</span>
@@ -185,6 +193,47 @@
   {% endif %}
 
 </div>
+
+<!-- Year-filtered votes -->
+{% if comparison.year_votes is not None %}
+<div id="year-votes" style="margin-bottom:2rem;">
+  <h2 class="section-title">
+    Votes in {{ comparison.selected_year }}
+    <a href="?a={{ iso3_a }}&amp;b={{ iso3_b }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">✕ clear</a>
+  </h2>
+  {% if comparison.year_votes %}
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Resolution</th>
+        <th>{{ country_a.display_name }}</th>
+        <th>{{ country_b.display_name }}</th>
+        <th style="text-align:center;">Y / N / A</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in comparison.year_votes %}
+      <tr{% if not row.agree %} style="background:#fffbf0;"{% endif %}>
+        <td>
+          <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
+          {% if row.vote.resolution.title %}<div class="meta" style="font-size:0.8rem;">{{ row.vote.resolution.title|truncatechars:80 }}</div>{% endif %}
+        </td>
+        <td><span class="pos-badge pos-{{ row.pos_a }}">{{ row.pos_a }}</span></td>
+        <td><span class="pos-badge pos-{{ row.pos_b }}">{{ row.pos_b }}</span></td>
+        <td style="white-space:nowrap; text-align:center; font-size:0.85rem;">
+          <span style="color:#27ae60;">{{ row.vote.yes_count }}</span> /
+          <span style="color:#e74c3c;">{{ row.vote.no_count }}</span> /
+          <span style="color:#f39c12;">{{ row.vote.abstain_count }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="meta">No shared votes found for {{ comparison.selected_year }}.</p>
+  {% endif %}
+</div>
+{% endif %}
 
 <!-- Most divergent votes -->
 {% if comparison.divergent %}
