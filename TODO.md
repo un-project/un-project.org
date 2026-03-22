@@ -9,7 +9,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Search
 
-- [ ] **Save/share search URL** — ensure all active filters (body, country, speaker, page) round-trip through the URL so searches are shareable and restorable from the URL.
+- [x] **Save/share search URL** — ensure all active filters (body, country, speaker, page) round-trip through the URL so searches are shareable and restorable from the URL.
 - [ ] **Search autocomplete** — suggest matching speakers or countries in the global nav search box as the user types.
 
 ## Meeting Transcript

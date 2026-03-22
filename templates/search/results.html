@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Search{% if query %}: {{ query }}{% endif %}{% endblock %}
 
+{% block extra_js %}
+<script>
+document.querySelector('form.filters').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var params = new URLSearchParams();
+  new FormData(this).forEach(function (value, key) {
+    if (value) params.set(key, value);
+  });
+  window.location = '/search/?' + params.toString();
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <h1>Search</h1>
 
