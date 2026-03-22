@@ -128,7 +128,7 @@ def country_compare(request):
             }
             for sess, stats in session_stats.items()
             if stats['total'] >= 2
-        ], key=lambda x: x['session'])
+        ], key=lambda x: (x['year'] or 0, x['session']))
 
         # Most divergent votes (disagreed, sorted by contestedness)
         divergent = [
