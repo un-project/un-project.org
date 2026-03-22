@@ -221,7 +221,8 @@
         </a>
         {% endfor %}
         {% if bloc.members_extra %}
-        <span style="font-size:0.72rem; color:var(--muted); margin-left:2px;">+{{ bloc.members_extra }} more</span>
+        <span class="bloc-extra" style="display:none">{% for member in bloc.members|slice:"8:" %}<a href="/country/{{ member.iso3 }}/" title="{{ member.display_name }}"><img src="/static/flags/{{ member.iso3 }}.svg" alt="{{ member.display_name }}" style="height:15px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; display:block;"></a>{% endfor %}</span>
+        <button class="bloc-more-btn" style="font-size:0.72rem; color:var(--un-blue); background:none; border:none; padding:0; margin-left:2px; cursor:pointer; text-decoration:underline;">+{{ bloc.members_extra }} more</button>
         {% endif %}
       </div>
       <div style="height:9px; border-radius:3px; overflow:hidden; display:flex; margin-bottom:0.5rem; background:#f0f0f0;">
@@ -379,5 +380,12 @@
     }
   }
 }());
+
+document.querySelectorAll('.bloc-more-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    btn.previousElementSibling.style.display = 'contents';
+    btn.remove();
+  });
+});
 </script>
 {% endblock %}
