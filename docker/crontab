@@ -1,2 +1,6 @@
 # Refresh the search index every hour (CONCURRENTLY — non-blocking)
 0 * * * * cd /app && python manage.py refresh_search_index >> /var/log/refresh_search_index.log 2>&1
+
+# Ingest new UN meeting documents nightly at 03:00 UTC
+# Exits early (no-op) until discovery in step 1 is implemented.
+0 3 * * * /app/docker/ingest_new_meetings.sh >> /var/log/ingest_new_meetings.log 2>&1
