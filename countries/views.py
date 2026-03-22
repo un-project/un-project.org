@@ -89,6 +89,11 @@ def _render_country_detail(request, country):
     })
 
 
+def country_list(request):
+    countries = Country.objects.filter(iso3__isnull=False).order_by('name')
+    return render(request, 'countries/list.html', {'countries': countries})
+
+
 def country_detail(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     return _render_country_detail(request, country)
