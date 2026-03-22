@@ -20,7 +20,7 @@
 
 <div class="meta" style="margin-bottom:1.5rem;">
   {% if document.date %}{{ document.date|date:"l, N j, Y" }}{% endif %}
-  &mdash; Session {{ document.session }}, Meeting {{ document.meeting_number }}
+  &mdash; <a href="/session/{{ document.body }}/{{ document.session }}/">Session {{ document.session }}</a>, Meeting {{ document.meeting_number }}
   {% if document.location %}&mdash; {{ document.location }}{% endif %}
   &mdash; <a href="{{ document.docs_un_url }}" target="_blank" rel="noopener">UN Document ↗</a>
 </div>

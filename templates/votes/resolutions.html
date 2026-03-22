@@ -33,6 +33,9 @@
   </select>
 
   <button type="submit">Filter</button>
+  {% if current_session and current_body %}
+  <a href="/session/{{ current_body }}/{{ current_session }}/" class="btn btn-secondary btn-sm">Session page ↗</a>
+  {% endif %}
   {% if current_session %}
   <a href="/votes/resolutions/{% if current_body %}?body={{ current_body }}{% endif %}" class="btn btn-secondary btn-sm">Clear</a>
   {% endif %}

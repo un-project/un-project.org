@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ body_label }} — Session {{ session }}{% endblock %}
+
+{% block og_tags %}
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="UN Project">
+<meta property="og:title"       content="{{ body_label }} — Session {{ session }} — UN Project">
+<meta property="og:description" content="{{ documents|length }} meeting{{ documents|length|pluralize }} and {{ resolution_rows|length }} resolution{{ resolution_rows|length|pluralize }} in session {{ session }}.">
+<meta property="og:url"         content="{{ request.build_absolute_uri }}">
+<meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/img/logo.png">
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; gap:1.5rem; margin:2rem 0 1.5rem; flex-wrap:wrap;">
+  <img src="/static/img/un-emblem.svg" alt="UN emblem" style="width:80px; height:auto;">
+  <div>
+    <div style="font-size:0.82rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:0.2rem;">United Nations</div>
+    <h1 style="margin:0; font-size:1.75rem; line-height:1.2;">
+      {{ body_label }} — Session {{ session }}
+    </h1>
+    {% if year_min %}
+    <div style="margin-top:0.35rem; color:var(--muted); font-size:0.9rem;">
+      {% if year_max and year_max != year_min %}{{ year_min }}–{{ year_max }}{% else %}{{ year_min }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<div style="display:flex; gap:1.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+  <a href="/meeting/?body={{ body }}&session={{ session }}" class="btn btn-secondary btn-sm">All meetings &rarr;</a>
+  <a href="/votes/resolutions/?body={{ body }}&session={{ session }}" class="btn btn-secondary btn-sm">All resolutions &rarr;</a>
+</div>
+
+{# ── Meetings ──────────────────────────────────────────────────── #}
+<h2 style="margin:1.5rem 0 0.75rem; font-size:1.15rem;">
+  Meetings
+  <span class="meta" style="font-weight:normal; font-size:0.88rem; margin-left:0.5rem;">{{ documents|length }}</span>
+</h2>
+
+{% if documents %}
+<div style="overflow-x:auto;">
+<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border); text-align:left;">
+      <th style="padding:0.4rem 0.75rem 0.4rem 0;">#</th>
+      <th style="padding:0.4rem 0.75rem;">Symbol</th>
+      <th style="padding:0.4rem 0.75rem;">Date</th>
+      <th style="padding:0.4rem 0.75rem;">Location</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in documents %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--muted);">{{ doc.meeting_number }}</td>
+      <td style="padding:0.4rem 0.75rem;">
+        <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
+      </td>
+      <td style="padding:0.4rem 0.75rem; white-space:nowrap;">
+        {% if doc.date %}{{ doc.date|date:"N j, Y" }}{% else %}<span class="meta">—</span>{% endif %}
+      </td>
+      <td style="padding:0.4rem 0.75rem; color:var(--muted); font-size:0.85rem;">{{ doc.location|default:"" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="meta">No meetings found for this session.</p>
+{% endif %}
+
+{# ── Resolutions ───────────────────────────────────────────────── #}
+<h2 style="margin:2rem 0 0.75rem; font-size:1.15rem;">
+  Resolutions
+  <span class="meta" style="font-weight:normal; font-size:0.88rem; margin-left:0.5rem;">{{ resolution_rows|length }}</span>
+</h2>
+
+{% if resolution_rows %}
+<div style="overflow-x:auto;">
+<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border); text-align:left;">
+      <th style="padding:0.4rem 0.75rem 0.4rem 0;">Symbol</th>
+      <th style="padding:0.4rem 0.75rem;">Title</th>
+      <th style="padding:0.4rem 0.75rem; text-align:center;">Yes</th>
+      <th style="padding:0.4rem 0.75rem; text-align:center;">No</th>
+      <th style="padding:0.4rem 0.75rem; text-align:center;">Abstain</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in resolution_rows %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.4rem 0.75rem 0.4rem 0; white-space:nowrap;">
+        <a href="{{ row.resolution.get_absolute_url }}"><strong>{{ row.resolution }}</strong></a>
+      </td>
+      <td style="padding:0.4rem 0.75rem; font-size:0.85rem; color:var(--muted);">
+        {{ row.resolution.title|default:""|truncatechars:100 }}
+      </td>
+      {% if row.vote %}
+        {% if row.vote.vote_type == 'consensus' %}
+          <td colspan="3" style="padding:0.4rem 0.75rem; text-align:center; font-size:0.82rem; color:var(--muted);">adopted by consensus</td>
+        {% else %}
+          <td style="padding:0.4rem 0.75rem; text-align:center; color:#2d7a2d; font-weight:600;">{{ row.vote.yes_count }}</td>
+          <td style="padding:0.4rem 0.75rem; text-align:center; color:#b33a3a; font-weight:600;">{{ row.vote.no_count }}</td>
+          <td style="padding:0.4rem 0.75rem; text-align:center; color:var(--muted);">{{ row.vote.abstain_count }}</td>
+        {% endif %}
+      {% else %}
+        <td colspan="3" style="padding:0.4rem 0.75rem; text-align:center; font-size:0.82rem; color:var(--muted);">—</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="meta">No resolutions found for this session.</p>
+{% endif %}
+
+{% endblock %}

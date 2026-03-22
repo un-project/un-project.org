@@ -31,6 +31,9 @@
     <option value="{{ s }}" {% if current_session == s|stringformat:"s" %}selected{% endif %}>Session {{ s }}</option>
     {% endfor %}
   </select>
+  {% if current_session and current_body %}
+  <a href="/session/{{ current_body }}/{{ current_session }}/" class="btn btn-secondary btn-sm">Session page ↗</a>
+  {% endif %}
 
   <select name="year">
     <option value="">All years</option>

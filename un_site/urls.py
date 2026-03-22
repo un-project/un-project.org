@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.contrib.sitemaps.views import index as sitemap_index, sitemap
 from django.http import HttpResponse
 from .sitemaps import sitemaps
+from meetings.views import session_detail
 
 def health(request):
     return HttpResponse('ok')
@@ -19,4 +20,5 @@ urlpatterns = [
     path('votes/', include('votes.urls')),
     path('api/', include('api.urls')),
     path('health/', health),
+    path('session/<str:body>/<int:session>/', session_detail, name='session_detail'),
 ]

@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
+from django.http import Http404
 from django.conf import settings
 from .models import Document, DocumentItem
 from speeches.models import Speech, StageDirection
-from votes.models import Vote
+from votes.models import Vote, Resolution
 
 
 def meeting_list(request):
@@ -55,7 +56,6 @@ def meeting_detail(request, slug):
             break
 
     if document is None:
-        from django.http import Http404
         raise Http404("Meeting not found")
 
     items = list(DocumentItem.objects.filter(document=document))
@@ -108,5 +108,60 @@ def meeting_detail(request, slug):
         'document': document,
         'items': items,
         'transcript': final_transcript,
+        'crumbs': crumbs,
+    })
+
+
+_BODY_LABEL = {'GA': 'General Assembly', 'SC': 'Security Council'}
+
+
+def session_detail(request, body, session):
+    if body not in ('GA', 'SC'):
+        raise Http404("Invalid body")
+
+    documents = list(
+        Document.objects
+        .filter(body=body, session=session)
+        .order_by('date', 'meeting_number')
+    )
+    if not documents:
+        raise Http404("Session not found")
+
+    resolutions = list(
+        Resolution.objects
+        .filter(body=body, session=session)
+        .prefetch_related('votes')
+        .order_by('adopted_symbol', 'draft_symbol')
+    )
+
+    # Attach the main whole-resolution vote (if any) to each resolution
+    resolution_rows = []
+    for res in resolutions:
+        main_vote = next(
+            (v for v in res.votes.all() if v.vote_scope == 'whole_resolution'),
+            None,
+        )
+        resolution_rows.append({'resolution': res, 'vote': main_vote})
+
+    # Year range for the session header
+    dates = [d.date for d in documents if d.date]
+    year_min = min(d.year for d in dates) if dates else None
+    year_max = max(d.year for d in dates) if dates else None
+
+    body_label = _BODY_LABEL.get(body, body)
+    crumbs = [
+        {'label': 'Home', 'url': f'/?body={body}'},
+        {'label': f'{body_label} Meetings', 'url': f'/meeting/?body={body}'},
+        {'label': f'Session {session}', 'url': None},
+    ]
+
+    return render(request, 'sessions/detail.html', {
+        'body': body,
+        'body_label': body_label,
+        'session': session,
+        'documents': documents,
+        'resolution_rows': resolution_rows,
+        'year_min': year_min,
+        'year_max': year_max,
         'crumbs': crumbs,
     })
