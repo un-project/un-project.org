@@ -6,6 +6,7 @@ from django.http import Http404, JsonResponse
 from django.db.models import Count, F
 
 from countries.models import Country
+from .coalitions import COALITIONS
 from .models import CountryVote, Resolution, Vote
 
 
@@ -217,6 +218,35 @@ def votes_page(request):
         .order_by('-no_count')[:6]
     )
 
+    # Voting blocs
+    countries_by_iso3 = {
+        c.iso3: c
+        for c in Country.objects.filter(iso3__isnull=False).exclude(iso3='')
+    }
+    coalition_blocs = []
+    for bloc in COALITIONS:
+        pos_counts = {
+            row['vote_position']: row['n']
+            for row in (
+                CountryVote.objects
+                .filter(country__iso3__in=bloc['iso3'])
+                .exclude(vote_position='absent')
+                .values('vote_position')
+                .annotate(n=Count('id'))
+            )
+        }
+        total = sum(pos_counts.values())
+        members = [countries_by_iso3[iso3] for iso3 in bloc['iso3'] if iso3 in countries_by_iso3]
+        coalition_blocs.append({
+            'name': bloc['name'],
+            'label': bloc['label'],
+            'members': members,
+            'members_extra': max(0, len(members) - 8),
+            'yes_pct':     round(100 * pos_counts.get('yes',     0) / total) if total else 0,
+            'no_pct':      round(100 * pos_counts.get('no',      0) / total) if total else 0,
+            'abstain_pct': round(100 * pos_counts.get('abstain', 0) / total) if total else 0,
+        })
+
     # Most recent votes
     recent_votes = (
         Vote.objects
@@ -236,6 +266,7 @@ def votes_page(request):
 
     return render(request, 'votes/index.html', {
         'countries':           countries,
+        'coalition_blocs':     coalition_blocs,
         'total_resolutions':   total_resolutions,
         'total_recorded_votes': total_recorded_votes,
         'total_country_votes': total_country_votes,

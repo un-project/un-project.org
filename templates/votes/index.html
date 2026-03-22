@@ -204,6 +204,41 @@
   </div>
 </div>
 
+<!-- ── Voting Blocs ─────────────────────────────────────────────── -->
+<div style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Voting Blocs</h2>
+  <p class="meta" style="margin-bottom:1rem;">Aggregate voting position across all recorded UN resolutions, by major political group.</p>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
+    {% for bloc in coalition_blocs %}
+    <div style="border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;">
+      <div style="font-weight:700; font-size:1rem; margin-bottom:0.15rem;">{{ bloc.name }}</div>
+      <div style="font-size:0.78rem; color:var(--muted); margin-bottom:0.7rem;">{{ bloc.label }}</div>
+      <div style="display:flex; flex-wrap:wrap; gap:3px; margin-bottom:0.75rem; align-items:center;">
+        {% for member in bloc.members|slice:":8" %}
+        <a href="/country/{{ member.iso3 }}/" title="{{ member.display_name }}">
+          <img src="/static/flags/{{ member.iso3 }}.svg" alt="{{ member.display_name }}"
+               style="height:15px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; display:block;">
+        </a>
+        {% endfor %}
+        {% if bloc.members_extra %}
+        <span style="font-size:0.72rem; color:var(--muted); margin-left:2px;">+{{ bloc.members_extra }} more</span>
+        {% endif %}
+      </div>
+      <div style="height:9px; border-radius:3px; overflow:hidden; display:flex; margin-bottom:0.5rem; background:#f0f0f0;">
+        <div style="width:{{ bloc.yes_pct }}%;     background:#27ae60;" title="{{ bloc.yes_pct }}% Yes"></div>
+        <div style="width:{{ bloc.abstain_pct }}%; background:#f39c12;" title="{{ bloc.abstain_pct }}% Abstain"></div>
+        <div style="width:{{ bloc.no_pct }}%;      background:#e74c3c;" title="{{ bloc.no_pct }}% No"></div>
+      </div>
+      <div style="display:flex; gap:0.9rem; font-size:0.8rem;">
+        <span style="color:#27ae60; font-weight:600;">{{ bloc.yes_pct }}% Yes</span>
+        <span style="color:#f39c12; font-weight:600;">{{ bloc.abstain_pct }}% Abstain</span>
+        <span style="color:#e74c3c; font-weight:600;">{{ bloc.no_pct }}% No</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
 <!-- ── Country deep-dive ───────────────────────────────────────── -->
 <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
   <h2 class="section-title" style="margin:0;">Country Deep-Dive</h2>

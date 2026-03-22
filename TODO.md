@@ -33,7 +33,7 @@ Tracked tasks and future features for the UN Project web application.
 ## Resolution & Votes
 
 - [ ] **Resolution full text** — embed or link the official UN document PDF/HTML directly on the resolution detail page.
-- [ ] **Voting coalitions** — cluster countries by voting similarity and display named groups (e.g., P5, G77, EU) on the votes page.
+- [x] **Voting coalitions** — cluster countries by voting similarity and display named groups (e.g., P5, G77, EU) on the votes page.
 - [ ] **Amendment tracking** — the `amendments` table is reserved; implement models and UI when data is ready.
 
 ## Navigation & UI
