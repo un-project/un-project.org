@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+{% block og_tags %}
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="UN Project">
+<meta property="og:title"       content="About — UN Project">
+<meta property="og:description" content="The UN Project makes United Nations meeting transcripts, speeches, and voting records openly explorable.">
+<meta property="og:url"         content="{{ request.build_absolute_uri }}">
+<meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/img/logo.png">
+{% endblock %}
+
+{% block content %}
+<h1>About</h1>
+
+<p>
+  The UN Project is an open-access tool for exploring the public record of United Nations deliberations —
+  meeting transcripts, individual speeches, and voting records from the General Assembly and Security Council.
+</p>
+
+<h2 style="margin-top:2rem;">What's here</h2>
+<ul style="line-height:1.9;">
+  <li><strong>Meeting transcripts</strong> — full sequential records with speaker attribution and agenda navigation.</li>
+  <li><strong>Speech search</strong> — full-text search across all speech segments using PostgreSQL.</li>
+  <li><strong>Country profiles</strong> — representatives, voting history, and speech archive per member state.</li>
+  <li><strong>Speaker profiles</strong> — speech history and meeting attendance per speaker.</li>
+  <li><strong>Voting records</strong> — per-resolution vote tallies and per-country positions, with interactive charts and country comparisons.</li>
+</ul>
+
+<h2 style="margin-top:2rem;">Data</h2>
+<p>
+  Source documents are official UN meeting records (procès-verbaux) published by the United Nations.
+  They are in the public domain. Data is extracted from PDF documents and may contain parsing errors.
+</p>
+
+<h2 style="margin-top:2rem;">Source code &amp; API</h2>
+<p>
+  The site is open source. The code is available on
+  <a href="https://github.com/un-project/un-project.org" target="_blank" rel="noopener">GitHub</a>.
+  A JSON API for programmatic access is documented in
+  <a href="https://github.com/un-project/un-project.org/blob/main/API.md" target="_blank" rel="noopener">API.md</a>.
+</p>
+
+<h2 style="margin-top:2rem;">Contact</h2>
+<p>
+  Issues and contributions are welcome via the
+  <a href="https://github.com/un-project/un-project.org/issues" target="_blank" rel="noopener">GitHub issue tracker</a>.
+</p>
+{% endblock %}

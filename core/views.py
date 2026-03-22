@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.views.generic import TemplateView
 from meetings.models import Document
 from votes.models import Vote
 
@@ -18,3 +19,7 @@ def homepage(request):
         'recent_votes': votes_qs[:10],
         'current_body': body,
     })
+
+
+about = TemplateView.as_view(template_name='core/about.html')
+legal = TemplateView.as_view(template_name='core/legal.html')
