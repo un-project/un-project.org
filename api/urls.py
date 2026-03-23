@@ -12,5 +12,6 @@ urlpatterns = [
     path('meetings/<str:slug>/', views.meeting_detail, name='meeting_detail'),
     path('resolutions/', views.resolution_list, name='resolution_list'),
     path('resolutions/<str:slug>/', views.resolution_detail, name='resolution_detail'),
+    path('resolutions/<str:slug>/citations/', views.resolution_citations, name='resolution_citations'),
     path('wordcloud/', views.wordcloud, name='wordcloud'),
 ]

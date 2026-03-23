@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from meetings.models import Document
 from speakers.models import Speaker
-from votes.models import Resolution
+from votes.models import Resolution, ResolutionCitation
 from countries.models import Country
 from un_site.ratelimit import ratelimit
 
@@ -296,6 +296,75 @@ def resolution_detail(request, slug):
         'category': resolution.category,
         'docs_un_url': resolution.docs_un_url,
         'votes': votes,
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def resolution_citations(request, slug):
+    """
+    Return a depth-1 citation neighbourhood as nodes + edges for D3 force graph.
+    Nodes: the resolution itself, all it cites, all that cite it.
+    Edges: directed citation links (source → target by resolution id).
+    """
+    resolution = None
+    for r in Resolution.objects.all():
+        if r.slug == slug:
+            resolution = r
+            break
+    if resolution is None:
+        return JsonResponse({'error': 'Resolution not found'}, status=404)
+
+    # Outgoing: what this resolution cites
+    outgoing = list(
+        ResolutionCitation.objects
+        .filter(citing=resolution)
+        .select_related('cited')
+    )
+    # Incoming: what cites this resolution
+    incoming = list(
+        ResolutionCitation.objects
+        .filter(cited=resolution)
+        .select_related('citing')
+    )
+
+    nodes = {}  # id → node dict; use string keys for unresolved citations
+
+    def add_node(res, is_center=False):
+        nodes[res.pk] = {
+            'id': res.pk,
+            'symbol': str(res),
+            'title': res.title or '',
+            'url': res.get_absolute_url(),
+            'is_center': is_center,
+        }
+
+    add_node(resolution, is_center=True)
+
+    edges = []
+
+    for cit in outgoing:
+        if cit.cited_id:
+            add_node(cit.cited)
+            edges.append({'source': resolution.pk, 'target': cit.cited_id, 'weight': cit.weight})
+        else:
+            # Unresolved citation — use a synthetic negative id derived from symbol
+            synthetic_id = f'sym:{cit.cited_symbol}'
+            nodes[synthetic_id] = {
+                'id': synthetic_id,
+                'symbol': cit.cited_symbol,
+                'title': '',
+                'url': None,
+                'is_center': False,
+            }
+            edges.append({'source': resolution.pk, 'target': synthetic_id, 'weight': cit.weight})
+
+    for cit in incoming:
+        add_node(cit.citing)
+        edges.append({'source': cit.citing_id, 'target': resolution.pk, 'weight': cit.weight})
+
+    return JsonResponse({
+        'nodes': list(nodes.values()),
+        'edges': edges,
     })
 
 

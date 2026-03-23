@@ -6,9 +6,11 @@ from django.shortcuts import render, get_object_or_404
 from django.http import Http404, JsonResponse
 from django.db.models import Count, F
 
+from django.db import connection
+
 from countries.models import Country
 from .coalitions import COALITIONS
-from .models import CountryVote, Resolution, Vote
+from .models import CountryVote, Resolution, ResolutionCitation, Vote
 
 
 def voting_map(request):
@@ -72,9 +74,82 @@ def resolution_detail(request, slug):
         .order_by('-document__date', 'position_in_item')
     )
 
+    # Citations: what this resolution cites
+    CITATION_CAP = 20
+    outgoing_qs = (
+        ResolutionCitation.objects
+        .filter(citing=resolution)
+        .select_related('cited')
+        .order_by('cited_symbol')
+    )
+    outgoing_total = outgoing_qs.count()
+    outgoing = outgoing_qs[:CITATION_CAP]
+
+    # Cited by: what cites this resolution
+    incoming_qs = (
+        ResolutionCitation.objects
+        .filter(cited=resolution)
+        .select_related('citing')
+        .order_by('citing__adopted_symbol', 'citing__draft_symbol')
+    )
+    incoming_total = incoming_qs.count()
+    incoming = incoming_qs[:CITATION_CAP]
+
+    # Related resolutions: most co-cited alongside this one
+    related = []
+    if resolution.pk:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT rc2.cited_id, COUNT(*) AS common_parents
+                FROM resolution_citations rc1
+                JOIN resolution_citations rc2
+                  ON rc1.citing_id = rc2.citing_id
+                WHERE rc1.cited_id = %s
+                  AND rc2.cited_id IS NOT NULL
+                  AND rc2.cited_id != %s
+                GROUP BY rc2.cited_id
+                ORDER BY common_parents DESC
+                LIMIT 5
+            """, [resolution.pk, resolution.pk])
+            rows = cursor.fetchall()
+        if rows:
+            ids_ordered = [row[0] for row in rows]
+            counts_map = {row[0]: row[1] for row in rows}
+            related_qs = Resolution.objects.filter(pk__in=ids_ordered)
+            related_map = {r.pk: r for r in related_qs}
+            related = [
+                {'resolution': related_map[rid], 'common': counts_map[rid]}
+                for rid in ids_ordered
+                if rid in related_map
+            ]
+
+    has_citations = outgoing_total > 0 or incoming_total > 0
+
     return render(request, 'votes/resolution.html', {
         'resolution': resolution,
         'votes': votes,
+        'outgoing': outgoing,
+        'outgoing_total': outgoing_total,
+        'incoming': incoming,
+        'incoming_total': incoming_total,
+        'related': related,
+        'has_citations': has_citations,
+        'CITATION_CAP': CITATION_CAP,
+    })
+
+
+def citation_network(request, slug):
+    resolution = None
+    for r in Resolution.objects.all():
+        if r.slug == slug:
+            resolution = r
+            break
+    if resolution is None:
+        raise Http404('Resolution not found')
+
+    return render(request, 'votes/citation_network.html', {
+        'resolution': resolution,
+        'api_url': f'/api/resolutions/{slug}/citations/',
     })
 
 

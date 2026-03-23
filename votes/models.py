@@ -8,6 +8,8 @@ class Resolution(models.Model):
     body = models.CharField(max_length=2)
     session = models.IntegerField(null=True, blank=True)
     category = models.CharField(max_length=200, null=True, blank=True)
+    full_text = models.TextField(null=True, blank=True)
+    crunsc_id = models.CharField(max_length=30, null=True, blank=True)
 
     class Meta:
         managed = False
@@ -97,3 +99,24 @@ class CountryVote(models.Model):
 
     def __str__(self):
         return f'{self.country} voted {self.vote_position} on {self.vote}'
+
+
+class ResolutionCitation(models.Model):
+    citing = models.ForeignKey(
+        Resolution, on_delete=models.CASCADE, related_name='outgoing_citations',
+        db_column='citing_id',
+    )
+    cited_symbol = models.CharField(max_length=100)
+    cited = models.ForeignKey(
+        Resolution, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='incoming_citations', db_column='cited_id',
+    )
+    weight = models.IntegerField(default=1)
+
+    class Meta:
+        managed = False
+        db_table = 'resolution_citations'
+        unique_together = [('citing', 'cited_symbol')]
+
+    def __str__(self):
+        return f'{self.citing} → {self.cited_symbol}'

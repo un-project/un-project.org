@@ -122,4 +122,84 @@
 </div>
 {% endfor %}
 
+{% if resolution.full_text %}
+<details style="margin-bottom:2rem;">
+  <summary style="cursor:pointer; font-size:0.95rem; font-weight:600; color:var(--un-blue); user-select:none; padding:0.5rem 0;">
+    Full text of resolution
+  </summary>
+  <div style="margin-top:0.75rem; padding:1rem 1.25rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius); font-size:0.9rem; line-height:1.7; white-space:pre-wrap;">{{ resolution.full_text }}</div>
+</details>
+{% endif %}
+
+{% if outgoing_total or incoming_total %}
+<div style="display:flex; gap:2rem; flex-wrap:wrap; margin-bottom:2rem;">
+
+  {% if outgoing_total %}
+  <div style="flex:1; min-width:260px;">
+    <h2 style="font-size:0.95rem; margin-bottom:0.6rem;">
+      This resolution cites
+      <span class="meta" style="font-weight:400;">({{ outgoing_total }})</span>
+    </h2>
+    <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; line-height:1.8;">
+      {% for cit in outgoing %}
+      <li>
+        {% if cit.cited %}
+          <a href="{{ cit.cited.get_absolute_url }}">{{ cit.cited_symbol }}</a>
+        {% else %}
+          <span class="meta">{{ cit.cited_symbol }}</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if outgoing_total > CITATION_CAP %}
+    <p class="meta" style="font-size:0.82rem; margin-top:0.4rem;">… and {{ outgoing_total|add:"-20" }} more</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if incoming_total %}
+  <div style="flex:1; min-width:260px;">
+    <h2 style="font-size:0.95rem; margin-bottom:0.6rem;">
+      Cited by
+      <span class="meta" style="font-weight:400;">({{ incoming_total }})</span>
+    </h2>
+    <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; line-height:1.8;">
+      {% for cit in incoming %}
+      <li>
+        <a href="{{ cit.citing.get_absolute_url }}">{{ cit.citing }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if incoming_total > CITATION_CAP %}
+    <p class="meta" style="font-size:0.82rem; margin-top:0.4rem;">… and {{ incoming_total|add:"-20" }} more</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+{% if has_citations %}
+<p style="margin-bottom:2rem;">
+  <a href="{% url 'votes:citation_network' resolution.slug %}">View citation network →</a>
+</p>
+{% endif %}
+{% endif %}
+
+{% if related %}
+<div style="margin-bottom:2rem;">
+  <h2 style="font-size:0.95rem; margin-bottom:0.6rem;">Related resolutions</h2>
+  <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; line-height:1.8;">
+    {% for item in related %}
+    <li>
+      <a href="{{ item.resolution.get_absolute_url }}">{{ item.resolution }}</a>
+      {% if item.resolution.title %}
+        <span class="meta">— {{ item.resolution.title|truncatechars:80 }}</span>
+      {% endif %}
+      <span class="meta" style="font-size:0.78rem;">({{ item.common }} shared citation{{ item.common|pluralize }})</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 {% endblock %}

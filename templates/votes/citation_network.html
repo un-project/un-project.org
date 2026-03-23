@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}Citation network — {{ resolution }}{% endblock %}
+
+{% block extra_head %}
+<style>
+#cn-container {
+  position: relative;
+  width: 100%;
+  background: var(--un-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+#cn-svg { display: block; width: 100%; }
+#cn-loading { text-align: center; padding: 3rem; color: var(--muted); }
+#cn-tooltip {
+  position: absolute;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  max-width: 260px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  display: none;
+  z-index: 10;
+}
+#cn-tooltip .cn-tt-symbol { font-weight: 700; color: var(--un-dark); }
+#cn-tooltip .cn-tt-title  { color: var(--muted); margin-top: 2px; }
+.cn-legend {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 0.6rem;
+}
+.cn-legend span { display: flex; align-items: center; gap: 0.35rem; }
+.cn-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="{{ resolution.get_absolute_url }}" class="meta">← {{ resolution }}</a>
+</div>
+
+<h1 style="margin-bottom:0.25rem;">
+  Citation network
+  <span class="badge badge-{{ resolution.body|lower }}">{{ resolution.body }}</span>
+</h1>
+{% if resolution.title %}
+<p style="font-size:1rem; margin:0.4rem 0 1.25rem; color:var(--muted);">{{ resolution.title }}</p>
+{% endif %}
+
+<div id="cn-container">
+  <div id="cn-loading">Loading citation graph…</div>
+  <svg id="cn-svg"></svg>
+  <div id="cn-tooltip">
+    <div class="cn-tt-symbol"></div>
+    <div class="cn-tt-title"></div>
+  </div>
+</div>
+
+<div class="cn-legend">
+  <span><span class="cn-dot" style="background:#1b4f87;"></span>This resolution</span>
+  <span><span class="cn-dot" style="background:#4d8cc4;"></span>Cites</span>
+  <span><span class="cn-dot" style="background:#27ae60;"></span>Cited by</span>
+  <span><span class="cn-dot" style="background:#95a7b5;"></span>Unresolved symbol</span>
+  <span>
+    <svg width="28" height="10">
+      <line x1="0" y1="5" x2="22" y2="5" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr-leg)"/>
+      <defs><marker id="arr-leg" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L6,3 z" fill="#aaa"/>
+      </marker></defs>
+    </svg>
+    Citation direction
+  </span>
+</div>
+
+<p class="meta" style="margin-top:0.75rem; font-size:0.82rem;">
+  Click a node to open that resolution. Drag to rearrange. Scroll to zoom.
+</p>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var API_URL = '{{ api_url }}';
+  var CENTER_ID_RAW = '{{ resolution.pk }}';
+  var CENTER_ID = parseInt(CENTER_ID_RAW, 10);
+
+  var container = document.getElementById('cn-container');
+  var loading   = document.getElementById('cn-loading');
+  var svgEl     = document.getElementById('cn-svg');
+  var tooltip   = document.getElementById('cn-tooltip');
+  var ttSymbol  = tooltip.querySelector('.cn-tt-symbol');
+  var ttTitle   = tooltip.querySelector('.cn-tt-title');
+
+  // Node colour by role
+  function nodeColor(d) {
+    if (d.is_center)               return '#1b4f87';
+    if (typeof d.id === 'string')  return '#95a7b5';  // unresolved symbol
+    // Determine role: does an edge have source === CENTER_ID (citing) or target
+    return d._role === 'cited_by' ? '#27ae60' : '#4d8cc4';
+  }
+
+  fetch(API_URL)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      loading.style.display = 'none';
+      if (!data.nodes || data.nodes.length === 0) {
+        loading.textContent = 'No citation data found.';
+        loading.style.display = 'block';
+        return;
+      }
+
+      // Annotate role on each node based on edge direction
+      var roleMap = {};
+      data.edges.forEach(function (e) {
+        if (e.source === CENTER_ID) {
+          if (!roleMap[e.target]) roleMap[e.target] = 'cited';
+        } else if (e.target === CENTER_ID) {
+          if (!roleMap[e.source]) roleMap[e.source] = 'cited_by';
+        }
+      });
+      data.nodes.forEach(function (n) { n._role = roleMap[n.id] || 'cited'; });
+
+      var W = container.clientWidth || 800;
+      var H = Math.max(420, Math.round(W * 0.55));
+      svgEl.setAttribute('height', H);
+
+      var svg = d3.select(svgEl)
+        .attr('viewBox', '0 0 ' + W + ' ' + H)
+        .style('width', '100%')
+        .style('height', H + 'px');
+
+      // Zoom
+      var gMain = svg.append('g');
+      svg.call(
+        d3.zoom()
+          .scaleExtent([0.3, 8])
+          .on('zoom', function (event) { gMain.attr('transform', event.transform); })
+      );
+
+      // Arrow marker
+      svg.append('defs').append('marker')
+        .attr('id', 'cn-arrow')
+        .attr('markerWidth', 8).attr('markerHeight', 8)
+        .attr('refX', 18).attr('refY', 3)
+        .attr('orient', 'auto')
+        .append('path')
+          .attr('d', 'M0,0 L0,6 L8,3 z')
+          .attr('fill', '#aaa');
+
+      var nodeById = {};
+      data.nodes.forEach(function (n) { nodeById[n.id] = n; });
+
+      // Resolve edge source/target to node objects (D3 simulation needs objects)
+      var edges = data.edges.map(function (e) {
+        return { source: nodeById[e.source] || e.source, target: nodeById[e.target] || e.target, weight: e.weight };
+      }).filter(function (e) { return e.source && e.target; });
+
+      var sim = d3.forceSimulation(data.nodes)
+        .force('link', d3.forceLink(edges).id(function (d) { return d.id; }).distance(110))
+        .force('charge', d3.forceManyBody().strength(-280))
+        .force('center', d3.forceCenter(W / 2, H / 2))
+        .force('collide', d3.forceCollide(22));
+
+      var link = gMain.append('g')
+        .selectAll('line')
+        .data(edges).enter().append('line')
+          .attr('stroke', '#ccc')
+          .attr('stroke-width', function (d) { return Math.max(1, d.weight); })
+          .attr('marker-end', 'url(#cn-arrow)');
+
+      var node = gMain.append('g')
+        .selectAll('g')
+        .data(data.nodes).enter().append('g')
+          .attr('cursor', function (d) { return d.url ? 'pointer' : 'default'; })
+          .call(
+            d3.drag()
+              .on('start', function (event, d) {
+                if (!event.active) sim.alphaTarget(0.3).restart();
+                d.fx = d.x; d.fy = d.y;
+              })
+              .on('drag', function (event, d) { d.fx = event.x; d.fy = event.y; })
+              .on('end', function (event, d) {
+                if (!event.active) sim.alphaTarget(0);
+                d.fx = null; d.fy = null;
+              })
+          )
+          .on('click', function (event, d) {
+            if (d.url) window.location.href = d.url;
+          })
+          .on('mouseover', function (event, d) {
+            ttSymbol.textContent = d.symbol;
+            ttTitle.textContent  = d.title || '';
+            ttTitle.style.display = d.title ? 'block' : 'none';
+            tooltip.style.display = 'block';
+          })
+          .on('mousemove', function (event) {
+            var rect = container.getBoundingClientRect();
+            var x = event.clientX - rect.left + 12;
+            var y = event.clientY - rect.top  - 10;
+            if (x + 270 > rect.width)  x = x - 280;
+            if (y + 80  > rect.height) y = y - 70;
+            tooltip.style.left = x + 'px';
+            tooltip.style.top  = y + 'px';
+          })
+          .on('mouseout', function () { tooltip.style.display = 'none'; });
+
+      node.append('circle')
+        .attr('r', function (d) { return d.is_center ? 14 : 9; })
+        .attr('fill', nodeColor)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+
+      node.append('text')
+        .attr('dy', function (d) { return d.is_center ? 26 : 20; })
+        .attr('text-anchor', 'middle')
+        .attr('font-size', function (d) { return d.is_center ? '11px' : '9px'; })
+        .attr('fill', 'var(--text)')
+        .text(function (d) {
+          var sym = d.symbol;
+          return sym.length > 18 ? sym.slice(0, 18) + '…' : sym;
+        });
+
+      sim.on('tick', function () {
+        link
+          .attr('x1', function (d) { return d.source.x; })
+          .attr('y1', function (d) { return d.source.y; })
+          .attr('x2', function (d) { return d.target.x; })
+          .attr('y2', function (d) { return d.target.y; });
+        node.attr('transform', function (d) {
+          return 'translate(' + d.x + ',' + d.y + ')';
+        });
+      });
+    })
+    .catch(function () {
+      loading.textContent = 'Could not load citation data.';
+      loading.style.display = 'block';
+    });
+}());
+</script>
+{% endblock %}
