@@ -6,9 +6,11 @@ A web application for exploring United Nations meetings by browsing transcripts,
 
 - **Meeting transcripts** — full sequential display with speaker attribution and agenda navigation
 - **Speech search** — PostgreSQL full-text search across 66,000+ speech segments
-- **Country profiles** — representatives, voting history, and speech archive per country
+- **Country profiles** — representatives, voting history, and speech archive per country; filterable by body (GA/SC) and session
 - **Speaker profiles** — speech history and meeting attendance per speaker
 - **Voting records** — per-resolution vote tallies and per-country positions
+- **Compare countries** — side-by-side voting agreement analysis with cross-matrix and year-by-year breakdown
+- **Voting similarity map** — interactive D3 world map coloured by voting alignment; click any country to see most/least similar nations
 - **Filters** — browse meetings by body (GA/SC), session, and year
 
 ## Quick Start
@@ -128,6 +130,9 @@ static/           CSS and static assets (flags, speaker photos)
 | `/country/<ISO3>/` | Country profile |
 | `/speaker/<id>/` | Speaker profile |
 | `/votes/` | Voting analysis — country selector, charts, vote table |
+| `/votes/compare/` | Compare voting records of two countries |
+| `/votes/map/` | Interactive world map of voting similarity |
+| `/votes/resolutions/` | Browse all resolutions |
 | `/search/?q=...` | Full-text speech search |
 
 Meeting slugs are derived from the UN document symbol by replacing `/` and `.` with `-` (e.g. `A/78/PV.12` → `A-78-PV-12`).

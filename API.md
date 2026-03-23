@@ -124,11 +124,12 @@ GET /votes/api/<iso3>/
 ```
 Returns all recorded votes for a country.
 
-| Parameter | Type | Description           |
-|-----------|------|-----------------------|
-| `session` | int  | Filter by GA session  |
+| Parameter | Type   | Description                       |
+|-----------|--------|-----------------------------------|
+| `session` | int    | Filter by GA/SC session number    |
+| `body`    | string | `GA` or `SC`                      |
 
-**Response fields:** `country`, `iso3`, `votes` (array with `position`, `year`, `date`, `session`, `category`, `resolution`, `title`, `yes_count`, `no_count`, `abstain_count`, `document`, `document_url`)
+**Response fields:** `country`, `iso3`, `votes` (array with `position`, `year`, `date`, `session`, `category`, `resolution`, `title`, `yes_count`, `no_count`, `abstain_count`, `document`, `document_url`, `resolution_url`)
 
 ---
 
@@ -138,7 +139,13 @@ GET /votes/api/<iso3>/similarity/
 ```
 Returns the 10 most and 10 least similar countries by voting pattern (minimum 10 shared votes).
 
-**Response fields:** `similar`, `dissimilar` — each an array of `{ iso3, name, score, shared }` where `score` is 0–1 (1 = identical voting record).
+| Parameter | Type   | Description                                                    |
+|-----------|--------|----------------------------------------------------------------|
+| `all`     | any    | If present, return all countries (not just top/bottom 10) as `{ countries: [...] }` sorted by score descending |
+
+**Response (default):** `similar`, `dissimilar` — each an array of `{ iso3, name, score, shared }` where `score` is 0–1 (1 = identical voting record).
+
+**Response (`?all=1`):** `countries` — full ranked array of all countries with `{ iso3, name, score, shared }`.
 
 ---
 

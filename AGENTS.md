@@ -38,6 +38,9 @@ c = Client()
 assert c.get('/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/meeting/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/search/?q=nuclear', SERVER_NAME='localhost').status_code == 200
+assert c.get('/votes/', SERVER_NAME='localhost').status_code == 200
+assert c.get('/votes/map/', SERVER_NAME='localhost').status_code == 200
+assert c.get('/votes/compare/', SERVER_NAME='localhost').status_code == 200
 print('All OK')
 "
 ```
@@ -118,7 +121,9 @@ Then `docker compose down -v && docker compose up` to apply to a fresh volume.
 ## Style Rules
 
 - Keep JavaScript minimal — no frameworks, no bundlers
-- Keep CSS in `static/css/style.css` — no inline `<style>` blocks
+- Keep CSS in `static/css/style.css` — no inline `<style>` blocks; page-specific styles may live in `{% block extra_head %}` when tightly scoped to one template
 - All templates extend `templates/base.html`
 - Use `{% block extra_js %}{% endblock %}` for page-specific scripts
 - Run `python manage.py check` before committing
+- Exclude sentinel dates (1900-01-01) from all date-sensitive queries using `document__date__year__gt=1900`
+- Build JSON API URLs in the view (not in templates) and pass them as context variables to avoid messy template conditionals

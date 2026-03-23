@@ -256,6 +256,10 @@ The agent must implement:
 These were listed as future features and have since been implemented:
 - voting visualizations — interactive dc.js charts (position, year, category) on country pages and at `/votes/`
 - country voting alignment graphs — similarity charts comparing a country's votes to others
+- JSON API access — read-only REST API at `/api/` (meetings, speakers, resolutions) and `/votes/api/<iso3>/` (country votes and similarity scores)
+- GA/SC body filter — country profiles and vote API accept `?body=GA|SC` to restrict to one body
+- compare countries — `/votes/compare/` page with agreement rate, cross-matrix, year-by-year breakdown, and divergent vote lists
+- voting similarity map — `/votes/map/` interactive D3 choropleth with zoom, country picker, disambiguation popup for overlapping territories, and similarity bar charts
 
 # Future Features (Not Yet Implemented)
 
@@ -263,7 +267,6 @@ The architecture must allow future support for:
 - Security Council transcripts
 - amendment tracking
 - timeline of debates
-- JSON API access
 - LLM-based summarization of debates
 
 # Deliverables
