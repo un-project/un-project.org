@@ -8,6 +8,7 @@ from django.db.models import Q
 from meetings.models import Document
 from speakers.models import Speaker
 from votes.models import Resolution
+from countries.models import Country
 from un_site.ratelimit import ratelimit
 
 PAGE_SIZE = 50
@@ -424,10 +425,21 @@ def wordcloud(request):
         cursor.execute(sql)
         rows = cursor.fetchall()
 
+    # Build dynamic exclusions from the country/speaker name so the entity's
+    # own name doesn't dominate its own word cloud.
+    # Exclude the country's own name so it doesn't dominate its word cloud.
+    dynamic_stop = set()
+    if country_id and country_id.isdigit():
+        try:
+            name = Country.objects.get(pk=int(country_id)).name
+            dynamic_stop.update(w.lower() for w in name.split() if len(w) >= 4)
+        except Country.DoesNotExist:
+            pass
+
     words = [
         {'word': word, 'count': n}
         for word, n in rows
-        if word not in _WC_STOPWORDS
+        if word not in _WC_STOPWORDS and word not in dynamic_stop
     ][:40]
     # Raw counts are returned; the JS scales them linearly between the
     # actual min and max so the most-frequent words are always largest.
