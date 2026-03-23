@@ -338,6 +338,7 @@ def country_votes_json(request, iso3):
             'abstain_count': v.abstain_count,
             'document': doc.symbol,
             'document_url': doc.get_absolute_url(),
+            'resolution_url': res.get_absolute_url(),
         })
     return JsonResponse({'country': country.name, 'iso3': iso3, 'votes': records})
 

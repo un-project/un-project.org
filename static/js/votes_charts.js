@@ -369,17 +369,19 @@
                     function (p, v) { return p - (v.toward_majority === 'against' ? 1 : 0); },
                     function () { return 0; }
                 );
-                displayCatGroup = nonZero(rawCatGroup);
+                displayCatGroup = { all: function () {
+                    return rawCatGroup.all().filter(function (d) { return d.value > 0 && d.key !== 'Uncategorized'; });
+                }};
                 catH3text = 'Disagreements by category';
             } else {
                 rawCatGroup     = catDim.group();
-                displayCatGroup = rawCatGroup;
+                displayCatGroup = { all: function () {
+                    return rawCatGroup.all().filter(function (d) { return d.key !== 'Uncategorized'; });
+                }};
                 catH3text       = 'By category';
             }
 
-            var uniqueCats = majorityMode
-                ? rawCatGroup.all().filter(function (d) { return d.value > 0; }).length
-                : rawCatGroup.all().length;
+            var uniqueCats = displayCatGroup.all().filter(function (d) { return d.value > 0; }).length;
             var catBarH = Math.max(22, Math.min(36, Math.floor(600 / Math.max(uniqueCats, 1))));
             var catH = Math.min(700, Math.max(120, uniqueCats * (catBarH + 3) + 65));
             var catLeftMargin = 160;
@@ -393,7 +395,10 @@
                 .colors(d3.scaleOrdinal(d3.schemeSet2))
                 .label(function (d) { return d.key; })
                 .title(function (d) { return d.key + ': ' + d.value; })
-                .gap(3);
+                .gap(3)
+                .renderlet(function (chart) {
+                    chart.selectAll('g.row text').style('fill', '#333').style('font-size', '0.78rem');
+                });
             setH3(containerSel, '#category-chart', catH3text);
 
             /* ── Data count widget ───────────────────────────────────────── */
@@ -428,6 +433,7 @@
                     { label: 'Year',         format: function (d) { return d.year || '—'; } },
                     { label: 'Resolution',   format: function (d) { return d.resolution; } },
                     { label: 'Title',        format: function (d) { return d.title ? d.title.slice(0, 70) + (d.title.length > 70 ? '…' : '') : '—'; } },
+                    { label: 'Category',     format: function (d) { return d.category || '—'; } },
                     { label: 'Position',     format: function (d) { return d.position; } },
                     { label: 'vs. Majority', format: function (d) {
                         return d.toward_majority + (d.majority_position ? ' (' + d.majority_position + ')' : '');
@@ -437,6 +443,7 @@
                     { label: 'Year',            format: function (d) { return d.year || '—'; } },
                     { label: 'Resolution',      format: function (d) { return d.resolution; } },
                     { label: 'Title',           format: function (d) { return d.title ? d.title.slice(0, 80) + (d.title.length > 80 ? '…' : '') : '—'; } },
+                    { label: 'Category',        format: function (d) { return d.category || '—'; } },
                     { label: 'Position',        format: function (d) { return d.position; } },
                     { label: 'Tally (Y/N/A)',   format: function (d) {
                         return d.yes_count != null
@@ -458,18 +465,18 @@
                     /* Resolution → link (col1) */
                     chart.selectAll('td.col1').each(function (d) {
                         d3.select(this).html(
-                            '<a href="' + d.row.document_url + '">' + d.row.resolution + '</a>'
+                            '<a href="' + d.row.resolution_url + '">' + d.row.resolution + '</a>'
                         );
                     });
-                    /* Position → badge (col3) */
-                    chart.selectAll('td.col3').each(function (d) {
+                    /* Position → badge (col4) */
+                    chart.selectAll('td.col4').each(function (d) {
                         d3.select(this).html(
                             '<span class="pos-badge pos-' + d.row.position + '">' + d.row.position + '</span>'
                         );
                     });
-                    /* vs. Majority → badge (col4, majority mode only) */
+                    /* vs. Majority → badge (col5, majority mode only) */
                     if (majorityMode) {
-                        chart.selectAll('td.col4').each(function (d) {
+                        chart.selectAll('td.col5').each(function (d) {
                             var tm    = d.row.toward_majority;
                             var color = tm === 'agree'   ? '#27ae60'
                                       : tm === 'against' ? '#e74c3c'
