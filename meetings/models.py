@@ -31,7 +31,11 @@ class Document(models.Model):
 
     @property
     def slug(self):
-        return self.symbol.replace('/', '-').replace('.', '-')
+        import re
+        s = self.symbol.replace('/', '-').replace('.', '-')
+        s = re.sub(r'[^-a-zA-Z0-9_]', '-', s)
+        s = re.sub(r'-{2,}', '-', s).strip('-')
+        return s
 
     @property
     def body_display(self):

@@ -310,8 +310,8 @@
                     .innerRadius(50)
                     .dimension(posDim).group(posGroup)
                     .colors(d3.scaleOrdinal()
-                        .domain(['yes', 'no', 'abstain', 'absent'])
-                        .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5']))
+                        .domain(['yes', 'no', 'abstain', 'absent', 'non_voting'])
+                        .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5', '#c8d6de']))
                     .colorAccessor(function (d) { return d.key; })
                     .title(function (d) { return d.key + ': ' + d.value; });
                 setH3(containerSel, '#position-chart', 'Vote position');
