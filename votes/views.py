@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 
 from django.core.paginator import Paginator
@@ -8,6 +9,25 @@ from django.db.models import Count, F
 from countries.models import Country
 from .coalitions import COALITIONS
 from .models import CountryVote, Resolution, Vote
+
+
+def voting_map(request):
+    countries = (
+        Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
+        .distinct().order_by('name')
+    )
+    countries_json = json.dumps([
+        {'iso3': c.iso3, 'name': c.display_name} for c in countries
+    ])
+    return render(request, 'votes/map.html', {
+        'countries': countries,
+        'countries_json': countries_json,
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Votes', 'url': '/votes/'},
+            {'label': 'Voting Similarity Map', 'url': None},
+        ],
+    })
 
 
 def resolution_list(request):
@@ -404,6 +424,9 @@ def country_similarity_json(request, iso3):
         })
 
     results.sort(key=lambda x: x['score'], reverse=True)
+
+    if request.GET.get('all'):
+        return JsonResponse({'countries': results})
 
     return JsonResponse({
         'similar': results[:10],

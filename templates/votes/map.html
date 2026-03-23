@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+{% block title %}Voting Similarity Map{% endblock %}
+
+{% block extra_head %}
+<style>
+#map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0 0.75rem;
+  flex-wrap: wrap;
+}
+#map-toolbar .ts-wrapper { min-width: 260px; flex-shrink: 0; }
+#selected-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  flex-wrap: wrap;
+}
+#selected-display img { height: 15px; border-radius: 1px; border: 1px solid #ddd; }
+#selected-display strong { color: var(--text); }
+
+#map-wrap {
+  position: relative;
+  background: #c8e6f5;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  line-height: 0;
+}
+#world-map { display: block; width: 100%; cursor: grab; }
+#world-map:active { cursor: grabbing; }
+
+.cpath { cursor: pointer; transition: opacity 0.1s; }
+.cpath:hover { opacity: 0.75; }
+
+#disambiguation-popup {
+  position: absolute;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  padding: 0.5rem 0.7rem;
+  z-index: 10;
+  font-size: 0.87rem;
+  min-width: 190px;
+  max-width: 240px;
+}
+#disambiguation-popup .popup-title {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+#disambiguation-popup a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0;
+  color: var(--un-blue);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+#disambiguation-popup a:last-child { border-bottom: none; }
+#disambiguation-popup a:hover { color: var(--un-dark); }
+#disambiguation-popup img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+
+#map-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0.5rem 0 1.25rem;
+  flex-wrap: wrap;
+}
+.leg { display: inline-flex; align-items: center; gap: 0.3rem; }
+.leg-sw { display: inline-block; width: 16px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+#similarity-panel { margin-top: 0.5rem; }
+#sim-cols { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.sim-col { flex: 1; min-width: 220px; }
+.sim-col h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.sim-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.28rem 0;
+  font-size: 0.85rem;
+}
+.sim-row img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+.sim-row a { color: var(--text); text-decoration: none; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-row a:hover { color: var(--un-blue); }
+.sim-bar-wrap { width: 70px; height: 7px; background: #e5e7eb; border-radius: 3px; flex-shrink: 0; }
+.sim-bar { height: 100%; border-radius: 3px; }
+.sim-pct { width: 34px; text-align: right; font-size: 0.78rem; color: var(--muted); flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Voting Similarity Map</h1>
+<p class="meta" style="margin-bottom:0.5rem;">
+  Click a country on the map or search below — including historical states like USSR, Czechoslovakia, or East Germany.
+  Overlapping territories (e.g. Germany) will show a picker.
+</p>
+
+<div id="map-toolbar">
+  <select id="country-select" data-searchable placeholder="Search for a country…">
+    <option value="">— select a country —</option>
+    {% for c in countries %}
+    <option value="{{ c.iso3 }}" data-iso3="{{ c.iso3 }}">{{ c.display_name }}</option>
+    {% endfor %}
+  </select>
+  <div id="selected-display"><span class="meta">No country selected</span></div>
+</div>
+
+<div id="map-wrap">
+  <svg id="world-map"></svg>
+  <div id="disambiguation-popup" style="display:none;"></div>
+  <button id="map-zoom-reset" title="Reset zoom" style="position:absolute;top:8px;right:8px;padding:4px 8px;font-size:0.78rem;background:rgba(255,255,255,0.85);border:1px solid var(--border);border-radius:4px;cursor:pointer;line-height:1.4;">Reset zoom</button>
+</div>
+
+<div id="map-legend" style="margin-top:0.4rem;">
+  <span class="leg"><span class="leg-sw" style="background:#27ae60;"></span> Very similar</span>
+  <span class="leg"><span class="leg-sw" style="background:#f1c40f;"></span> Neutral</span>
+  <span class="leg"><span class="leg-sw" style="background:#e74c3c;"></span> Very different</span>
+  <span class="leg"><span class="leg-sw" style="background:#bbb;"></span> In DB, no shared votes</span>
+  <span class="leg"><span class="leg-sw" style="background:#ccc;"></span> In DB</span>
+  <span class="leg"><span class="leg-sw" style="background:#e8e8e8;"></span> Not in DB</span>
+  <span style="margin-left:auto; font-style:italic;">Scroll to zoom · drag to pan · double-click to reset</span>
+</div>
+
+<div id="similarity-panel" style="display:none;">
+  <div id="sim-cols">
+    <div class="sim-col">
+      <h3>Most similar</h3>
+      <div id="sim-high"></div>
+    </div>
+    <div class="sim-col">
+      <h3>Least similar</h3>
+      <div id="sim-low"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── Country data from Django ───────────────────────────────────── */
+  var COUNTRIES = {{ countries_json|safe }};
+  var countryByIso3 = {};
+  COUNTRIES.forEach(function (c) { countryByIso3[c.iso3] = c; });
+
+  /* ── ISO 3166-1 numeric → alpha-3 (current countries only) ─────── */
+  var N2A = {
+    4:'AFG',8:'ALB',12:'DZA',20:'AND',24:'AGO',28:'ATG',32:'ARG',36:'AUS',
+    40:'AUT',31:'AZE',44:'BHS',48:'BHR',50:'BGD',52:'BRB',56:'BEL',64:'BTN',
+    68:'BOL',70:'BIH',72:'BWA',76:'BRA',84:'BLZ',90:'SLB',96:'BRN',
+    100:'BGR',104:'MMR',108:'BDI',112:'BLR',116:'KHM',120:'CMR',124:'CAN',
+    132:'CPV',140:'CAF',144:'LKA',148:'TCD',152:'CHL',156:'CHN',170:'COL',
+    174:'COM',178:'COG',180:'COD',188:'CRI',191:'HRV',192:'CUB',196:'CYP',
+    203:'CZE',204:'BEN',208:'DNK',212:'DMA',214:'DOM',218:'ECU',222:'SLV',
+    226:'GNQ',231:'ETH',232:'ERI',233:'EST',242:'FJI',246:'FIN',250:'FRA',
+    262:'DJI',266:'GAB',268:'GEO',270:'GMB',276:'DEU',288:'GHA',296:'KIR',
+    300:'GRC',308:'GRD',320:'GTM',324:'GIN',328:'GUY',332:'HTI',340:'HND',
+    348:'HUN',352:'ISL',356:'IND',360:'IDN',364:'IRN',368:'IRQ',372:'IRL',
+    376:'ISR',380:'ITA',384:'CIV',388:'JAM',392:'JPN',398:'KAZ',400:'JOR',
+    404:'KEN',408:'PRK',410:'KOR',414:'KWT',417:'KGZ',418:'LAO',422:'LBN',
+    426:'LSO',428:'LVA',430:'LBR',434:'LBY',438:'LIE',440:'LTU',442:'LUX',
+    450:'MDG',454:'MWI',458:'MYS',462:'MDV',466:'MLI',470:'MLT',478:'MRT',
+    480:'MUS',484:'MEX',492:'MCO',496:'MNG',498:'MDA',499:'MNE',504:'MAR',
+    508:'MOZ',512:'OMN',516:'NAM',520:'NRU',524:'NPL',528:'NLD',548:'VUT',
+    554:'NZL',558:'NIC',562:'NER',566:'NGA',578:'NOR',583:'FSM',584:'MHL',
+    585:'PLW',586:'PAK',591:'PAN',598:'PNG',600:'PRY',604:'PER',608:'PHL',
+    616:'POL',620:'PRT',624:'GNB',626:'TLS',634:'QAT',642:'ROU',643:'RUS',
+    646:'RWA',659:'KNA',662:'LCA',670:'VCT',674:'SMR',678:'STP',682:'SAU',
+    686:'SEN',688:'SRB',690:'SYC',694:'SLE',702:'SGP',703:'SVK',704:'VNM',
+    705:'SVN',706:'SOM',710:'ZAF',716:'ZWE',724:'ESP',728:'SSD',729:'SDN',807:'MKD',
+    740:'SUR',748:'SWZ',752:'SWE',756:'CHE',760:'SYR',762:'TJK',764:'THA',
+    768:'TGO',776:'TON',780:'TTO',784:'ARE',788:'TUN',792:'TUR',795:'TKM',
+    798:'TUV',800:'UGA',804:'UKR',818:'EGY',826:'GBR',834:'TZA',840:'USA',
+    854:'BFA',858:'URY',860:'UZB',862:'VEN',882:'WSM',887:'YEM',894:'ZMB'
+  };
+
+  /*
+   * Territories shared between current and historical countries.
+   * Clicking a current country's shape will also offer these alternatives
+   * — filtered to only those present in countryByIso3.
+   */
+  var OVERLAPS = {
+    /* Germany: unified + East + West */
+    'DEU': ['DEU','DDR','GER'],
+    /* Ex-Soviet states: also offer USSR */
+    'RUS': ['RUS','SUN'],
+    'BLR': ['BLR','BYS','SUN'],
+    'UKR': ['UKR','SUN'],
+    'ARM': ['ARM','SUN'], 'AZE': ['AZE','SUN'],
+    'EST': ['EST','SUN'], 'GEO': ['GEO','SUN'],
+    'KAZ': ['KAZ','SUN'], 'KGZ': ['KGZ','SUN'],
+    'LVA': ['LVA','SUN'], 'LTU': ['LTU','SUN'],
+    'MDA': ['MDA','SUN'], 'TJK': ['TJK','SUN'],
+    'TKM': ['TKM','SUN'], 'UZB': ['UZB','SUN'],
+    /* Czechoslovakia */
+    'CZE': ['CZE','CSK'], 'SVK': ['SVK','CSK'],
+    /* Yugoslavia + Serbia & Montenegro */
+    'SRB': ['SRB','SCG','YUG'], 'HRV': ['HRV','YUG'],
+    'BIH': ['BIH','YUG'],       'SVN': ['SVN','YUG'],
+    'MNE': ['MNE','SCG','YUG'], 'MKD': ['MKD','YUG'],
+    /* Yemen */
+    'YEM': ['YEM','YMD'],
+    /* Tanzania */
+    'TZA': ['TZA','EAT','EAZ'],
+    /* Burkina Faso (was Upper Volta) */
+    'BFA': ['BFA','HVO'],
+  };
+
+  /* ── Map setup ──────────────────────────────────────────────────── */
+  var mapWrap = document.getElementById('map-wrap');
+  var W = mapWrap.clientWidth || 900;
+  var H = Math.max(280, Math.min(460, Math.round(W * 0.47)));
+
+  var svg = d3.select('#world-map').attr('width', W).attr('height', H);
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', '#c8e6f5');
+  var g = svg.append('g');
+
+  var projection = d3.geoNaturalEarth1()
+    .scale(W / 6.3)
+    .translate([W / 2, H / 2]);
+  var pathFn = d3.geoPath().projection(projection);
+
+  /* ── Zoom & pan ─────────────────────────────────────────────────── */
+  var zoom = d3.zoom()
+    .scaleExtent([1, 12])
+    .on('zoom', function (event) {
+      g.attr('transform', event.transform);
+    });
+  svg.call(zoom)
+    .on('dblclick.zoom', function () {
+      svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+    });
+
+  /* Reset zoom on double-click (d3 default) is fine; also add a button */
+  document.getElementById('map-zoom-reset').addEventListener('click', function () {
+    svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+  });
+
+  var colorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 1]);
+
+  /* ── State ──────────────────────────────────────────────────────── */
+  var selectedIso3 = null;
+  var simScores    = {};   /* iso3 → score for every country returned by API */
+  var tomSelect    = null;
+
+  /* ── Helpers ────────────────────────────────────────────────────── */
+  function flagImg(iso3) {
+    return '<img src="/static/flags/' + iso3 + '.svg" alt="">';
+  }
+
+  function countryFill(a3) {
+    if (!a3) return '#e8e8e8';
+    if (a3 === selectedIso3) return 'var(--un-blue, #1a6fa8)';
+    if (simScores[a3] !== undefined) return colorScale(simScores[a3]);
+    if (countryByIso3[a3]) return '#ccc';
+    return '#e8e8e8';
+  }
+
+  function updateMap() {
+    g.selectAll('path.cpath').attr('fill', function (d) {
+      return countryFill(N2A[+d.id]);
+    });
+  }
+
+  /* ── Load world topology ────────────────────────────────────────── */
+  fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+    .then(function (r) { return r.json(); })
+    .then(function (world) {
+      var features = topojson.feature(world, world.objects.countries).features;
+      g.selectAll('path.cpath')
+        .data(features)
+        .enter().append('path')
+          .attr('class', 'cpath')
+          .attr('d', pathFn)
+          .attr('fill', function (d) {
+            var a3 = N2A[+d.id];
+            return (a3 && countryByIso3[a3]) ? '#ccc' : '#e8e8e8';
+          })
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 0.4)
+          .on('click', handleClick)
+          .on('mouseover', function (event, d) {
+            if (N2A[+d.id]) d3.select(this).attr('stroke', '#444').attr('stroke-width', 1.2);
+          })
+          .on('mouseout', function () {
+            d3.select(this).attr('stroke', '#fff').attr('stroke-width', 0.4);
+          });
+
+      /* Apply pre-selection from URL hash (e.g. /votes/map/#USA) */
+      var hash = window.location.hash.slice(1).toUpperCase();
+      if (hash && countryByIso3[hash]) selectCountry(hash);
+    });
+
+  /* ── Click: disambiguate if multiple historical countries share territory */
+  function handleClick(event, d) {
+    event.stopPropagation();
+    var a3 = N2A[+d.id];
+    if (!a3) return;
+    var candidates = (OVERLAPS[a3] || [a3]).filter(function (iso) {
+      return !!countryByIso3[iso];
+    });
+    if (!candidates.length) return;
+    closePopup();
+    if (candidates.length === 1) {
+      selectCountry(candidates[0]);
+    } else {
+      showPopup(event, candidates);
+    }
+  }
+
+  /* ── Disambiguation popup ───────────────────────────────────────── */
+  var popup = document.getElementById('disambiguation-popup');
+
+  function showPopup(event, candidates) {
+    var html = '<div class="popup-title">Select country</div>';
+    html += candidates.map(function (iso) {
+      var c = countryByIso3[iso];
+      return '<a href="#" data-iso="' + iso + '">' +
+        flagImg(iso) + (c ? c.name : iso) + '</a>';
+    }).join('');
+    popup.innerHTML = html;
+
+    var rect = mapWrap.getBoundingClientRect();
+    var px = Math.min(event.clientX - rect.left + 6, W - 220);
+    var py = event.clientY - rect.top + 10;
+    /* Flip above click if too close to bottom */
+    if (py + 120 > H) py = Math.max(4, event.clientY - rect.top - 120);
+    popup.style.left = px + 'px';
+    popup.style.top  = py + 'px';
+    popup.style.display = 'block';
+
+    popup.querySelectorAll('a[data-iso]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        selectCountry(this.dataset.iso);
+        closePopup();
+      });
+    });
+  }
+
+  function closePopup() { popup.style.display = 'none'; }
+
+  /* Close popup when clicking outside */
+  document.addEventListener('click', function (e) {
+    if (popup.style.display !== 'none' && !popup.contains(e.target)) closePopup();
+  });
+
+  /* ── Select country + fetch similarity scores ───────────────────── */
+  function selectCountry(iso3) {
+    selectedIso3 = iso3;
+    var c = countryByIso3[iso3];
+
+    /* Sync TomSelect dropdown */
+    if (tomSelect) tomSelect.setValue(iso3, true);
+
+    /* Update "selected" display */
+    var disp = document.getElementById('selected-display');
+    if (c) {
+      disp.innerHTML =
+        flagImg(iso3) +
+        '<strong>' + c.name + '</strong>' +
+        ' <a href="/country/' + iso3 + '/" style="font-size:0.82rem;color:var(--muted);">country page ↗</a>' +
+        ' <a href="/votes/compare/?a=' + iso3 + '" style="font-size:0.82rem;color:var(--muted);margin-left:0.4rem;">compare ↗</a>';
+    }
+
+    /* Grey-out map while loading */
+    simScores = {};
+    updateMap();
+
+    fetch('/votes/api/' + iso3 + '/similarity/?all=1')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        simScores = {};
+        (data.countries || []).forEach(function (row) {
+          simScores[row.iso3] = row.score;
+        });
+        updateMap();
+        renderSimilarity(data.countries || []);
+      })
+      .catch(function () { updateMap(); });
+  }
+
+  /* ── Similarity lists ───────────────────────────────────────────── */
+  function renderSimilarity(all) {
+    document.getElementById('similarity-panel').style.display = 'block';
+    var sorted = all.slice().sort(function (a, b) { return b.score - a.score; });
+    renderSimList('sim-high', sorted.slice(0, 10), '#27ae60');
+    var bottom = sorted.slice(-10).reverse();
+    renderSimList('sim-low',  bottom, '#e74c3c');
+  }
+
+  function renderSimList(elId, items, color) {
+    var el = document.getElementById(elId);
+    if (!items.length) {
+      el.innerHTML = '<p class="meta" style="margin:0.25rem 0;">Not enough shared votes.</p>';
+      return;
+    }
+    el.innerHTML = items.map(function (c) {
+      var pct = Math.round(c.score * 100);
+      return '<div class="sim-row">' +
+        flagImg(c.iso3) +
+        '<a href="/country/' + c.iso3 + '/">' + c.name + '</a>' +
+        '<div class="sim-bar-wrap"><div class="sim-bar" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+        '<span class="sim-pct">' + pct + '%</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ── Wire dropdown (TomSelect enhances the <select> via base.html) ─ */
+  document.getElementById('country-select').addEventListener('change', function () {
+    if (this.value) selectCountry(this.value);
+  });
+
+  /* Grab TomSelect instance after base.html initialises it */
+  window.addEventListener('load', function () {
+    var ts = document.getElementById('country-select').tomselect;
+    if (ts) tomSelect = ts;
+  });
+
+}());
+</script>
+{% endblock %}

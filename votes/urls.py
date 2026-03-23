@@ -5,6 +5,7 @@ app_name = 'votes'
 
 urlpatterns = [
     path('', views.votes_page, name='index'),
+    path('map/', views.voting_map, name='map'),
     path('compare/', views.country_compare, name='compare'),
     path('resolutions/', views.resolution_list, name='resolution_list'),
     path('resolution/<str:slug>/', views.resolution_detail, name='resolution_detail'),
