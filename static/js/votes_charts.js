@@ -380,12 +380,14 @@
             var uniqueCats = majorityMode
                 ? rawCatGroup.all().filter(function (d) { return d.value > 0; }).length
                 : rawCatGroup.all().length;
-            var catH = Math.min(420, Math.max(80, uniqueCats * 24 + 40));
+            var catBarH = Math.max(22, Math.min(36, Math.floor(600 / Math.max(uniqueCats, 1))));
+            var catH = Math.min(700, Math.max(120, uniqueCats * (catBarH + 3) + 65));
+            var catLeftMargin = 160;
 
             var catChart = dc.rowChart(containerSel + ' #category-chart', GROUP);
             catChart
                 .width(panelW > 40 ? panelW - 40 : 620).height(catH)
-                .margins({ top: 5, right: 20, bottom: 25, left: 10 })
+                .margins({ top: 5, right: 20, bottom: 25, left: catLeftMargin })
                 .dimension(catDim).group(displayCatGroup)
                 .elasticX(true)
                 .colors(d3.scaleOrdinal(d3.schemeSet2))

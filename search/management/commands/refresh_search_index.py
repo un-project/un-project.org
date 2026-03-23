@@ -16,6 +16,10 @@ class Command(BaseCommand):
         mode = '' if options['full'] else 'CONCURRENTLY'
         sql = f'REFRESH MATERIALIZED VIEW {mode} search_index'
         self.stdout.write(f'Running: {sql} ...')
-        with connection.cursor() as cursor:
-            cursor.execute(sql)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+        except Exception as e:
+            self.stderr.write(self.style.WARNING(f'search_index refresh skipped: {e}'))
+            return
         self.stdout.write(self.style.SUCCESS('search_index refreshed successfully.'))
