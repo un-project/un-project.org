@@ -183,6 +183,10 @@ OVERRIDES = {
     'South Yemen': 'YMD',
     "People's Democratic Republic of Yemen": 'YMD',
     'Democratic Yemen': 'YMD',
+    'Germany, Federal Republic of': 'GER',
+    'GERMANY, FEDERAL REPUBLIC OF': 'GER',
+    'Tanganyika': 'EAT',
+    'Zanzibar': 'EAZ',
     'North Vietnam': 'VDR',
     'Viet-Nam, Democratic Republic of': 'VDR',
     'Democratic Republic of Viet-Nam': 'VDR',
@@ -209,6 +213,9 @@ HISTORICAL_ISO2 = {
     'RHO': 'RH',   # Southern Rhodesia
     'BUR': 'BU',   # Burma
     'BYS': None,   # Byelorussian SSR — 'BY' is now Belarus; flag via Wikimedia instead
+    'GER': None,   # West Germany — 'GE' is now Georgia; flag via Wikimedia instead
+    'EAT': None,   # Tanganyika — no iso2; flag via Wikimedia
+    'EAZ': None,   # Zanzibar — no iso2; flag via Wikimedia
 }
 
 
@@ -279,6 +286,9 @@ WIKIMEDIA_FLAG_URLS = {
     'YMD': 'https://upload.wikimedia.org/wikipedia/commons/d/db/Flag_of_South_Yemen.svg',
     'HVO': 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Flag_of_Upper_Volta.svg',
     'BYS': 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Flag_of_the_Byelorussian_Soviet_Socialist_Republic_%281951%E2%80%931991%29.svg',
+    'GER': 'https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg',
+    'EAT': 'https://upload.wikimedia.org/wikipedia/commons/1/16/Flag_of_Tanganyika_%281961%E2%80%931964%29.svg',
+    'EAZ': 'https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Zanzibar.svg',
 }
 
 
