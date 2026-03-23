@@ -86,22 +86,29 @@
   {% if country.iso3 %}<a href="#voting" style="color:var(--un-blue);">Voting</a>{% endif %}
   <a href="#representatives" style="color:var(--un-blue);">Representatives</a>
   <a href="#speeches" style="color:var(--un-blue);">Speeches</a>
+  {% if country.iso3 %}<a href="/votes/compare/?a={{ country.iso3 }}" style="color:var(--un-blue); margin-left:auto;">Compare votes ↗</a>{% endif %}
 </nav>
 
-{% if sessions %}
 <form class="session-filter" method="get" id="session-form">
-  <label for="session-select" style="font-weight:600; color:var(--muted);">Session:</label>
+  <label style="font-weight:600; color:var(--muted);">Body:</label>
+  <select name="body" onchange="this.form.submit()">
+    <option value=""{% if not current_body %} selected{% endif %}>GA + SC</option>
+    <option value="GA"{% if current_body == 'GA' %} selected{% endif %}>GA only</option>
+    <option value="SC"{% if current_body == 'SC' %} selected{% endif %}>SC only</option>
+  </select>
+  {% if sessions %}
+  <label for="session-select" style="font-weight:600; color:var(--muted); margin-left:0.5rem;">Session:</label>
   <select id="session-select" name="session" onchange="this.form.submit()">
     <option value="">All sessions</option>
     {% for s in sessions %}
     <option value="{{ s }}"{% if s == current_session %} selected{% endif %}>Session {{ s }}</option>
     {% endfor %}
   </select>
-  {% if current_session %}
+  {% endif %}
+  {% if current_session or current_body %}
   <a href="?" style="font-size:0.82rem; color:var(--muted);">✕ clear</a>
   {% endif %}
 </form>
-{% endif %}
 
 {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
 
@@ -109,6 +116,7 @@
 <h2 id="voting" style="margin-top:2rem;">
   Voting Analysis
   <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">open full page ↗</a>
+  <a href="/votes/compare/?a={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">compare with another country ↗</a>
   <button id="cv-reset-btn" style="display:none; margin-left:0.75rem;">Reset filters</button>
   <label id="cv-majority-label" style="display:none; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.82rem; font-weight:400; margin-left:0.75rem; vertical-align:middle;">
     <input type="checkbox" id="cv-majority-toggle" style="width:14px;height:14px;cursor:pointer;">
@@ -185,7 +193,7 @@
 {% endif %}
 
 <h2 id="speeches" style="margin-top:2rem;">
-  Speeches{% if current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">— Session {{ current_session }}</span>{% endif %}
+  Speeches{% if current_body or current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">—{% if current_body %} {{ current_body }}{% endif %}{% if current_session %} Session {{ current_session }}{% endif %}</span>{% endif %}
 </h2>
 {% for speech in speeches_page %}
 <div class="card">
@@ -220,7 +228,7 @@
 
   function currentMode() { return majorityToggle.checked ? 'majority' : 'normal'; }
 
-  var apiUrl = '/votes/api/{{ country.iso3 }}/{% if current_session %}?session={{ current_session }}{% endif %}';
+  var apiUrl = '{{ votes_api_url }}';
   fetch(apiUrl)
     .then(function (r) { return r.json(); })
     .then(function (data) {

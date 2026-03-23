@@ -82,12 +82,14 @@ def country_compare(request):
 
         votes_a = dict(
             CountryVote.objects
-            .filter(country=country_a).exclude(vote_position='absent')
+            .filter(country=country_a, vote__document__date__year__gt=1900)
+            .exclude(vote_position='absent')
             .values_list('vote_id', 'vote_position')
         )
         votes_b = dict(
             CountryVote.objects
-            .filter(country=country_b, vote_id__in=votes_a.keys())
+            .filter(country=country_b, vote_id__in=votes_a.keys(),
+                    vote__document__date__year__gt=1900)
             .exclude(vote_position='absent')
             .values_list('vote_id', 'vote_position')
         )
@@ -238,7 +240,8 @@ def votes_page(request):
     # Most contested (highest no_count)
     most_contested = (
         Vote.objects
-        .filter(vote_type='recorded', no_count__isnull=False, no_count__gt=0)
+        .filter(vote_type='recorded', no_count__isnull=False, no_count__gt=0,
+                document__date__year__gt=1900)
         .select_related('resolution', 'document')
         .order_by('-no_count')[:6]
     )
@@ -275,7 +278,8 @@ def votes_page(request):
     # Most recent votes
     recent_votes = (
         Vote.objects
-        .filter(vote_type='recorded', yes_count__isnull=False)
+        .filter(vote_type='recorded', yes_count__isnull=False,
+                document__date__year__gt=1900)
         .select_related('resolution', 'document')
         .order_by('-document__date')[:8]
     )
@@ -311,14 +315,18 @@ def country_votes_json(request, iso3):
         session = int(session_param) if session_param else None
     except ValueError:
         session = None
+    body_param = request.GET.get('body', '')
+    body = body_param if body_param in ('GA', 'SC') else None
     cvotes = (
         CountryVote.objects
-        .filter(country=country)
+        .filter(country=country, vote__document__date__year__gt=1900)
         .select_related('vote__resolution', 'vote__document')
         .order_by('-vote__document__date')
     )
     if session:
         cvotes = cvotes.filter(vote__document__session=session)
+    if body:
+        cvotes = cvotes.filter(vote__document__body=body)
     records = []
     for cv in cvotes:
         v = cv.vote
@@ -353,7 +361,7 @@ def country_similarity_json(request, iso3):
     # Fetch all non-absent votes for the reference country: vote_id → position
     a_votes = dict(
         CountryVote.objects
-        .filter(country=country)
+        .filter(country=country, vote__document__date__year__gt=1900)
         .exclude(vote_position='absent')
         .values_list('vote_id', 'vote_position')
     )

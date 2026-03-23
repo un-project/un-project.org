@@ -291,26 +291,24 @@
       }
     }
   }
-})();
 
-// ── Agenda sidebar: copy anchor URL on click ──────────────────────────────
-(function () {
-  var sidebar = document.querySelector('.agenda-sidebar');
-  if (!sidebar) return;
-  sidebar.addEventListener('click', function (e) {
-    var link = e.target.closest('a[href^="#item-"]');
-    if (!link) return;
-    var url = location.origin + location.pathname + link.getAttribute('href');
-    navigator.clipboard.writeText(url).then(function () {
-      var prev = link.textContent;
-      link.dataset.prevText = prev;
-      link.textContent = 'Copied ✓';
-      link.style.color = 'var(--un-blue)';
-      setTimeout(function () {
-        link.textContent = prev;
-        link.style.color = '';
-      }, 1500);
-    });
+  // ── Anchor hash on load: expand all and scroll to target ──────────────────
+  function revealAll() {
+    allEntries.forEach(function (el) { el.hidden = false; });
+    if (loadMoreBtn) { loadMoreBtn.remove(); loadMoreBtn = null; }
+  }
+
+  function scrollToHash(hash) {
+    var target = document.getElementById(hash.slice(1));
+    if (!target) return;
+    revealAll();
+    setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+  }
+
+  if (window.location.hash) scrollToHash(window.location.hash);
+
+  window.addEventListener('hashchange', function () {
+    if (window.location.hash) scrollToHash(window.location.hash);
   });
 })();
 </script>

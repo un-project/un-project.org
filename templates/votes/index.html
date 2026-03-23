@@ -194,7 +194,7 @@
   <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
     {% for row in top_no_voters %}
     {% with iso=row.country__iso3 name=row.country__short_name|default:row.country__name count=row.count %}
-    <a href="/votes/?country={{ iso }}" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
+    <a href="/country/{{ iso }}/" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
       <img src="/static/flags/{{ iso }}.svg" alt="" style="height:14px; border-radius:1px; flex-shrink:0;">
       <span style="font-weight:600;">{{ name }}</span>
       <span style="color:#e74c3c; font-weight:700; font-size:0.82rem;">{{ count }}×</span>

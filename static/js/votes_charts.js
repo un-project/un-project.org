@@ -428,10 +428,16 @@
                 tableNavEl.innerHTML = html;
             }
 
+            function resolutionLink(d) {
+                return d.resolution_url
+                    ? '<a href="' + d.resolution_url + '">' + d.resolution + '</a>'
+                    : (d.resolution || '—');
+            }
+
             var tableColumns = majorityMode
                 ? [
                     { label: 'Year',         format: function (d) { return d.year || '—'; } },
-                    { label: 'Resolution',   format: function (d) { return d.resolution; } },
+                    { label: 'Resolution',   format: resolutionLink },
                     { label: 'Title',        format: function (d) { return d.title ? d.title.slice(0, 70) + (d.title.length > 70 ? '…' : '') : '—'; } },
                     { label: 'Category',     format: function (d) { return d.category || '—'; } },
                     { label: 'Position',     format: function (d) { return d.position; } },
@@ -441,7 +447,7 @@
                   ]
                 : [
                     { label: 'Year',            format: function (d) { return d.year || '—'; } },
-                    { label: 'Resolution',      format: function (d) { return d.resolution; } },
+                    { label: 'Resolution',      format: resolutionLink },
                     { label: 'Title',           format: function (d) { return d.title ? d.title.slice(0, 80) + (d.title.length > 80 ? '…' : '') : '—'; } },
                     { label: 'Category',        format: function (d) { return d.category || '—'; } },
                     { label: 'Position',        format: function (d) { return d.position; } },
@@ -462,12 +468,6 @@
                 .sortBy(function (d) { return d.year || 0; })
                 .order(d3.descending)
                 .on('renderlet.html', function (chart) {
-                    /* Resolution → link (col1) */
-                    chart.selectAll('td.col1').each(function (d) {
-                        d3.select(this).html(
-                            '<a href="' + d.row.resolution_url + '">' + d.row.resolution + '</a>'
-                        );
-                    });
                     /* Position → badge (col4) */
                     chart.selectAll('td.col4').each(function (d) {
                         d3.select(this).html(

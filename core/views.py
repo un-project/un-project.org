@@ -7,8 +7,8 @@ from votes.models import Vote
 def homepage(request):
     body = request.GET.get('body', '')
 
-    meetings_qs = Document.objects.order_by('-date', '-meeting_number')
-    votes_qs = Vote.objects.select_related('resolution', 'document').order_by('-document__date')
+    meetings_qs = Document.objects.filter(date__year__gt=1900).order_by('-date', '-meeting_number')
+    votes_qs = Vote.objects.filter(document__date__year__gt=1900).select_related('resolution', 'document').order_by('-document__date')
 
     if body in ('GA', 'SC'):
         meetings_qs = meetings_qs.filter(body=body)
