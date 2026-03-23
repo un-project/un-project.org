@@ -40,6 +40,18 @@
   </div>
 </div>
 
+<form method="get" style="display:flex; align-items:center; gap:0.6rem; margin:0.75rem 0 1.5rem; font-size:0.9rem;">
+  <label style="font-weight:600; color:var(--muted);">Body:</label>
+  <select name="body" onchange="this.form.submit()" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.9rem;">
+    <option value=""{% if not current_body %} selected{% endif %}>GA + SC</option>
+    <option value="GA"{% if current_body == 'GA' %} selected{% endif %}>GA only</option>
+    <option value="SC"{% if current_body == 'SC' %} selected{% endif %}>SC only</option>
+  </select>
+  {% if current_body %}
+  <a href="?" style="font-size:0.82rem; color:var(--muted);">✕ clear</a>
+  {% endif %}
+</form>
+
 {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
 
 {% if recent_meetings %}
@@ -55,7 +67,7 @@
 </ul>
 {% endif %}
 
-<h2>Speeches</h2>
+<h2>Speeches{% if current_body %} <span class="meta" style="font-size:0.7em; font-weight:400;">— {{ current_body }}</span>{% endif %}</h2>
 {% for speech in speeches_page %}
 <div class="card">
   <div class="speech-header">

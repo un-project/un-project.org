@@ -9,11 +9,17 @@ from meetings.models import Document
 def speaker_detail(request, pk):
     speaker = get_object_or_404(Speaker.objects.select_related('country'), pk=pk)
 
+    body_param = request.GET.get('body', '')
+    current_body = body_param if body_param in ('GA', 'SC') else ''
+
     speeches = (
         Speech.objects.filter(speaker=speaker)
         .select_related('document')
         .order_by('-document__date', '-position_in_document')
     )
+    if current_body:
+        speeches = speeches.filter(document__body=current_body)
+
     paginator = Paginator(speeches, getattr(settings, 'SPEECHES_PER_PAGE', 20))
     speeches_page = paginator.get_page(request.GET.get('page'))
 
@@ -22,6 +28,12 @@ def speaker_detail(request, pk):
         .distinct()
         .order_by('-date')
     )
+    if current_body:
+        meetings_attended = meetings_attended.filter(body=current_body)
+
+    wc_url = f'/api/wordcloud/?speaker_id={speaker.pk}'
+    if current_body:
+        wc_url += f'&body={current_body}'
 
     crumbs = [{'label': 'Home', 'url': '/'}]
     if speaker.country:
@@ -34,6 +46,7 @@ def speaker_detail(request, pk):
         'speech_count': speeches.count(),
         'meetings_count': meetings_attended.count(),
         'recent_meetings': meetings_attended[:5],
+        'current_body': current_body,
         'crumbs': crumbs,
-        'wc_url': f'/api/wordcloud/?speaker_id={speaker.pk}',
+        'wc_url': wc_url,
     })
