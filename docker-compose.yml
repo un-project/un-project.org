@@ -53,6 +53,7 @@ services:
   cron:
     build: .
     restart: unless-stopped
+    user: root
     env_file:
       - .env
     environment:
