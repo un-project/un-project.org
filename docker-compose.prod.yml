@@ -3,6 +3,8 @@
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 #
 # Differences from the dev compose file:
+#   - Caddy handles TLS (Let's Encrypt) and proxies to gunicorn on port 8000
+#   - Port 8000 no longer exposed directly; only 80/443 on the host
 #   - DB port not exposed to the host (internal network only)
 #   - Gunicorn runs without --reload; worker count tunable via GUNICORN_WORKERS
 #   - Web service health check enabled
@@ -13,6 +15,7 @@ services:
     ports: !reset []          # do not expose PostgreSQL to the host
 
   web:
+    ports: !reset []          # Caddy proxies internally; no direct host exposure
     command: >
       sh -c "python manage.py migrate &&
              python manage.py refresh_search_index --full &&
@@ -34,3 +37,23 @@ services:
         limits:
           cpus: '2.0'
           memory: 1G
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"    # HTTP/3
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file:
+      - .env
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:
