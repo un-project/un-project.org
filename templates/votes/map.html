@@ -424,11 +424,17 @@
       var pct = Math.round(c.score * 100);
       return '<div class="sim-row">' +
         flagImg(c.iso3) +
-        '<a href="/country/' + c.iso3 + '/">' + c.name + '</a>' +
+        '<a href="#" data-iso="' + c.iso3 + '">' + c.name + '</a>' +
         '<div class="sim-bar-wrap"><div class="sim-bar" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
         '<span class="sim-pct">' + pct + '%</span>' +
         '</div>';
     }).join('');
+    el.querySelectorAll('a[data-iso]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        selectCountry(this.dataset.iso);
+      });
+    });
   }
 
   /* ── Wire dropdown (TomSelect enhances the <select> via base.html) ─ */
