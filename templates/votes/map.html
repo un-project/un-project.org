@@ -38,6 +38,7 @@
 #disambiguation-popup {
   position: absolute;
   background: #fff;
+  line-height: normal;
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: 0 4px 14px rgba(0,0,0,0.15);
@@ -67,6 +68,7 @@
 #disambiguation-popup a:last-child { border-bottom: none; }
 #disambiguation-popup a:hover { color: var(--un-dark); }
 #disambiguation-popup img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+#disambiguation-popup .popup-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 #map-legend {
   display: flex;
@@ -342,7 +344,7 @@
       var c = countryByIso3[iso];
       return '<a href="#" data-iso="' + iso + '">' +
         flagImg(iso) +
-        '<span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">' + (c ? c.name : iso) + '</span>' +
+        '<span class="popup-name">' + (c ? c.name : iso) + '</span>' +
         '</a>';
     }).join('');
     popup.innerHTML = html;
