@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('countries', '0001_initial'),
         ('meetings', '0001_initial'),
-        ('speakers', '0001_initial'),
+        ('speakers', '0002_initial'),
     ]
 
     operations = [
