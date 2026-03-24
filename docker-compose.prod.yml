@@ -1,0 +1,36 @@
+# Production overrides — use alongside the base compose file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences from the dev compose file:
+#   - DB port not exposed to the host (internal network only)
+#   - Gunicorn runs without --reload; worker count tunable via GUNICORN_WORKERS
+#   - Web service health check enabled
+#   - Resource limits applied
+
+services:
+  db:
+    ports: !reset []          # do not expose PostgreSQL to the host
+
+  web:
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py refresh_search_index --full &&
+             python manage.py collectstatic --noinput &&
+             gunicorn un_site.wsgi:application
+               --bind 0.0.0.0:8000
+               --workers ${GUNICORN_WORKERS:-3}
+               --timeout 60
+               --access-logfile -
+               --error-logfile -"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
