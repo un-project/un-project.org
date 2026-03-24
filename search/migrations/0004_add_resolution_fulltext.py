@@ -80,11 +80,26 @@ IDX_CTRY  = "CREATE INDEX idx_search_index_country ON search_index (country_id) 
 IDX_SPKR  = "CREATE INDEX idx_search_index_speaker ON search_index (speaker_id) WHERE speaker_id IS NOT NULL;"
 
 
+ADD_COLUMNS = """
+ALTER TABLE resolutions
+    ADD COLUMN IF NOT EXISTS full_text  TEXT,
+    ADD COLUMN IF NOT EXISTS crunsc_id  VARCHAR(30);
+"""
+
+DROP_COLUMNS = """
+ALTER TABLE resolutions
+    DROP COLUMN IF EXISTS full_text,
+    DROP COLUMN IF EXISTS crunsc_id;
+"""
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ('search', '0003_initial'),
     ]
     operations = [
+        # Ensure columns exist (extractor may not have run yet on a fresh DB)
+        migrations.RunSQL(ADD_COLUMNS,  reverse_sql=DROP_COLUMNS),
         # Drop existing view (CASCADE drops its indexes too)
         migrations.RunSQL(DROP_VIEW,   reverse_sql=migrations.RunSQL.noop),
         migrations.RunSQL(CREATE_VIEW, reverse_sql=DROP_VIEW),
