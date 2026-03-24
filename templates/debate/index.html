@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}General Debate{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1 style="margin-bottom:0.25rem;">UN General Debate</h1>
+<p style="color:var(--muted); margin:0.4rem 0 1.5rem;">
+  Annual high-level debate of the United Nations General Assembly, where Heads of State, Heads of Government, and Foreign Ministers address the world.
+</p>
+
+<div class="stat-grid" style="margin-bottom:2rem;">
+  <div class="stat-box">
+    <div class="num">{{ total_sessions }}</div>
+    <div class="label">Sessions</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ total_entries }}</div>
+    <div class="label">Addresses</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ total_countries }}</div>
+    <div class="label">Countries</div>
+  </div>
+</div>
+
+<div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start;">
+
+  <div style="flex:2; min-width:280px;">
+    <h2 style="font-size:1rem; margin-bottom:0.75rem;">Browse by session</h2>
+    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Session</th>
+          <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Year</th>
+          <th style="padding:0.4rem 0.6rem; text-align:right; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Addresses</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.4rem 0.6rem;">
+            <a href="{% url 'debate:session' s.ga_session %}">Session {{ s.ga_session }}</a>
+          </td>
+          <td style="padding:0.4rem 0.6rem; color:var(--muted);">
+            {% if s.first_date %}{{ s.first_date|date:"Y" }}{% endif %}
+          </td>
+          <td style="padding:0.4rem 0.6rem; text-align:right; color:var(--muted);">{{ s.count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="flex:1; min-width:220px;">
+    <h2 style="font-size:1rem; margin-bottom:0.75rem;">Browse by country</h2>
+    <form method="get" action="">
+      <select name="goto_country" data-searchable onchange="if(this.value) window.location='/country/'+this.value+'/#debate';"
+              style="width:100%; padding:0.4rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.9rem;">
+        <option value="">Select a country…</option>
+        {% for c in countries %}
+        <option value="{{ c.iso3 }}" data-iso3="{{ c.iso3 }}">{{ c.display_name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <p class="meta" style="font-size:0.8rem; margin-top:0.5rem;">
+      Opens the country profile at the General Debate section.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

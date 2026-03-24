@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'votes',
     'search',
     'api',
+    'debate',
 ]
 
 MIDDLEWARE = [

@@ -19,6 +19,7 @@ urlpatterns = [
     path('search/', include('search.urls')),
     path('votes/', include('votes.urls')),
     path('api/', include('api.urls')),
+    path('debate/', include('debate.urls')),
     path('health/', health),
     path('session/<str:body>/<int:session>/', session_detail, name='session_detail'),
 ]

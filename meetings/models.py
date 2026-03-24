@@ -16,6 +16,7 @@ class Document(models.Model):
     date = models.DateField(null=True, blank=True)
     location = models.CharField(max_length=50, null=True, blank=True)
     pdf_path = models.CharField(max_length=500, null=True, blank=True)
+    is_general_debate = models.BooleanField(default=False)
 
     class Meta:
         managed = False

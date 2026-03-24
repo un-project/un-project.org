@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Session {{ session }} General Debate{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1 style="margin-bottom:0.25rem;">
+  Session {{ session }} — General Debate
+</h1>
+{% if agg.first_date %}
+<p style="color:var(--muted); margin:0.3rem 0 1.25rem;">
+  {{ agg.first_date|date:"N j, Y" }}{% if agg.last_date and agg.last_date != agg.first_date %} – {{ agg.last_date|date:"N j, Y" }}{% endif %}
+  &middot; {{ agg.count }} address{{ agg.count|pluralize:"es" }}
+</p>
+{% endif %}
+
+<div style="display:flex; gap:1rem; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap;">
+  <form method="get" style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem;">
+    <label style="font-weight:600; color:var(--muted);">Country:</label>
+    <select name="country" data-searchable onchange="this.form.submit()"
+            style="min-width:180px; padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.9rem;">
+      <option value="">All countries</option>
+      {% for c in session_countries %}
+      <option value="{{ c.iso3 }}" data-iso3="{{ c.iso3 }}"{% if c.iso3 == iso3 %} selected{% endif %}>{{ c.display_name }}</option>
+      {% endfor %}
+    </select>
+    {% if iso3 %}
+    <a href="?" style="font-size:0.82rem; color:var(--muted);">✕ clear</a>
+    {% endif %}
+  </form>
+
+  <div style="display:flex; gap:0.5rem; margin-left:auto;">
+    {% if session > 1 %}
+    <a href="{% url 'debate:session' session|add:'-1' %}" class="meta" style="font-size:0.85rem;">← Session {{ session|add:'-1' }}</a>
+    {% endif %}
+    {% if session < 79 %}
+    <a href="{% url 'debate:session' session|add:'1' %}" class="meta" style="font-size:0.85rem;">Session {{ session|add:'1' }} →</a>
+    {% endif %}
+  </div>
+</div>
+
+<table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border);">
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Date</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Country</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Speaker</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Source</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in page %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.4rem 0.6rem; white-space:nowrap; color:var(--muted);">
+        {% if entry.meeting_date %}{{ entry.meeting_date|date:"N j, Y" }}{% else %}—{% endif %}
+      </td>
+      <td style="padding:0.4rem 0.6rem;">
+        {% if entry.country %}
+          {% if entry.country.flag_url %}
+          <img src="{{ entry.country.flag_url }}" alt="" style="height:12px; vertical-align:middle; margin-right:4px; border-radius:1px; border:1px solid #e0e0e0;">
+          {% endif %}
+          <a href="{{ entry.country.get_absolute_url }}">{{ entry.country.display_name }}</a>
+        {% else %}
+          <span class="meta">Unknown</span>
+        {% endif %}
+      </td>
+      <td style="padding:0.4rem 0.6rem;">
+        {% if entry.salutation %}{{ entry.salutation }} {% endif %}
+        {% if entry.speaker %}
+          <a href="{{ entry.speaker.get_absolute_url }}">{{ entry.speaker_name }}</a>
+        {% else %}
+          {{ entry.speaker_name }}
+        {% endif %}
+      </td>
+      <td style="padding:0.4rem 0.6rem;">
+        {% if entry.undl_link %}
+        <a href="{{ entry.undl_link }}" target="_blank" rel="noopener" class="meta" style="font-size:0.8rem;">UNDL ↗</a>
+        {% endif %}
+        {% if entry.document %}
+        <a href="{{ entry.document.get_absolute_url }}" class="meta" style="font-size:0.8rem; margin-left:0.4rem;">{{ entry.document.symbol }}</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% include "partials/pagination.html" with page_obj=page %}
+{% endblock %}

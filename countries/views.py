@@ -3,6 +3,7 @@ from django.core.paginator import Paginator
 from django.conf import settings
 from django.db.models import Min, Max, Count, Q
 from .models import Country
+from debate.models import GeneralDebateEntry
 from speakers.models import Speaker
 from speeches.models import Speech
 from votes.models import CountryVote
@@ -89,6 +90,14 @@ def _render_country_detail(request, country):
     if votes_api_parts:
         votes_api_url += '?' + '&'.join(votes_api_parts)
 
+    # General Debate entries for this country
+    debate_entries = (
+        GeneralDebateEntry.objects
+        .filter(country=country)
+        .select_related('speaker', 'document')
+        .order_by('-ga_session', 'meeting_date')
+    )
+
     return render(request, 'countries/detail.html', {
         'country': country,
         'representatives_page': representatives_page,
@@ -100,6 +109,7 @@ def _render_country_detail(request, country):
         'crumbs': crumbs,
         'wc_url': wc_url,
         'votes_api_url': votes_api_url,
+        'debate_entries': debate_entries,
     })
 
 

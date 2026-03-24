@@ -86,6 +86,7 @@
   {% if country.iso3 %}<a href="#voting" style="color:var(--un-blue);">Voting</a>{% endif %}
   <a href="#representatives" style="color:var(--un-blue);">Representatives</a>
   <a href="#speeches" style="color:var(--un-blue);">Speeches</a>
+  {% if debate_entries %}<a href="#debate" style="color:var(--un-blue);">General Debate</a>{% endif %}
   {% if country.iso3 %}<a href="/votes/compare/?a={{ country.iso3 }}" style="color:var(--un-blue); margin-left:auto;">Compare votes ↗</a>{% endif %}
 </nav>
 
@@ -210,6 +211,52 @@
 {% endfor %}
 
 {% include "partials/pagination.html" with page_obj=speeches_page %}
+
+{% if debate_entries %}
+<h2 id="debate" style="margin-top:2rem;">
+  General Debate
+  <a href="/debate/" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">browse all sessions ↗</a>
+</h2>
+<table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:1rem;">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border);">
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Session</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Date</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Speaker</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Source</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in debate_entries %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.4rem 0.6rem;">
+        <a href="{% url 'debate:session' entry.ga_session %}">{{ entry.ga_session }}</a>
+      </td>
+      <td style="padding:0.4rem 0.6rem; color:var(--muted); white-space:nowrap;">
+        {% if entry.meeting_date %}{{ entry.meeting_date|date:"N j, Y" }}{% else %}—{% endif %}
+      </td>
+      <td style="padding:0.4rem 0.6rem;">
+        {% if entry.salutation %}{{ entry.salutation }} {% endif %}
+        {% if entry.speaker %}
+          <a href="{{ entry.speaker.get_absolute_url }}">{{ entry.speaker_name }}</a>
+        {% else %}
+          {{ entry.speaker_name }}
+        {% endif %}
+      </td>
+      <td style="padding:0.4rem 0.6rem;">
+        {% if entry.undl_link %}
+        <a href="{{ entry.undl_link }}" target="_blank" rel="noopener" class="meta" style="font-size:0.8rem;">UNDL ↗</a>
+        {% endif %}
+        {% if entry.document %}
+        <a href="{{ entry.document.get_absolute_url }}" class="meta" style="font-size:0.8rem; margin-left:0.4rem;">{{ entry.document.symbol }}</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
