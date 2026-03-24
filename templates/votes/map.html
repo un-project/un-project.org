@@ -341,7 +341,9 @@
     html += candidates.map(function (iso) {
       var c = countryByIso3[iso];
       return '<a href="#" data-iso="' + iso + '">' +
-        flagImg(iso) + (c ? c.name : iso) + '</a>';
+        flagImg(iso) +
+        '<span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">' + (c ? c.name : iso) + '</span>' +
+        '</a>';
     }).join('');
     popup.innerHTML = html;
 
