@@ -27,7 +27,7 @@ services:
       --access-logfile -
       --error-logfile -"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""]
+      test: ["CMD-SHELL", "ss -tnlp | grep -q ':8000'"]
       interval: 30s
       timeout: 10s
       retries: 3
