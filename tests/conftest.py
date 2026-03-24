@@ -32,6 +32,35 @@ CREATE TABLE IF NOT EXISTS public.search_index (
     search_vector tsvector
 );
 
+ALTER TABLE public.resolutions
+    ADD COLUMN IF NOT EXISTS full_text TEXT,
+    ADD COLUMN IF NOT EXISTS crunsc_id VARCHAR(30);
+
+ALTER TABLE public.documents
+    ADD COLUMN IF NOT EXISTS is_general_debate BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS public.resolution_citations (
+    id          SERIAL PRIMARY KEY,
+    citing_id   INTEGER NOT NULL REFERENCES public.resolutions(id) ON DELETE CASCADE,
+    cited_symbol TEXT NOT NULL,
+    cited_id    INTEGER REFERENCES public.resolutions(id) ON DELETE SET NULL,
+    weight      INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (citing_id, cited_symbol)
+);
+
+CREATE TABLE IF NOT EXISTS public.general_debate_entries (
+    id          SERIAL PRIMARY KEY,
+    document_id INTEGER REFERENCES public.documents(id) ON DELETE SET NULL,
+    country_id  INTEGER REFERENCES public.countries(id) ON DELETE SET NULL,
+    speaker_id  INTEGER REFERENCES public.speakers(id) ON DELETE SET NULL,
+    speaker_name TEXT NOT NULL,
+    salutation  VARCHAR(20),
+    ga_session  INTEGER NOT NULL,
+    meeting_date DATE,
+    undl_id     VARCHAR(30),
+    undl_link   TEXT
+);
+
 CREATE TABLE IF NOT EXISTS public.speech_search_index (
     speech_id   integer PRIMARY KEY,
     document_id integer,

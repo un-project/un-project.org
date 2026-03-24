@@ -26,4 +26,6 @@ MIGRATION_MODULES = {
     'speakers': None,
     'votes': None,
     'search': None,
+    'debate': None,
+    'api': None,
 }
