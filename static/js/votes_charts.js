@@ -4,50 +4,49 @@
 
     var GROUP = 'uvotes';
     var _charts = [];
-    var _simCache = {}; /* iso3 → {similar, dissimilar} */
+
+    /* Module-level refs for external filtering and re-rendering */
+    var _catDim      = null;
+    var _dateDim     = null;
+    var _tableDim    = null;
+    var _ndx         = null;
+    var _containerSel = null;
+    var _iso3        = null;
+    var _body        = null;
+    var _yearFrom    = null;
+    var _yearTo      = null;
+    var _simCache    = {};
 
     function cleanup() {
         _charts.forEach(function (c) {
             try { dc.chartRegistry.deregister(c, GROUP); } catch (e) {}
         });
-        _charts = [];
+        _charts    = [];
+        _catDim    = null;
+        _dateDim   = null;
+        _tableDim  = null;
+        _ndx       = null;
+        _body      = null;
+        _yearFrom  = null;
+        _yearTo    = null;
     }
 
-    /* Compute the majority position for a vote record */
+    /* Determine the majority position based on vote tallies */
     function majorityPos(d) {
-        var yc = d.yes_count, nc = d.no_count, ac = d.abstain_count;
-        if (yc == null) return null;
-        if (yc >= nc && yc >= ac) return 'yes';
-        if (nc >= yc && nc >= ac) return 'no';
+        var y = d.yes_count || 0, n = d.no_count || 0, a = d.abstain_count || 0;
+        if (y === 0 && n === 0 && a === 0) return null;
+        if (y >= n && y >= a) return 'yes';
+        if (n >= y && n >= a) return 'no';
         return 'abstain';
     }
 
     /* Compute how this country voted relative to the majority */
-    function towardMajority(d) {
-        var mp = majorityPos(d);
-        if (d.position === 'absent') return 'absent';
-        if (mp === null) return d.position;
-        if (d.position === mp) return 'agree';
-        if (d.position === 'abstain') return 'abstain';
+    function towardMajority(mp, position) {
+        if (position === 'absent') return 'absent';
+        if (mp === null) return position;
+        if (position === mp) return 'agree';
+        if (position === 'abstain') return 'abstain';
         return 'against';
-    }
-
-    /* Set innerHTML of the h3 inside the chart-box wrapping chartId */
-    function setH3(containerSel, chartId, html) {
-        var el = document.querySelector(containerSel + ' ' + chartId);
-        if (el && el.parentElement) {
-            var h3 = el.parentElement.querySelector('h3');
-            if (h3) h3.innerHTML = html;
-        }
-    }
-
-    /* Zero-filtering group wrapper (keeps row chart clean in majority mode) */
-    function nonZero(group) {
-        return {
-            all: function () {
-                return group.all().filter(function (d) { return d.value > 0; });
-            }
-        };
     }
 
     /* Render a simple d3 horizontal bar chart for similarity data */
@@ -67,12 +66,8 @@
         var innerW = W - margin.left - margin.right;
         var H = items.length * (barH + gap) + margin.top + margin.bottom;
 
-        var svg = d3.select(el).append('svg')
-            .attr('width', W)
-            .attr('height', H);
-
-        var g = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+        var svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+        var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
         items.forEach(function (d, i) {
             var y = i * (barH + gap);
@@ -82,64 +77,78 @@
                 .attr('href', d.iso3 ? '/country/' + d.iso3 + '/' : null)
                 .style('text-decoration', 'none')
               .append('text')
-                .attr('x', -5)
-                .attr('y', y + barH / 2)
-                .attr('text-anchor', 'end')
-                .attr('dominant-baseline', 'middle')
+                .attr('x', -5).attr('y', y + barH / 2)
+                .attr('text-anchor', 'end').attr('dominant-baseline', 'middle')
                 .attr('font-size', '0.73rem')
                 .attr('fill', d.iso3 ? 'var(--un-blue, #1a6fa8)' : '#333')
                 .text(label);
-
             g.append('rect')
-                .attr('x', 0)
-                .attr('y', y)
-                .attr('width', barW)
-                .attr('height', barH)
-                .attr('fill', color)
-                .attr('rx', 2);
-
+                .attr('x', 0).attr('y', y)
+                .attr('width', barW).attr('height', barH)
+                .attr('fill', color).attr('rx', 2);
             g.append('text')
-                .attr('x', barW + 4)
-                .attr('y', y + barH / 2)
+                .attr('x', barW + 4).attr('y', y + barH / 2)
                 .attr('dominant-baseline', 'middle')
-                .attr('font-size', '0.72rem')
-                .attr('fill', '#666')
+                .attr('font-size', '0.72rem').attr('fill', '#666')
                 .text(Math.round(d.score * 100) + '%');
         });
     }
 
-    function applySimilarity(containerSel, data) {
-        renderSimBar(containerSel + ' #similarity-high-chart', data.similar,    '#009edb');
-        renderSimBar(containerSel + ' #similarity-low-chart',  data.dissimilar, '#e67e22');
+    function applySimilarity(data) {
+        if (!_containerSel) return;
+        renderSimBar(_containerSel + ' #similarity-high-chart', data.similar,    '#009edb');
+        renderSimBar(_containerSel + ' #similarity-low-chart',  data.dissimilar, '#e67e22');
     }
 
-    /* ── Session trend line chart ────────────────────────────────────────────── */
+    function fetchSimilarity() {
+        if (!_iso3) return;
+        var url = '/votes/api/' + _iso3 + '/similarity/';
+        var params = [];
+        if (_body)             params.push('body=' + _body);
+        if (_yearFrom != null) { params.push('year_from=' + _yearFrom); params.push('year_to=' + _yearTo); }
+        if (params.length) url += '?' + params.join('&');
 
-    function renderSessionTrend(containerSel, votes) {
-        var el = document.querySelector(containerSel + ' #session-trend-chart');
+        var cacheKey = _iso3 + ':' + (_body || '') + ':' + (_yearFrom || '') + ':' + (_yearTo || '');
+        if (_simCache[cacheKey]) {
+            applySimilarity(_simCache[cacheKey]);
+            return;
+        }
+        ['#similarity-high-chart', '#similarity-low-chart'].forEach(function (s) {
+            var el = document.querySelector(_containerSel + ' ' + s);
+            if (el) el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Loading…</p>';
+        });
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                _simCache[cacheKey] = data;
+                applySimilarity(data);
+            });
+    }
+
+    /* ── Year trend line chart ──────────────────────────────────────────────── */
+    function renderSessionTrend(votes) {
+        var el = document.querySelector(_containerSel + ' #session-trend-chart');
         if (!el) return;
         el.innerHTML = '';
 
-        /* Aggregate by session (exclude absent) */
-        var bySession = {};
+        var byYear = {};
         votes.forEach(function (d) {
-            var sess = d.session;
-            if (!sess) return;
-            if (!bySession[sess]) {
-                bySession[sess] = { session: sess, year: d.year, yes: 0, no: 0, abstain: 0, total: 0 };
+            var yr = d.year;
+            if (!yr) return;
+            if (!byYear[yr]) {
+                byYear[yr] = { year: yr, yes: 0, no: 0, abstain: 0, total: 0 };
             }
             if (d.position === 'absent') return;
-            bySession[sess].total++;
-            if (d.position === 'yes')     bySession[sess].yes++;
-            else if (d.position === 'no') bySession[sess].no++;
-            else                          bySession[sess].abstain++;
+            byYear[yr].total++;
+            if      (d.position === 'yes') byYear[yr].yes++;
+            else if (d.position === 'no')  byYear[yr].no++;
+            else                           byYear[yr].abstain++;
         });
 
-        var data = Object.values(bySession)
+        var data = Object.values(byYear)
             .filter(function (d) { return d.total >= 3; })
-            .sort(function (a, b) { return a.session - b.session; })
+            .sort(function (a, b) { return a.year - b.year; })
             .map(function (d) { return {
-                session: d.session,
                 year:    d.year,
                 yes:     d.total ? d.yes     / d.total * 100 : 0,
                 no:      d.total ? d.no      / d.total * 100 : 0,
@@ -147,7 +156,7 @@
             }; });
 
         if (data.length < 2) {
-            el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Not enough sessions to show a trend.</p>';
+            el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Not enough data to show a trend.</p>';
             return;
         }
 
@@ -162,67 +171,49 @@
         var g   = svg.append('g').attr('transform', 'translate(' + m.left + ',' + m.top + ')');
 
         var x = d3.scaleLinear()
-            .domain(d3.extent(data, function (d) { return d.session; }))
+            .domain(d3.extent(data, function (d) { return d.year; }))
             .range([0, iW]);
-
         var y = d3.scaleLinear().domain([0, 100]).range([iH, 0]);
 
-        /* Gridlines */
         g.append('g')
             .call(d3.axisLeft(y).tickSize(-iW).ticks(5).tickFormat(''))
             .call(function (ax) {
                 ax.select('.domain').remove();
                 ax.selectAll('line').style('stroke', '#e0e0e0').style('stroke-dasharray', '3,3');
             });
-
-        /* Axes */
         g.append('g')
             .attr('transform', 'translate(0,' + iH + ')')
             .call(d3.axisBottom(x).ticks(Math.min(data.length, 12)).tickFormat(d3.format('d')))
             .selectAll('text').style('font-size', '0.72rem');
-
         g.append('g')
             .call(d3.axisLeft(y).ticks(5).tickFormat(function (d) { return d + '%'; }))
             .selectAll('text').style('font-size', '0.72rem');
-
-        /* X label */
         g.append('text')
             .attr('x', iW / 2).attr('y', iH + 34)
             .attr('text-anchor', 'middle').attr('font-size', '0.72rem').attr('fill', '#888')
-            .text('GA Session');
+            .text('Year');
 
-        /* Lines + dots */
         var SERIES = [
             { key: 'yes',     color: '#27ae60', label: 'Yes' },
             { key: 'no',      color: '#e74c3c', label: 'No' },
             { key: 'abstain', color: '#f39c12', label: 'Abstain' },
         ];
-
         var dotR = data.length > 20 ? 2 : 3;
-
         SERIES.forEach(function (s) {
             var lineFn = d3.line()
                 .defined(function (d) { return d[s.key] != null; })
-                .x(function (d) { return x(d.session); })
+                .x(function (d) { return x(d.year); })
                 .y(function (d) { return y(d[s.key]); })
                 .curve(d3.curveMonotoneX);
-
-            g.append('path')
-                .datum(data)
-                .attr('fill', 'none')
-                .attr('stroke', s.color)
-                .attr('stroke-width', 2)
-                .attr('d', lineFn);
-
+            g.append('path').datum(data)
+                .attr('fill', 'none').attr('stroke', s.color)
+                .attr('stroke-width', 2).attr('d', lineFn);
             g.selectAll('.dot-' + s.key).data(data).enter()
                 .append('circle')
-                .attr('cx', function (d) { return x(d.session); })
+                .attr('cx', function (d) { return x(d.year); })
                 .attr('cy', function (d) { return y(d[s.key]); })
-                .attr('r', dotR)
-                .attr('fill', s.color);
+                .attr('r', dotR).attr('fill', s.color);
         });
-
-        /* Legend */
         SERIES.forEach(function (s, i) {
             var lx = iW - 190 + i * 66;
             g.append('rect').attr('x', lx).attr('y', -13).attr('width', 14).attr('height', 4).attr('fill', s.color).attr('rx', 2);
@@ -230,23 +221,29 @@
         });
     }
 
+    /* Re-render charts that operate on filtered record sets */
+    function redrawExtras(refetchSimilarity) {
+        if (!_ndx || !_tableDim || !_containerSel) return;
+        var filtered = _tableDim.top(Infinity);
+        renderSessionTrend(filtered);
+        if (refetchSimilarity) fetchSimilarity();
+    }
+
 
     window.VoteCharts = {
 
-        init: function (containerSel, votes, mode, iso3) {
+        init: function (containerSel, votes, iso3, body) {
             cleanup();
-            var majorityMode = (mode === 'majority');
+            _containerSel = containerSel;
+            _iso3         = iso3;
+            _body         = body || null;
 
-            /* Clear chart canvas divs */
-            ['#position-chart', '#year-chart', '#category-chart',
-             '#similarity-high-chart', '#similarity-low-chart'].forEach(function (sel) {
+            var containerEl = document.querySelector(containerSel);
+
+            ['#position-chart', '#similarity-high-chart', '#similarity-low-chart'].forEach(function (sel) {
                 var el = document.querySelector(containerSel + ' ' + sel);
                 if (el) el.innerHTML = '';
             });
-
-            /* Show / hide similarity row */
-            var simRow = document.querySelector(containerSel + ' #similarity-row');
-            if (simRow) simRow.style.display = majorityMode ? 'flex' : 'none';
 
             if (!votes || votes.length === 0) {
                 var noData = document.querySelector(containerSel + ' #no-votes-msg');
@@ -256,70 +253,84 @@
             var noData = document.querySelector(containerSel + ' #no-votes-msg');
             if (noData) noData.style.display = 'none';
 
-            /* Pre-compute majority fields on every record */
             votes.forEach(function (d) {
-                d.majority_position = majorityPos(d);
-                d.toward_majority   = towardMajority(d);
+                d.toward_majority = towardMajority(majorityPos(d), d.position);
             });
 
             var ndx = crossfilter(votes);
+            _ndx = ndx;
 
             function parseDate(d) {
                 return d.date ? new Date(d.date) : new Date((d.year || 2000) + '-07-01');
             }
 
-            var dateDim  = ndx.dimension(parseDate);
-            var catDim   = ndx.dimension(function (d) { return d.category || 'Uncategorized'; });
-            var tableDim = ndx.dimension(function (d) { return d.year || 0; });
+            /* Two date dimensions: one for external year filtering, one for the majority bar chart */
+            var dateDim      = ndx.dimension(parseDate);
+            var chartDateDim = ndx.dimension(parseDate);
+            var catDim       = ndx.dimension(function (d) { return d.category || 'Uncategorized'; });
+            var tableDim     = ndx.dimension(function (d) { return d.year || 0; });
 
+            _catDim   = catDim;
+            _dateDim  = dateDim;
+            _tableDim = tableDim;
+
+            /* ── Position pie chart ───────────────────────────────────── */
+            var posDim   = ndx.dimension(function (d) { return d.position; });
+            var posGroup = posDim.group();
+            var posChart = dc.pieChart(containerSel + ' #position-chart', GROUP);
+            posChart
+                .width(220).height(220)
+                .innerRadius(50)
+                .dimension(posDim).group(posGroup)
+                .colors(d3.scaleOrdinal()
+                    .domain(['yes', 'no', 'abstain', 'absent', 'non_voting'])
+                    .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5', '#c8d6de']))
+                .colorAccessor(function (d) { return d.key; })
+                .title(function (d) { return d.key + ': ' + d.value; });
+
+            posChart.on('filtered', function () { redrawExtras(false); });
+
+            /* ── Toward majority pie chart ────────────────────────────── */
+            var majDim   = ndx.dimension(function (d) { return d.toward_majority; });
+            var majGroup = majDim.group();
+            var majChart = dc.pieChart(containerSel + ' #toward-majority-chart', GROUP);
+            majChart
+                .width(220).height(220)
+                .innerRadius(50)
+                .dimension(majDim).group(majGroup)
+                .colors(d3.scaleOrdinal()
+                    .domain(['agree', 'against', 'abstain', 'absent'])
+                    .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5']))
+                .colorAccessor(function (d) { return d.key; })
+                .title(function (d) { return d.key + ': ' + d.value; });
+
+            majChart.on('filtered', function () { redrawExtras(false); });
+
+            /* ── Voting records toward majority stacked bar ───────────── */
             var allDates = votes.map(parseDate).sort(function (a, b) { return a - b; });
-            var minDate  = allDates.length ? d3.timeYear.floor(allDates[0])
-                                           : new Date('1946-01-01');
+            var minDate  = allDates.length ? d3.timeYear.floor(allDates[0]) : new Date('1946-01-01');
             var maxDate  = allDates.length
                 ? d3.timeYear.offset(d3.timeYear.ceil(allDates[allDates.length - 1]), 1)
                 : new Date('2025-01-01');
 
-            var containerEl = document.querySelector(containerSel);
-            var panelW = containerEl ? containerEl.clientWidth : 700;
-            var yearChartEl = document.querySelector(containerSel + ' #year-chart');
+            var yearChartEl = document.querySelector(containerSel + ' #toward-majority-year-chart');
             var yearW = yearChartEl
-                ? Math.max(280, yearChartEl.parentElement.clientWidth - 260)
+                ? Math.max(280, yearChartEl.parentElement.clientWidth - 40)
                 : 480;
 
-            /* ── Position / Majority pie chart ───────────────────────────── */
-            var posChart = dc.pieChart(containerSel + ' #position-chart', GROUP);
-
-            if (majorityMode) {
-                var majDim   = ndx.dimension(function (d) { return d.toward_majority; });
-                var majGroup = majDim.group();
-                posChart
-                    .width(220).height(220)
-                    .innerRadius(50)
-                    .dimension(majDim).group(majGroup)
-                    .colors(d3.scaleOrdinal()
-                        .domain(['agree', 'against', 'abstain', 'absent'])
-                        .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5']))
-                    .colorAccessor(function (d) { return d.key; })
-                    .title(function (d) { return d.key + ': ' + d.value; });
-                setH3(containerSel, '#position-chart', 'Vote position towards majority');
-            } else {
-                var posDim   = ndx.dimension(function (d) { return d.position; });
-                var posGroup = posDim.group();
-                posChart
-                    .width(220).height(220)
-                    .innerRadius(50)
-                    .dimension(posDim).group(posGroup)
-                    .colors(d3.scaleOrdinal()
-                        .domain(['yes', 'no', 'abstain', 'absent', 'non_voting'])
-                        .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5', '#c8d6de']))
-                    .colorAccessor(function (d) { return d.key; })
-                    .title(function (d) { return d.key + ': ' + d.value; });
-                setH3(containerSel, '#position-chart', 'Vote position');
+            function makeYearGroup(pred) {
+                return chartDateDim.group(d3.timeYear).reduce(
+                    function (p, v) { return p + (pred(v) ? 1 : 0); },
+                    function (p, v) { return p - (pred(v) ? 1 : 0); },
+                    function () { return 0; }
+                );
             }
+            var agreeYG   = makeYearGroup(function (d) { return d.toward_majority === 'agree'; });
+            var againstYG = makeYearGroup(function (d) { return d.toward_majority === 'against'; });
+            var abstainYG = makeYearGroup(function (d) { return d.toward_majority === 'abstain'; });
 
-            /* ── Year bar / stacked majority bar chart ────────────────────── */
-            var yearChart = dc.barChart(containerSel + ' #year-chart', GROUP);
-            yearChart
+            var majYearChart = dc.barChart(containerSel + ' #toward-majority-year-chart', GROUP);
+            majYearChart
                 .width(yearW).height(180)
                 .margins({ top: 10, right: 20, bottom: 30, left: 40 })
                 .x(d3.scaleTime().domain([minDate, maxDate]))
@@ -328,80 +339,16 @@
                 .elasticY(true)
                 .gap(1)
                 .renderHorizontalGridLines(true)
-                .brushOn(true);
+                .brushOn(false)
+                .dimension(chartDateDim)
+                .group(agreeYG,   'Agree')
+                .stack(againstYG, 'Against')
+                .stack(abstainYG, 'Abstain')
+                .valueAccessor(function (d) { return d.value; })
+                .ordinalColors(['#27ae60', '#e74c3c', '#f39c12'])
+                .legend(dc.legend().x(yearW - 110).y(6).itemHeight(12).gap(5));
 
-            if (majorityMode) {
-                function makeYearGroup(pred) {
-                    return dateDim.group(d3.timeYear).reduce(
-                        function (p, v) { return p + (pred(v) ? 1 : 0); },
-                        function (p, v) { return p - (pred(v) ? 1 : 0); },
-                        function () { return 0; }
-                    );
-                }
-                var agreeYG   = makeYearGroup(function (d) { return d.toward_majority === 'agree'; });
-                var againstYG = makeYearGroup(function (d) { return d.toward_majority === 'against'; });
-                var abstainYG = makeYearGroup(function (d) { return d.toward_majority === 'abstain'; });
-
-                yearChart
-                    .dimension(dateDim)
-                    .group(agreeYG,   'Agree')
-                    .stack(againstYG, 'Against')
-                    .stack(abstainYG, 'Abstain')
-                    .valueAccessor(function (d) { return d.value; })
-                    .ordinalColors(['#27ae60', '#e74c3c', '#f39c12'])
-                    .legend(dc.legend().x(yearW - 110).y(6).itemHeight(12).gap(5));
-                setH3(containerSel, '#year-chart',
-                    'Voting records toward majority <small style="font-size:0.72rem;font-weight:400;text-transform:none;">(drag to filter)</small>');
-            } else {
-                var yearGroup = dateDim.group(d3.timeYear);
-                yearChart
-                    .dimension(dateDim)
-                    .group(yearGroup);
-                setH3(containerSel, '#year-chart',
-                    'Votes by year <small style="font-size:0.72rem;font-weight:400;text-transform:none;">(drag to filter)</small>');
-            }
-
-            /* ── Category row chart ──────────────────────────────────────── */
-            var rawCatGroup, displayCatGroup, catH3text;
-            if (majorityMode) {
-                rawCatGroup = catDim.group().reduce(
-                    function (p, v) { return p + (v.toward_majority === 'against' ? 1 : 0); },
-                    function (p, v) { return p - (v.toward_majority === 'against' ? 1 : 0); },
-                    function () { return 0; }
-                );
-                displayCatGroup = { all: function () {
-                    return rawCatGroup.all().filter(function (d) { return d.value > 0 && d.key !== 'Uncategorized'; });
-                }};
-                catH3text = 'Disagreements by category';
-            } else {
-                rawCatGroup     = catDim.group();
-                displayCatGroup = { all: function () {
-                    return rawCatGroup.all().filter(function (d) { return d.key !== 'Uncategorized'; });
-                }};
-                catH3text       = 'By category';
-            }
-
-            var uniqueCats = displayCatGroup.all().filter(function (d) { return d.value > 0; }).length;
-            var catBarH = Math.max(22, Math.min(36, Math.floor(600 / Math.max(uniqueCats, 1))));
-            var catH = Math.min(700, Math.max(120, uniqueCats * (catBarH + 3) + 65));
-            var catLeftMargin = 160;
-
-            var catChart = dc.rowChart(containerSel + ' #category-chart', GROUP);
-            catChart
-                .width(panelW > 40 ? panelW - 40 : 620).height(catH)
-                .margins({ top: 5, right: 20, bottom: 25, left: catLeftMargin })
-                .dimension(catDim).group(displayCatGroup)
-                .elasticX(true)
-                .colors(d3.scaleOrdinal(d3.schemeSet2))
-                .label(function (d) { return d.key; })
-                .title(function (d) { return d.key + ': ' + d.value; })
-                .gap(3)
-                .renderlet(function (chart) {
-                    chart.selectAll('g.row text').style('fill', '#333').style('font-size', '0.78rem');
-                });
-            setH3(containerSel, '#category-chart', catH3text);
-
-            /* ── Data count widget ───────────────────────────────────────── */
+            /* ── Data count widget ───────────────────────────────────── */
             var countWidget = dc.dataCount(containerSel + ' #data-count', GROUP);
             countWidget
                 .crossfilter(ndx)
@@ -411,7 +358,7 @@
                     all:  'All <strong>%total-count</strong> votes'
                 });
 
-            /* ── Data table with client-side pagination ──────────────────── */
+            /* ── Data table ──────────────────────────────────────────── */
             var TABLE_PAGE_SIZE = 25;
             var tableOffset = 0;
             var tableAll    = ndx.groupAll();
@@ -434,79 +381,46 @@
                     : (d.resolution || '—');
             }
 
-            var tableColumns = majorityMode
-                ? [
-                    { label: 'Year',         format: function (d) { return d.year || '—'; } },
-                    { label: 'Resolution',   format: resolutionLink },
-                    { label: 'Title',        format: function (d) { return d.title ? d.title.slice(0, 70) + (d.title.length > 70 ? '…' : '') : '—'; } },
-                    { label: 'Category',     format: function (d) { return d.category || '—'; } },
-                    { label: 'Position',     format: function (d) { return d.position; } },
-                    { label: 'vs. Majority', format: function (d) {
-                        return d.toward_majority + (d.majority_position ? ' (' + d.majority_position + ')' : '');
-                    }}
-                  ]
-                : [
-                    { label: 'Year',            format: function (d) { return d.year || '—'; } },
-                    { label: 'Resolution',      format: resolutionLink },
-                    { label: 'Title',           format: function (d) { return d.title ? d.title.slice(0, 80) + (d.title.length > 80 ? '…' : '') : '—'; } },
-                    { label: 'Category',        format: function (d) { return d.category || '—'; } },
-                    { label: 'Position',        format: function (d) { return d.position; } },
-                    { label: 'Tally (Y/N/A)',   format: function (d) {
-                        return d.yes_count != null
-                            ? d.yes_count + ' / ' + d.no_count + ' / ' + d.abstain_count
-                            : '—';
-                    }}
-                  ];
-
             var dataTable = dc.dataTable(containerSel + ' #data-table', GROUP);
             dataTable
                 .dimension(tableDim)
                 .size(Infinity)
                 .beginSlice(tableOffset)
                 .endSlice(tableOffset + TABLE_PAGE_SIZE)
-                .columns(tableColumns)
+                .columns([
+                    { label: 'Year',          format: function (d) { return d.year || '—'; } },
+                    { label: 'Resolution',    format: resolutionLink },
+                    { label: 'Title',         format: function (d) { return d.title ? d.title.slice(0, 80) + (d.title.length > 80 ? '…' : '') : '—'; } },
+                    { label: 'Category',      format: function (d) { return d.category || '—'; } },
+                    { label: 'Position',      format: function (d) { return d.position; } },
+                    { label: 'Tally (Y/N/A)', format: function (d) {
+                        return d.yes_count != null
+                            ? d.yes_count + ' / ' + d.no_count + ' / ' + d.abstain_count
+                            : '—';
+                    }}
+                ])
                 .sortBy(function (d) { return d.year || 0; })
                 .order(d3.descending)
                 .on('renderlet.html', function (chart) {
-                    /* Position → badge (col4) */
                     chart.selectAll('td.col4').each(function (d) {
                         d3.select(this).html(
                             '<span class="pos-badge pos-' + d.row.position + '">' + d.row.position + '</span>'
                         );
                     });
-                    /* vs. Majority → badge (col5, majority mode only) */
-                    if (majorityMode) {
-                        chart.selectAll('td.col5').each(function (d) {
-                            var tm    = d.row.toward_majority;
-                            var color = tm === 'agree'   ? '#27ae60'
-                                      : tm === 'against' ? '#e74c3c'
-                                      : tm === 'abstain' ? '#f39c12'
-                                      : '#95a7b5';
-                            var mp = d.row.majority_position ? ' (' + d.row.majority_position + ')' : '';
-                            d3.select(this).html(
-                                '<span class="pos-badge" style="background:' + color + '">' + tm + mp + '</span>'
-                            );
-                        });
-                    }
                     updateTableNav();
                 });
 
-            _charts = [posChart, yearChart, catChart, countWidget, dataTable];
+            _charts = [posChart, majChart, majYearChart, countWidget, dataTable];
             dc.renderAll(GROUP);
 
-            renderSessionTrend(containerSel, votes);
-
-            /* Reset table page offset when any filter changes */
-            dc.chartRegistry.list(GROUP).forEach(function (c) {
-                if (c !== dataTable) {
-                    c.on('filtered.tblreset', function () {
-                        tableOffset = 0;
-                        dataTable.beginSlice(0).endSlice(TABLE_PAGE_SIZE).redraw();
-                    });
-                }
+            /* Reset table offset on filter */
+            [posChart, majChart, majYearChart].forEach(function (c) {
+                c.on('filtered.tblreset', function () {
+                    tableOffset = 0;
+                    dataTable.beginSlice(0).endSlice(TABLE_PAGE_SIZE).redraw();
+                });
             });
 
-            /* Table prev/next navigation */
             if (tableNavEl) {
                 tableNavEl.addEventListener('click', function (e) {
                     var el = e.target.closest('#tbl-prev, #tbl-next');
@@ -518,7 +432,6 @@
                 });
             }
 
-            /* Clear-filters link */
             containerEl.addEventListener('click', function (e) {
                 if (e.target && e.target.classList.contains('votes-clear-link')) {
                     e.preventDefault();
@@ -527,33 +440,44 @@
                 }
             });
 
-            /* ── Similarity charts (majority mode only) ──────────────────── */
-            if (majorityMode && iso3) {
-                if (_simCache[iso3]) {
-                    applySimilarity(containerSel, _simCache[iso3]);
-                } else {
-                    /* Show loading placeholder */
-                    ['#similarity-high-chart', '#similarity-low-chart'].forEach(function (s) {
-                        var el = document.querySelector(containerSel + ' ' + s);
-                        if (el) el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin:0.5rem 0;">Loading…</p>';
-                    });
-                    fetch('/votes/api/' + iso3 + '/similarity/')
-                        .then(function (r) { return r.json(); })
-                        .then(function (data) {
-                            _simCache[iso3] = data;
-                            /* Only paint if the similarity row is still visible */
-                            var row = document.querySelector(containerSel + ' #similarity-row');
-                            if (row && row.style.display !== 'none') {
-                                applySimilarity(containerSel, data);
-                            }
-                        });
-                }
+            /* Initial render of extras */
+            renderSessionTrend(votes);
+            fetchSimilarity();
+        },
+
+        filterYear: function (from, to) {
+            _yearFrom = from;
+            _yearTo   = to;
+            if (!_dateDim) return;
+            if (from != null && to != null) {
+                _dateDim.filterRange([new Date(from + '-01-01'), new Date((to + 1) + '-01-01')]);
+            } else {
+                _dateDim.filterAll();
             }
+            dc.redrawAll(GROUP);
+            redrawExtras(true);
+            document.dispatchEvent(new CustomEvent('wc:yearfilter', {
+                detail: from != null ? { yearFrom: from, yearTo: to } : null
+            }));
+        },
+
+        filterCategory: function (val) {
+            if (!_catDim) return;
+            if (val) _catDim.filter(val);
+            else _catDim.filterAll();
+            dc.redrawAll(GROUP);
+            redrawExtras(false);
         },
 
         resetAll: function () {
+            _yearFrom = null;
+            _yearTo   = null;
+            if (_catDim)  _catDim.filterAll();
+            if (_dateDim) _dateDim.filterAll();
             dc.filterAll(GROUP);
             dc.renderAll(GROUP);
+            redrawExtras(true);
+            document.dispatchEvent(new CustomEvent('wc:yearfilter', { detail: null }));
         }
     };
 }());

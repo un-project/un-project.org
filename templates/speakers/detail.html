@@ -9,8 +9,100 @@
 <meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}{% if speaker.country and speaker.country.iso3 %}/static/flags/{{ speaker.country.iso3 }}.svg{% else %}/static/img/logo.png{% endif %}">
 {% endblock %}
 
+{% block extra_head %}
+<style>
+.speaker-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 680px) {
+  .speaker-layout { grid-template-columns: 1fr; }
+  .speaker-sidebar { position: static !important; }
+}
+.speaker-sidebar { position: sticky; top: calc(56px + 1rem); }
+.sidebar-box {
+  background: var(--un-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 1rem 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.sidebar-box h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.body-btn-sp, .body-btn-mt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  margin-bottom: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.body-btn-sp:last-child, .body-btn-mt:last-child { margin-bottom: 0; }
+.body-btn-sp.active, .body-btn-mt.active {
+  background: var(--un-blue);
+  color: #fff;
+  border-color: var(--un-blue);
+}
+#sp-year-clear, #mt-year-clear {
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--un-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+#speeches-nav, #meetings-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+#speeches-nav a, #meetings-nav a { color: var(--un-blue); }
+.sp-tab-nav {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0 0;
+  border-bottom: 2px solid var(--border);
+}
+.sp-tab-link {
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+.sp-tab-link:hover { color: var(--un-blue); }
+.sp-tab-link.active { color: var(--un-blue); border-bottom-color: var(--un-blue); font-weight: 600; }
+.sp-tab-panel { padding-top: 1.5rem; }
+</style>
+{% endblock %}
+
 {% block content %}
 {% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
 <div class="profile-header">
   <img class="speaker-photo" src="/static/speakers/{{ speaker.pk }}.jpg"
     onerror="this.style.display='none'" alt="{{ speaker.name }}">
@@ -40,48 +132,531 @@
   </div>
 </div>
 
-<form method="get" style="display:flex; align-items:center; gap:0.6rem; margin:0.75rem 0 1.5rem; font-size:0.9rem;">
-  <label style="font-weight:600; color:var(--muted);">Body:</label>
-  <select name="body" onchange="this.form.submit()" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.9rem;">
-    <option value=""{% if not current_body %} selected{% endif %}>GA + SC</option>
-    <option value="GA"{% if current_body == 'GA' %} selected{% endif %}>GA only</option>
-    <option value="SC"{% if current_body == 'SC' %} selected{% endif %}>SC only</option>
-  </select>
-  {% if current_body %}
-  <a href="?" style="font-size:0.82rem; color:var(--muted);">✕ clear</a>
-  {% endif %}
-</form>
+<nav class="sp-tab-nav">
+  <a href="#speeches" class="sp-tab-link" data-tab="speeches">Speeches</a>
+  <a href="#meetings" class="sp-tab-link" data-tab="meetings">Meetings Attended</a>
+</nav>
 
-{% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
+<div id="tab-speeches" class="sp-tab-panel">
+  <div class="speaker-layout">
 
-{% if recent_meetings %}
-<h2>Meetings Attended</h2>
-<ul style="list-style:none; padding:0;">
-  {% for doc in recent_meetings %}
-  <li style="margin-bottom:0.4rem;">
-    <a href="{{ doc.get_absolute_url }}">{{ doc.symbol }}</a>
-    <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
-    {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
-  </li>
-  {% endfor %}
-</ul>
-{% endif %}
+    <aside class="speaker-sidebar">
+      <div class="sidebar-box">
+        <h3>Body</h3>
+        <button class="body-btn-sp active" data-body="">GA + SC</button>
+        <button class="body-btn-sp" data-body="GA">GA only</button>
+        <button class="body-btn-sp" data-body="SC">SC only</button>
+      </div>
+      <div class="sidebar-box">
+        <h3>
+          Year
+          <button id="sp-year-clear" style="display:none;">✕ clear</button>
+        </h3>
+        <div id="sp-year-brush-chart"></div>
+        <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0 0; text-align:center;">Drag to filter</p>
+      </div>
+    </aside>
 
-<h2>Speeches{% if current_body %} <span class="meta" style="font-size:0.7em; font-weight:400;">— {{ current_body }}</span>{% endif %}</h2>
-{% for speech in speeches_page %}
-<div class="card">
-  <div class="speech-header">
-    {% if speaker.country and speaker.country.flag_url %}
-    <img src="{{ speaker.country.flag_url }}" alt="{{ speaker.country.iso3 }}" style="height:14px;vertical-align:middle;margin-right:3px;">
-    {% endif %}
-    <a href="{{ speech.get_absolute_url }}" class="meta">{{ speech.document.symbol }}</a>
-    {% if speech.document.date %}<span class="meta">{{ speech.document.date|date:"N j, Y" }}</span>{% endif %}
+    <main>
+      <h2 style="margin-top:0;">
+        Speeches
+        <span id="sp-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
+      </h2>
+      {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
+      <div id="speeches-list"><p class="meta">Loading…</p></div>
+      <div id="speeches-nav"></div>
+    </main>
+
   </div>
-  <p class="meta" style="margin:0.3rem 0 0;">{{ speech.excerpt }}</p>
 </div>
-{% empty %}
-<p class="meta">No speeches found.</p>
-{% endfor %}
 
-{% include "partials/pagination.html" with page_obj=speeches_page %}
+<div id="tab-meetings" class="sp-tab-panel">
+  <div class="speaker-layout">
+
+    <aside class="speaker-sidebar">
+      <div class="sidebar-box">
+        <h3>Body</h3>
+        <button class="body-btn-mt active" data-body="">GA + SC</button>
+        <button class="body-btn-mt" data-body="GA">GA only</button>
+        <button class="body-btn-mt" data-body="SC">SC only</button>
+      </div>
+      <div class="sidebar-box">
+        <h3>
+          Year
+          <button id="mt-year-clear" style="display:none;">✕ clear</button>
+        </h3>
+        <div id="mt-year-brush-chart"></div>
+        <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0 0; text-align:center;">Drag to filter</p>
+      </div>
+    </aside>
+
+    <main>
+      <h2 style="margin-top:0;">
+        Meetings Attended
+        <span id="mt-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
+      </h2>
+      <div id="meetings-list"><p class="meta">Loading…</p></div>
+      <div id="meetings-nav"></div>
+    </main>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Speeches tab ───────────────────────────────────────────────────── */
+(function () {
+  var SPEAKER_ID       = {{ speaker.pk }};
+  var SPEECHES_BY_YEAR = {{ speeches_by_year|safe }};
+  {% if speaker.country and speaker.country.flag_url %}
+  var FLAG_URL = '{{ speaker.country.flag_url }}';
+  {% else %}
+  var FLAG_URL = null;
+  {% endif %}
+
+  var state = { body: '', yearFrom: null, yearTo: null };
+
+  function refreshWordCloud() {
+    var widget = document.querySelector('.wc-widget');
+    if (!widget || !window.renderWordCloud) return;
+    var url = '/api/wordcloud/?speaker_id=' + SPEAKER_ID;
+    if (state.body)     url += '&body='      + state.body;
+    if (state.yearFrom) url += '&year_from=' + state.yearFrom;
+    if (state.yearTo)   url += '&year_to='   + state.yearTo;
+    widget.dataset.url = url;
+    window.renderWordCloud(widget, url);
+  }
+
+  function updateSummary() {
+    var parts = [];
+    if (state.body)    parts.push(state.body);
+    if (state.yearFrom && state.yearTo)  parts.push(state.yearFrom + '–' + state.yearTo);
+    else if (state.yearFrom) parts.push('from ' + state.yearFrom);
+    else if (state.yearTo)   parts.push('until ' + state.yearTo);
+    var el = document.getElementById('sp-filter-summary');
+    if (el) el.textContent = parts.length ? '— ' + parts.join(', ') : '';
+  }
+
+  function loadSpeeches(page) {
+    var url = '/api/speakers/' + SPEAKER_ID + '/speeches/?page=' + (page || 1);
+    if (state.body)     url += '&body='      + state.body;
+    if (state.yearFrom) url += '&year_from=' + state.yearFrom;
+    if (state.yearTo)   url += '&year_to='   + state.yearTo;
+
+    var list = document.getElementById('speeches-list');
+    var nav  = document.getElementById('speeches-nav');
+    list.innerHTML = '<p class="meta">Loading…</p>';
+    nav.innerHTML  = '';
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(renderSpeeches)
+      .catch(function () { list.innerHTML = '<p class="meta">Failed to load speeches.</p>'; });
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderSpeeches(data) {
+    var list = document.getElementById('speeches-list');
+    var nav  = document.getElementById('speeches-nav');
+
+    if (!data.speeches || !data.speeches.length) {
+      list.innerHTML = '<p class="meta">No speeches found.</p>';
+      nav.innerHTML  = '';
+      return;
+    }
+
+    list.innerHTML = data.speeches.map(function (s) {
+      var flagHtml = FLAG_URL
+        ? '<img src="' + esc(FLAG_URL) + '" alt="" style="height:14px;vertical-align:middle;margin-right:3px;">'
+        : '';
+      var dateHtml = s.date ? '<span class="meta">' + esc(formatDate(s.date)) + '</span>' : '';
+      return '<div class="card">'
+        + '<div class="speech-header">'
+        + flagHtml
+        + '<a href="' + esc(s.document_url) + '" class="meta">' + esc(s.document_symbol) + '</a>'
+        + dateHtml
+        + '</div>'
+        + '<p class="meta" style="margin:0.3rem 0 0;">' + esc(s.excerpt) + '</p>'
+        + '</div>';
+    }).join('');
+
+    var total = data.total, page = data.page;
+    var start = (page - 1) * 20 + 1, end = Math.min(page * 20, total);
+    var html  = '<span>' + start + '–' + end + ' of ' + total + ' speeches</span>';
+    if (data.has_prev) html += ' <a href="#" data-page="' + (page - 1) + '">&laquo; Prev</a>';
+    if (data.has_next) html += ' <a href="#" data-page="' + (page + 1) + '">Next &raquo;</a>';
+    nav.innerHTML = html;
+  }
+
+  document.querySelectorAll('.body-btn-sp').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.body-btn-sp').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.body = btn.dataset.body;
+      state.yearFrom = null;
+      state.yearTo   = null;
+      document.getElementById('sp-year-clear').style.display = 'none';
+      initYearChart(computeYearData(state.body));
+      updateSummary();
+      loadSpeeches(1);
+      refreshWordCloud();
+    });
+  });
+
+  document.getElementById('speeches-nav').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-page]');
+    if (!el) return;
+    e.preventDefault();
+    loadSpeeches(parseInt(el.dataset.page, 10));
+    document.getElementById('tab-speeches').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  var _brushG, _brush;
+
+  function computeYearData(bodyFilter) {
+    var agg = {};
+    SPEECHES_BY_YEAR.forEach(function (d) {
+      if (!bodyFilter || d.body === bodyFilter) {
+        agg[d.year] = (agg[d.year] || 0) + d.count;
+      }
+    });
+    return Object.keys(agg).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (yr) { return { year: yr, count: agg[yr] }; });
+  }
+
+  function initYearChart(data) {
+    var container = document.getElementById('sp-year-brush-chart');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!data || !data.length) return;
+
+    var margin = { top: 6, right: 4, bottom: 18, left: 4 };
+    var W  = container.clientWidth || 180;
+    var H  = 110;
+    var iW = W - margin.left - margin.right;
+    var iH = H - margin.top  - margin.bottom;
+
+    var years    = data.map(function (d) { return d.year; });
+    var maxCount = d3.max(data, function (d) { return d.count; });
+
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.1);
+    var y = d3.scaleLinear().domain([0, maxCount]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    var bars = g.selectAll('.bar').data(data).enter()
+      .append('rect').attr('class', 'bar')
+      .attr('x',      function (d) { return x(d.year); })
+      .attr('y',      function (d) { return y(d.count); })
+      .attr('width',  x.bandwidth())
+      .attr('height', function (d) { return iH - y(d.count); })
+      .attr('fill', '#4d8cc4').attr('rx', 1);
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 5));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g')
+      .attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    var brushG = g.append('g').attr('class', 'brush');
+    var brush  = d3.brushX()
+      .extent([[0, 0], [iW, iH]])
+      .on('end', function (event) {
+        if (!event.selection) {
+          bars.attr('fill', '#4d8cc4');
+          document.getElementById('sp-year-clear').style.display = 'none';
+          state.yearFrom = null;
+          state.yearTo   = null;
+          updateSummary();
+          loadSpeeches(1);
+          refreshWordCloud();
+          return;
+        }
+        var x0 = event.selection[0], x1 = event.selection[1];
+        var sel = years.filter(function (yr) {
+          var cx = x(yr) + x.bandwidth() / 2;
+          return cx >= x0 && cx <= x1;
+        });
+        if (!sel.length) return;
+        state.yearFrom = d3.min(sel);
+        state.yearTo   = d3.max(sel);
+        bars.attr('fill', function (d) {
+          return d.year >= state.yearFrom && d.year <= state.yearTo ? '#1b4f87' : '#c8d6de';
+        });
+        document.getElementById('sp-year-clear').style.display = '';
+        updateSummary();
+        loadSpeeches(1);
+        refreshWordCloud();
+      });
+
+    brushG.call(brush);
+    _brushG = brushG;
+    _brush  = brush;
+  }
+
+  document.getElementById('sp-year-clear').addEventListener('click', function () {
+    if (_brushG && _brush) _brushG.call(_brush.move, null);
+  });
+
+  window._initSpeechesTab = function () {
+    initYearChart(computeYearData(''));
+    loadSpeeches(1);
+  };
+}());
+</script>
+
+<script>
+/* ── Meetings tab ───────────────────────────────────────────────────── */
+(function () {
+  var SPEAKER_ID        = {{ speaker.pk }};
+  var MEETINGS_BY_YEAR  = {{ meetings_by_year|safe }};
+
+  var state = { body: '', yearFrom: null, yearTo: null };
+
+  function updateSummary() {
+    var parts = [];
+    if (state.body)    parts.push(state.body);
+    if (state.yearFrom && state.yearTo)  parts.push(state.yearFrom + '–' + state.yearTo);
+    else if (state.yearFrom) parts.push('from ' + state.yearFrom);
+    else if (state.yearTo)   parts.push('until ' + state.yearTo);
+    var el = document.getElementById('mt-filter-summary');
+    if (el) el.textContent = parts.length ? '— ' + parts.join(', ') : '';
+  }
+
+  function loadMeetings(page) {
+    var url = '/api/speakers/' + SPEAKER_ID + '/meetings/?page=' + (page || 1);
+    if (state.body)     url += '&body='      + state.body;
+    if (state.yearFrom) url += '&year_from=' + state.yearFrom;
+    if (state.yearTo)   url += '&year_to='   + state.yearTo;
+
+    var list = document.getElementById('meetings-list');
+    var nav  = document.getElementById('meetings-nav');
+    list.innerHTML = '<p class="meta">Loading…</p>';
+    nav.innerHTML  = '';
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(renderMeetings)
+      .catch(function () { list.innerHTML = '<p class="meta">Failed to load meetings.</p>'; });
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderMeetings(data) {
+    var list = document.getElementById('meetings-list');
+    var nav  = document.getElementById('meetings-nav');
+
+    if (!data.meetings || !data.meetings.length) {
+      list.innerHTML = '<p class="meta">No meetings found.</p>';
+      nav.innerHTML  = '';
+      return;
+    }
+
+    list.innerHTML = '<ul style="list-style:none; padding:0;">'
+      + data.meetings.map(function (m) {
+          var badge = m.body ? '<span class="badge badge-' + esc(m.body.toLowerCase()) + '">' + esc(m.body) + '</span> ' : '';
+          var date  = m.date ? '<span class="meta">' + esc(formatDate(m.date)) + '</span>' : '';
+          return '<li style="margin-bottom:0.4rem;">'
+            + '<a href="' + esc(m.url) + '">' + esc(m.symbol) + '</a> '
+            + badge + date
+            + '</li>';
+        }).join('')
+      + '</ul>';
+
+    var total = data.total, page = data.page;
+    var start = (page - 1) * 20 + 1, end = Math.min(page * 20, total);
+    var html = '<span>' + start + '–' + end + ' of ' + total + ' meetings</span>';
+    if (data.has_prev) html += ' <a href="#" data-meetings-page="' + (page - 1) + '">&laquo; Prev</a>';
+    if (data.has_next) html += ' <a href="#" data-meetings-page="' + (page + 1) + '">Next &raquo;</a>';
+    nav.innerHTML = html;
+  }
+
+  document.querySelectorAll('.body-btn-mt').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.body-btn-mt').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.body = btn.dataset.body;
+      state.yearFrom = null;
+      state.yearTo   = null;
+      document.getElementById('mt-year-clear').style.display = 'none';
+      initYearChart(computeYearData(state.body));
+      updateSummary();
+      loadMeetings(1);
+    });
+  });
+
+  document.getElementById('meetings-nav').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-meetings-page]');
+    if (!el) return;
+    e.preventDefault();
+    loadMeetings(parseInt(el.dataset.meetingsPage, 10));
+    document.getElementById('tab-meetings').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  var _brushG, _brush;
+
+  function computeYearData(bodyFilter) {
+    var agg = {};
+    MEETINGS_BY_YEAR.forEach(function (d) {
+      if (!bodyFilter || d.body === bodyFilter) {
+        agg[d.year] = (agg[d.year] || 0) + d.count;
+      }
+    });
+    return Object.keys(agg).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (yr) { return { year: yr, count: agg[yr] }; });
+  }
+
+  function initYearChart(data) {
+    var container = document.getElementById('mt-year-brush-chart');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!data || !data.length) return;
+
+    var margin = { top: 6, right: 4, bottom: 18, left: 4 };
+    var W  = container.clientWidth || 180;
+    var H  = 110;
+    var iW = W - margin.left - margin.right;
+    var iH = H - margin.top  - margin.bottom;
+
+    var years    = data.map(function (d) { return d.year; });
+    var maxCount = d3.max(data, function (d) { return d.count; });
+
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.1);
+    var y = d3.scaleLinear().domain([0, maxCount]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    var bars = g.selectAll('.bar').data(data).enter()
+      .append('rect').attr('class', 'bar')
+      .attr('x',      function (d) { return x(d.year); })
+      .attr('y',      function (d) { return y(d.count); })
+      .attr('width',  x.bandwidth())
+      .attr('height', function (d) { return iH - y(d.count); })
+      .attr('fill', '#4d8cc4').attr('rx', 1);
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 5));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g')
+      .attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    var brushG = g.append('g').attr('class', 'brush');
+    var brush  = d3.brushX()
+      .extent([[0, 0], [iW, iH]])
+      .on('end', function (event) {
+        if (!event.selection) {
+          bars.attr('fill', '#4d8cc4');
+          document.getElementById('mt-year-clear').style.display = 'none';
+          state.yearFrom = null;
+          state.yearTo   = null;
+          updateSummary();
+          loadMeetings(1);
+          return;
+        }
+        var x0 = event.selection[0], x1 = event.selection[1];
+        var sel = years.filter(function (yr) {
+          var cx = x(yr) + x.bandwidth() / 2;
+          return cx >= x0 && cx <= x1;
+        });
+        if (!sel.length) return;
+        state.yearFrom = d3.min(sel);
+        state.yearTo   = d3.max(sel);
+        bars.attr('fill', function (d) {
+          return d.year >= state.yearFrom && d.year <= state.yearTo ? '#1b4f87' : '#c8d6de';
+        });
+        document.getElementById('mt-year-clear').style.display = '';
+        updateSummary();
+        loadMeetings(1);
+      });
+
+    brushG.call(brush);
+    _brushG = brushG;
+    _brush  = brush;
+  }
+
+  document.getElementById('mt-year-clear').addEventListener('click', function () {
+    if (_brushG && _brush) _brushG.call(_brush.move, null);
+  });
+
+  window._initMeetingsTab = function () {
+    initYearChart(computeYearData(''));
+    loadMeetings(1);
+  };
+}());
+</script>
+
+<script>
+/* ── Tab controller ─────────────────────────────────────────────────── */
+(function () {
+  var TABS        = ['speeches', 'meetings'];
+  var initialized = {};
+
+  function showTab(name) {
+    TABS.forEach(function (t) {
+      var el = document.getElementById('tab-' + t);
+      if (el) el.style.display = 'none';
+    });
+    var panel = document.getElementById('tab-' + name);
+    if (panel) panel.style.display = '';
+
+    document.querySelectorAll('.sp-tab-link').forEach(function (a) {
+      a.classList.toggle('active', a.dataset.tab === name);
+    });
+
+    if (!initialized[name]) {
+      initialized[name] = true;
+      if (name === 'speeches' && window._initSpeechesTab) window._initSpeechesTab();
+      if (name === 'meetings' && window._initMeetingsTab) window._initMeetingsTab();
+    }
+
+    history.replaceState(null, '', location.pathname + '#' + name);
+  }
+
+  document.querySelectorAll('.sp-tab-link').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      showTab(a.dataset.tab);
+    });
+  });
+
+  var hash    = location.hash.replace('#', '');
+  var initial = TABS.indexOf(hash) !== -1 ? hash : 'speeches';
+  showTab(initial);
+}());
+</script>
 {% endblock %}

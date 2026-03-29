@@ -10,16 +10,107 @@
 {% endblock %}
 
 {% block extra_head %}
+<style>
+.tab-nav {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0 0;
+  border-bottom: 2px solid var(--border);
+}
+.tab-link {
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+.tab-link:hover { color: var(--un-blue); }
+.tab-link.active { color: var(--un-blue); border-bottom-color: var(--un-blue); font-weight: 600; }
+.tab-panel { padding-top: 1.5rem; }
+</style>
 {% if country.iso3 %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dc@4/dist/style/dc.min.css">
 <style>
-.session-filter { display:flex; align-items:center; gap:0.6rem; margin:0.75rem 0 1.5rem; font-size:0.9rem; }
-.session-filter select { padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.9rem; }
+.speaker-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 680px) {
+  .speaker-layout { grid-template-columns: 1fr; }
+  .speaker-sidebar { position: static !important; }
+}
+.speaker-sidebar { position: sticky; top: calc(56px + 1rem); }
+.sidebar-box {
+  background: var(--un-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 1rem 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.sidebar-box h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.body-btn, .body-btn-rp, .body-btn-cv {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  margin-bottom: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.body-btn:last-child, .body-btn-rp:last-child, .body-btn-cv:last-child { margin-bottom: 0; }
+.body-btn.active, .body-btn-rp.active, .body-btn-cv.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); }
+.cv-cat-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-cat-btn:hover { background: var(--un-light); border-color: var(--border); }
+.cv-cat-btn.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); }
+#cv-cat-list { max-height: 220px; overflow-y: auto; }
+#cv-year-clear, #sp-year-clear, #rp-year-clear {
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--un-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+#sp-speeches-nav a, #rp-reps-nav a { color: var(--un-blue); }
 .chart-row { display:flex; gap:1.25rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1.25rem; }
 .chart-box { background:var(--un-light); border:1px solid var(--border); border-radius:6px; padding:0.9rem 1.1rem 0.6rem; }
 .chart-box h3 { margin:0 0 0.5rem; font-size:0.78rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
-#cv-year-box { flex:1; min-width:280px; }
-#cv-cat-box  { width:100%; }
 #cv-data-count { font-size:0.85rem; color:var(--muted); margin-bottom:0.4rem; }
 #cv-data-count a { color:var(--un-blue); }
 #cv-data-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
@@ -32,9 +123,6 @@
 .pos-abstain { background:#f39c12; }
 .pos-absent      { background:#95a7b5; }
 .pos-non_voting  { background:#c8d6de; }
-#cv-reset-btn { padding:0.35rem 0.8rem; background:var(--un-blue); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem; }
-#cv-reset-btn:hover { opacity:0.88; }
-
 </style>
 {% endif %}
 {% endblock %}
@@ -57,7 +145,7 @@
 
 <div class="stat-grid">
   <div class="stat-box">
-    <div class="num">{{ speeches_page.paginator.count }}</div>
+    <div class="num">{{ speech_count }}</div>
     <div class="label">Speeches</div>
   </div>
   <div class="stat-box">
@@ -82,138 +170,168 @@
   </div>
 </div>
 
-<nav style="display:flex; gap:1.25rem; margin:1rem 0 0.25rem; font-size:0.88rem; border-bottom:1px solid var(--border); padding-bottom:0.6rem;">
-  {% if country.iso3 %}<a href="#voting" style="color:var(--un-blue);">Voting</a>{% endif %}
-  <a href="#representatives" style="color:var(--un-blue);">Representatives</a>
-  <a href="#speeches" style="color:var(--un-blue);">Speeches</a>
-  {% if debate_entries %}<a href="#debate" style="color:var(--un-blue);">General Debate</a>{% endif %}
-  {% if country.iso3 %}<a href="/votes/compare/?a={{ country.iso3 }}" style="color:var(--un-blue); margin-left:auto;">Compare votes ↗</a>{% endif %}
+<nav class="tab-nav">
+  {% if country.iso3 %}<a href="#voting" class="tab-link" data-tab="voting">Voting</a>{% endif %}
+  <a href="#speeches" class="tab-link" data-tab="speeches">Speeches</a>
+  <a href="#representatives" class="tab-link" data-tab="representatives">Representatives</a>
+  {% if debate_entries %}<a href="#debate" class="tab-link" data-tab="debate">General Debate</a>{% endif %}
+  {% if country.iso3 %}<a href="/votes/compare/?a={{ country.iso3 }}" style="color:var(--un-blue); font-size:0.88rem; margin-left:auto;">Compare votes ↗</a>{% endif %}
 </nav>
 
-<form class="session-filter" method="get" id="session-form">
-  <label style="font-weight:600; color:var(--muted);">Body:</label>
-  <select name="body" onchange="this.form.submit()">
-    <option value=""{% if not current_body %} selected{% endif %}>GA + SC</option>
-    <option value="GA"{% if current_body == 'GA' %} selected{% endif %}>GA only</option>
-    <option value="SC"{% if current_body == 'SC' %} selected{% endif %}>SC only</option>
-  </select>
-  {% if sessions %}
-  <label for="session-select" style="font-weight:600; color:var(--muted); margin-left:0.5rem;">Session:</label>
-  <select id="session-select" name="session" onchange="this.form.submit()">
-    <option value="">All sessions</option>
-    {% for s in sessions %}
-    <option value="{{ s }}"{% if s == current_session %} selected{% endif %}>Session {{ s }}</option>
-    {% endfor %}
-  </select>
-  {% endif %}
-  {% if current_session or current_body %}
-  <a href="?" style="font-size:0.82rem; color:var(--muted);">✕ clear</a>
-  {% endif %}
-</form>
-
-{% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
 
 {% if country.iso3 %}
-<h2 id="voting" style="margin-top:2rem;">
-  Voting Analysis
-  <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">open full page ↗</a>
-  <a href="/votes/compare/?a={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">compare with another country ↗</a>
-  <button id="cv-reset-btn" style="display:none; margin-left:0.75rem;">Reset filters</button>
-  <label id="cv-majority-label" style="display:none; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.82rem; font-weight:400; margin-left:0.75rem; vertical-align:middle;">
-    <input type="checkbox" id="cv-majority-toggle" style="width:14px;height:14px;cursor:pointer;">
-    Compare to majority
-  </label>
-</h2>
-<div id="cv-charts">
-  <div id="cv-loading" class="meta">Loading voting data…</div>
-  <div id="cv-inner" style="display:none;">
-    <div class="chart-row">
-      <div class="chart-box">
-        <h3>Vote position</h3>
-        <div id="position-chart"></div>
+<div id="tab-voting" class="tab-panel">
+<div class="speaker-layout">
+
+  <aside class="speaker-sidebar">
+    <div class="sidebar-box">
+      <h3>Body</h3>
+      <button class="body-btn-cv active" data-body="">GA + SC</button>
+      <button class="body-btn-cv" data-body="GA">GA only</button>
+      <button class="body-btn-cv" data-body="SC">SC only</button>
+    </div>
+    <div class="sidebar-box">
+      <h3>
+        Year
+        <button id="cv-year-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="cv-year-brush-chart"></div>
+      <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0 0; text-align:center;">Drag to filter</p>
+    </div>
+    <div class="sidebar-box">
+      <h3>
+        Category
+        <button id="cv-cat-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="cv-cat-list"></div>
+    </div>
+  </aside>
+
+  <main>
+    <h2 id="voting" style="margin-top:0;">
+      Voting Analysis
+      <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">full page ↗</a>
+      <a href="/votes/compare/?a={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">compare ↗</a>
+    </h2>
+    <div id="cv-loading" class="meta">Loading voting data…</div>
+    <div id="cv-inner" style="display:none;">
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3>Vote position</h3>
+          <div id="position-chart"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Toward majority</h3>
+          <div id="toward-majority-chart"></div>
+        </div>
       </div>
-      <div class="chart-box" id="cv-year-box">
-        <h3>Votes by year <small style="font-size:0.72rem; font-weight:400; text-transform:none;">(drag to filter)</small></h3>
-        <div id="year-chart"></div>
+      <div class="chart-box" style="margin-top:1.25rem; margin-bottom:1.25rem;">
+        <h3>Voting records toward majority <small style="font-size:0.72rem; font-weight:400; text-transform:none;">(filtered by sidebar)</small></h3>
+        <div id="toward-majority-year-chart"></div>
+      </div>
+      <div class="chart-box" style="margin-top:1.25rem; margin-bottom:1.25rem;">
+        <h3>Voting trend by year</h3>
+        <div id="session-trend-chart"></div>
+      </div>
+      <div id="similarity-row" style="display:flex; gap:1.25rem; flex-wrap:wrap; margin-bottom:1.25rem;" class="chart-row">
+        <div class="chart-box" style="flex:1; min-width:260px;">
+          <h3>Most similar countries</h3>
+          <div id="similarity-high-chart"></div>
+        </div>
+        <div class="chart-box" style="flex:1; min-width:260px;">
+          <h3>Least similar countries</h3>
+          <div id="similarity-low-chart"></div>
+        </div>
+      </div>
+      <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found.</p>
+      <div id="data-count" style="margin-top:1rem;"></div>
+      <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
+        <h3>Vote records</h3>
+        <table id="data-table">
+          <thead>
+            <tr>
+              <th>Year</th><th>Resolution</th><th>Title</th><th>Category</th><th>Position</th><th>Tally (Y/N/A)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="table-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; font-size:0.85rem; color:var(--muted);"></div>
       </div>
     </div>
-    <div class="chart-box" id="cv-cat-box">
-      <h3>By category</h3>
-      <div id="category-chart"></div>
-    </div>
-    <div class="chart-box" style="margin-top:1.25rem; margin-bottom:1.25rem;">
-      <h3>Voting trend by session</h3>
-      <div id="session-trend-chart"></div>
-    </div>
-    <div id="similarity-row" style="display:none; gap:1.25rem; flex-wrap:wrap; margin-bottom:1.25rem;" class="chart-row">
-      <div class="chart-box" style="flex:1; min-width:260px;">
-        <h3>Most similar countries</h3>
-        <div id="similarity-high-chart"></div>
-      </div>
-      <div class="chart-box" style="flex:1; min-width:260px;">
-        <h3>Least similar countries</h3>
-        <div id="similarity-low-chart"></div>
-      </div>
-    </div>
-    <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found.</p>
-    <div id="data-count" style="margin-top:1rem;"></div>
-    <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
-      <h3>Vote records</h3>
-      <table id="data-table">
-        <thead>
-          <tr>
-            <th>Year</th><th>Resolution</th><th>Title</th><th>Category</th><th>Position</th><th>Tally (Y/N/A)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div id="table-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; font-size:0.85rem; color:var(--muted);"></div>
-    </div>
-  </div>
+  </main>
+
 </div>
+</div><!-- /tab-voting -->
 {% endif %}
 
-<h2 id="representatives" style="margin-top:2rem;">Representatives</h2>
-{% if representatives_page %}
-<ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">
-  {% for sp in representatives_page %}
-  <li style="margin-bottom:0.4rem;">
-    <a href="{{ sp.get_absolute_url }}">{{ sp.name }}</a>
-    {% if sp.role %}<span class="meta">&mdash; {{ sp.role }}</span>{% endif %}
-    {% if sp.first_year %}
-      <span class="meta" style="font-size:0.78rem;">
-        ({% if sp.first_year == sp.last_year %}{{ sp.first_year }}{% else %}{{ sp.first_year }}–{{ sp.last_year }}{% endif %})
-      </span>
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
-{% include "partials/pagination_named.html" with page_obj=representatives_page param_name="reps_page" %}
-{% else %}
-<p class="meta">No speaker records found.</p>
-{% endif %}
+<div id="tab-speeches" class="tab-panel">
+<div class="speaker-layout">
 
-<h2 id="speeches" style="margin-top:2rem;">
-  Speeches{% if current_body or current_session %} <span class="meta" style="font-size:0.7em; font-weight:400;">—{% if current_body %} {{ current_body }}{% endif %}{% if current_session %} Session {{ current_session }}{% endif %}</span>{% endif %}
-</h2>
-{% for speech in speeches_page %}
-<div class="card">
-  <div class="speech-header">
-    <img src="/static/speakers/{{ speech.speaker.pk }}.jpg" class="speaker-avatar" alt="" onerror="this.style.display='none'">
-    <a class="speaker-name" href="{{ speech.speaker.get_absolute_url }}">{{ speech.speaker.name }}</a>
-    <a href="{{ speech.get_absolute_url }}" class="meta">{{ speech.document.symbol }}</a>
-    {% if speech.document.date %}<span class="meta">{{ speech.document.date|date:"N j, Y" }}</span>{% endif %}
-  </div>
-  <p class="meta" style="margin:0.3rem 0 0;">{{ speech.excerpt }}</p>
+  <aside class="speaker-sidebar">
+    <div class="sidebar-box">
+      <h3>Body</h3>
+      <button class="body-btn active" data-body="">GA + SC</button>
+      <button class="body-btn" data-body="GA">GA only</button>
+      <button class="body-btn" data-body="SC">SC only</button>
+    </div>
+    <div class="sidebar-box">
+      <h3>
+        Year
+        <button id="sp-year-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="sp-year-brush-chart"></div>
+      <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0 0; text-align:center;">Drag to filter</p>
+    </div>
+  </aside>
+
+  <main>
+    <h2 id="speeches" style="margin-top:0;">
+      Speeches
+      <span id="sp-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
+    </h2>
+    {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
+    <div id="sp-speeches-list"><p class="meta">Loading…</p></div>
+    <div id="sp-speeches-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; font-size:0.85rem; color:var(--muted);"></div>
+  </main>
+
 </div>
-{% empty %}
-<p class="meta">No speeches found.</p>
-{% endfor %}
+</div><!-- /tab-speeches -->
 
-{% include "partials/pagination.html" with page_obj=speeches_page %}
+<div id="tab-representatives" class="tab-panel">
+<div class="speaker-layout">
+
+  <aside class="speaker-sidebar">
+    <div class="sidebar-box">
+      <h3>Body</h3>
+      <button class="body-btn-rp active" data-body="">GA + SC</button>
+      <button class="body-btn-rp" data-body="GA">GA only</button>
+      <button class="body-btn-rp" data-body="SC">SC only</button>
+    </div>
+    <div class="sidebar-box">
+      <h3>
+        Year
+        <button id="rp-year-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="rp-year-brush-chart"></div>
+      <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0 0; text-align:center;">Drag to filter</p>
+    </div>
+  </aside>
+
+  <main>
+    <h2 id="representatives" style="margin-top:0;">
+      Representatives
+      <span id="rp-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
+    </h2>
+    <div id="rp-reps-list"><p class="meta">Loading…</p></div>
+    <div id="rp-reps-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; font-size:0.85rem; color:var(--muted);"></div>
+  </main>
+
+</div>
+</div><!-- /tab-representatives -->
 
 {% if debate_entries %}
-<h2 id="debate" style="margin-top:2rem;">
+<div id="tab-debate" class="tab-panel">
+<h2 id="debate" style="margin-top:0;">
   General Debate
   <a href="/debate/" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">browse all sessions ↗</a>
 </h2>
@@ -255,6 +373,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div><!-- /tab-debate -->
 {% endif %}
 
 {% endblock %}
@@ -266,38 +385,639 @@
 <script src="/static/js/votes_charts.js"></script>
 <script>
 (function () {
-  var loading        = document.getElementById('cv-loading');
-  var inner          = document.getElementById('cv-inner');
-  var resetBtn       = document.getElementById('cv-reset-btn');
-  var majorityLabel  = document.getElementById('cv-majority-label');
-  var majorityToggle = document.getElementById('cv-majority-toggle');
-  var currentVotes   = null;
+  var loading   = document.getElementById('cv-loading');
+  var inner     = document.getElementById('cv-inner');
+  var cvState   = { body: '', yearFrom: null, yearTo: null, category: null };
 
-  function currentMode() { return majorityToggle.checked ? 'majority' : 'normal'; }
-
-  var apiUrl = '{{ votes_api_url }}';
-  fetch(apiUrl)
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      loading.style.display = 'none';
-      if (!data.votes || data.votes.length === 0) {
-        inner.style.display = 'block';
-        document.getElementById('no-votes-msg').style.display = 'block';
-        return;
-      }
-      currentVotes = data.votes;
-      inner.style.display  = 'block';
-      resetBtn.style.display = 'inline';
-      majorityLabel.style.display = 'inline-flex';
-      VoteCharts.init('#cv-inner', currentVotes, currentMode(), '{{ country.iso3 }}');
-    })
-    .catch(function () { loading.style.display = 'none'; });
-
-  majorityToggle.addEventListener('change', function () {
-    if (currentVotes) VoteCharts.init('#cv-inner', currentVotes, currentMode(), '{{ country.iso3 }}');
+  /* ── Sidebar: body buttons ─────────────────────────────────────── */
+  document.querySelectorAll('.body-btn-cv').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.body-btn-cv').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      cvState.body     = btn.dataset.body;
+      cvState.yearFrom = null;
+      cvState.yearTo   = null;
+      cvState.category = null;
+      document.getElementById('cv-year-clear').style.display = 'none';
+      document.getElementById('cv-cat-clear').style.display  = 'none';
+      if (window._initVotingTab) window._initVotingTab(cvState.body);
+    });
   });
 
-  resetBtn.addEventListener('click', function () { VoteCharts.resetAll(); });
+  /* ── Sidebar: year brush ───────────────────────────────────────── */
+  var _cvBrushG, _cvBrush;
+
+  function buildYearBrush(votes) {
+    var agg = {};
+    votes.forEach(function (v) { if (v.year) agg[v.year] = (agg[v.year] || 0) + 1; });
+    var data = Object.keys(agg).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (yr) { return { year: yr, count: agg[yr] }; });
+
+    var container = document.getElementById('cv-year-brush-chart');
+    if (!container || !data.length) return;
+    container.innerHTML = '';
+
+    var margin = { top: 6, right: 4, bottom: 18, left: 4 };
+    var W  = container.clientWidth || 180;
+    var H  = 110;
+    var iW = W - margin.left - margin.right;
+    var iH = H - margin.top  - margin.bottom;
+
+    var years    = data.map(function (d) { return d.year; });
+    var maxCount = d3.max(data, function (d) { return d.count; });
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.1);
+    var y = d3.scaleLinear().domain([0, maxCount]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    var bars = g.selectAll('.bar').data(data).enter()
+      .append('rect').attr('class', 'bar')
+      .attr('x',      function (d) { return x(d.year); })
+      .attr('y',      function (d) { return y(d.count); })
+      .attr('width',  x.bandwidth())
+      .attr('height', function (d) { return iH - y(d.count); })
+      .attr('fill', '#4d8cc4').attr('rx', 1);
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 5));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g')
+      .attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    var brushG = g.append('g').attr('class', 'brush');
+    var brush  = d3.brushX()
+      .extent([[0, 0], [iW, iH]])
+      .on('end', function (event) {
+        if (!event.selection) {
+          bars.attr('fill', '#4d8cc4');
+          document.getElementById('cv-year-clear').style.display = 'none';
+          cvState.yearFrom = null;
+          cvState.yearTo   = null;
+          VoteCharts.filterYear(null, null);
+          return;
+        }
+        var x0 = event.selection[0], x1 = event.selection[1];
+        var sel = years.filter(function (yr) {
+          var cx = x(yr) + x.bandwidth() / 2;
+          return cx >= x0 && cx <= x1;
+        });
+        if (!sel.length) return;
+        cvState.yearFrom = d3.min(sel);
+        cvState.yearTo   = d3.max(sel);
+        bars.attr('fill', function (d) {
+          return d.year >= cvState.yearFrom && d.year <= cvState.yearTo ? '#1b4f87' : '#c8d6de';
+        });
+        document.getElementById('cv-year-clear').style.display = '';
+        VoteCharts.filterYear(cvState.yearFrom, cvState.yearTo);
+      });
+
+    brushG.call(brush);
+    _cvBrushG = brushG;
+    _cvBrush  = brush;
+  }
+
+  document.getElementById('cv-year-clear').addEventListener('click', function () {
+    if (_cvBrushG && _cvBrush) _cvBrushG.call(_cvBrush.move, null);
+  });
+
+  /* ── Sidebar: category list ────────────────────────────────────── */
+  function buildCategoryList(votes) {
+    var counts = {};
+    votes.forEach(function (v) {
+      var cat = v.category;
+      if (cat && cat !== 'Uncategorized') counts[cat] = (counts[cat] || 0) + 1;
+    });
+    var cats = Object.keys(counts).sort();
+    var listEl = document.getElementById('cv-cat-list');
+    if (!listEl || !cats.length) return;
+
+    listEl.innerHTML = cats.map(function (cat) {
+      return '<button class="cv-cat-btn" data-cat="' + cat.replace(/"/g, '&quot;') + '">'
+        + cat + ' <span style="color:var(--muted);font-size:0.72rem;">(' + counts[cat] + ')</span>'
+        + '</button>';
+    }).join('');
+
+    listEl.querySelectorAll('.cv-cat-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var isActive = btn.classList.contains('active');
+        listEl.querySelectorAll('.cv-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+        if (isActive) {
+          cvState.category = null;
+          document.getElementById('cv-cat-clear').style.display = 'none';
+          VoteCharts.filterCategory(null);
+        } else {
+          btn.classList.add('active');
+          cvState.category = btn.dataset.cat;
+          document.getElementById('cv-cat-clear').style.display = '';
+          VoteCharts.filterCategory(cvState.category);
+        }
+      });
+    });
+  }
+
+  document.getElementById('cv-cat-clear').addEventListener('click', function () {
+    var listEl = document.getElementById('cv-cat-list');
+    if (listEl) listEl.querySelectorAll('.cv-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+    cvState.category = null;
+    document.getElementById('cv-cat-clear').style.display = 'none';
+    VoteCharts.filterCategory(null);
+  });
+
+  /* ── Fetch + init ──────────────────────────────────────────────── */
+  window._initVotingTab = function (bodyFilter) {
+    var apiUrl = '{{ votes_api_url }}';
+    if (bodyFilter) apiUrl += '?body=' + bodyFilter;
+
+    loading.style.display = 'block';
+    inner.style.display   = 'none';
+
+    fetch(apiUrl)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        loading.style.display = 'none';
+        if (!data.votes || data.votes.length === 0) {
+          inner.style.display = 'block';
+          document.getElementById('no-votes-msg').style.display = 'block';
+          return;
+        }
+        inner.style.display = 'block';
+
+        /* Reset sidebar year/cat state and UI on re-fetch */
+        cvState.yearFrom = null; cvState.yearTo = null; cvState.category = null;
+        document.getElementById('cv-year-clear').style.display = 'none';
+        document.getElementById('cv-cat-clear').style.display  = 'none';
+
+        try {
+          VoteCharts.init('#cv-inner', data.votes, '{{ country.iso3 }}', cvState.body);
+        } catch (e) {
+          console.error('VoteCharts.init error:', e);
+        }
+        buildYearBrush(data.votes);
+        buildCategoryList(data.votes);
+      })
+      .catch(function () { loading.style.display = 'none'; });
+  };
+}());
+</script>
+
+<script>
+/* ── Speeches sidebar ──────────────────────────────────────────────── */
+(function () {
+  var ISO3       = '{{ country.iso3 }}';
+  var SPEECHES_BY_YEAR = {{ speeches_by_year|safe }};
+
+  var state = { body: '', yearFrom: null, yearTo: null, page: 1 };
+
+  function refreshWordCloud() {
+    var widget = document.querySelector('.wc-widget');
+    if (!widget || !window.renderWordCloud) return;
+    var url = '/api/wordcloud/?country_id={{ country.pk }}';
+    if (state.body)     url += '&body='      + state.body;
+    if (state.yearFrom) url += '&year_from=' + state.yearFrom;
+    if (state.yearTo)   url += '&year_to='   + state.yearTo;
+    widget.dataset.url = url;
+    window.renderWordCloud(widget, url);
+  }
+
+  function updateSummary() {
+    var parts = [];
+    if (state.body)    parts.push(state.body);
+    if (state.yearFrom && state.yearTo)  parts.push(state.yearFrom + '–' + state.yearTo);
+    else if (state.yearFrom) parts.push('from ' + state.yearFrom);
+    else if (state.yearTo)   parts.push('until ' + state.yearTo);
+    var el = document.getElementById('sp-filter-summary');
+    if (el) el.textContent = parts.length ? '— ' + parts.join(', ') : '';
+  }
+
+  function loadSpeeches(page) {
+    state.page = page || 1;
+    var url = '/api/countries/' + ISO3 + '/speeches/?page=' + state.page;
+    if (state.body)     url += '&body='      + state.body;
+    if (state.yearFrom) url += '&year_from=' + state.yearFrom;
+    if (state.yearTo)   url += '&year_to='   + state.yearTo;
+
+    var list = document.getElementById('sp-speeches-list');
+    var nav  = document.getElementById('sp-speeches-nav');
+    list.innerHTML = '<p class="meta">Loading…</p>';
+    nav.innerHTML  = '';
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(renderSpeeches)
+      .catch(function () { list.innerHTML = '<p class="meta">Failed to load speeches.</p>'; });
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderSpeeches(data) {
+    var list = document.getElementById('sp-speeches-list');
+    var nav  = document.getElementById('sp-speeches-nav');
+
+    if (!data.speeches || !data.speeches.length) {
+      list.innerHTML = '<p class="meta">No speeches found.</p>';
+      nav.innerHTML  = '';
+      return;
+    }
+
+    list.innerHTML = data.speeches.map(function (s) {
+      var dateHtml = s.date ? '<span class="meta">' + esc(formatDate(s.date)) + '</span>' : '';
+      return '<div class="card">'
+        + '<div class="speech-header">'
+        + '<img src="/static/speakers/' + s.speaker_pk + '.jpg" class="speaker-avatar" alt="" onerror="this.style.display=\'none\'">'
+        + '<a class="speaker-name" href="' + esc(s.speaker_url) + '">' + esc(s.speaker_name) + '</a>'
+        + '<a href="' + esc(s.document_url) + '" class="meta">' + esc(s.document_symbol) + '</a>'
+        + dateHtml
+        + '</div>'
+        + '<p class="meta" style="margin:0.3rem 0 0;">' + esc(s.excerpt) + '</p>'
+        + '</div>';
+    }).join('');
+
+    var total = data.total, page = data.page;
+    var start = (page - 1) * 20 + 1, end = Math.min(page * 20, total);
+    var html = '<span>' + start + '–' + end + ' of ' + total + ' speeches</span>';
+    if (data.has_prev) html += ' <a href="#" data-page="' + (page - 1) + '">&laquo; Prev</a>';
+    if (data.has_next) html += ' <a href="#" data-page="' + (page + 1) + '">Next &raquo;</a>';
+    nav.innerHTML = html;
+  }
+
+  document.querySelectorAll('.body-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.body-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.body = btn.dataset.body;
+      state.yearFrom = null;
+      state.yearTo   = null;
+      document.getElementById('sp-year-clear').style.display = 'none';
+      initYearChart(computeYearData(state.body));
+      updateSummary();
+      loadSpeeches(1);
+      refreshWordCloud();
+    });
+  });
+
+  document.getElementById('sp-speeches-nav').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-page]');
+    if (!el) return;
+    e.preventDefault();
+    loadSpeeches(parseInt(el.dataset.page, 10));
+    document.getElementById('speeches').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  var _spBrushG, _spBrush;
+
+  function computeYearData(bodyFilter) {
+    var agg = {};
+    SPEECHES_BY_YEAR.forEach(function (d) {
+      if (!bodyFilter || d.body === bodyFilter) {
+        agg[d.year] = (agg[d.year] || 0) + d.count;
+      }
+    });
+    return Object.keys(agg).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (yr) { return { year: yr, count: agg[yr] }; });
+  }
+
+  function initYearChart(data) {
+    var container = document.getElementById('sp-year-brush-chart');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!data || !data.length) return;
+
+    var margin = { top: 6, right: 4, bottom: 18, left: 4 };
+    var W  = container.clientWidth || 180;
+    var H  = 110;
+    var iW = W - margin.left - margin.right;
+    var iH = H - margin.top  - margin.bottom;
+
+    var years    = data.map(function (d) { return d.year; });
+    var maxCount = d3.max(data, function (d) { return d.count; });
+
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.1);
+    var y = d3.scaleLinear().domain([0, maxCount]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    var bars = g.selectAll('.bar').data(data).enter()
+      .append('rect').attr('class', 'bar')
+      .attr('x',      function (d) { return x(d.year); })
+      .attr('y',      function (d) { return y(d.count); })
+      .attr('width',  x.bandwidth())
+      .attr('height', function (d) { return iH - y(d.count); })
+      .attr('fill', '#4d8cc4').attr('rx', 1);
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 5));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g')
+      .attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    var brushG = g.append('g').attr('class', 'brush');
+    var brush  = d3.brushX()
+      .extent([[0, 0], [iW, iH]])
+      .on('end', function (event) {
+        if (!event.selection) {
+          bars.attr('fill', '#4d8cc4');
+          document.getElementById('sp-year-clear').style.display = 'none';
+          state.yearFrom = null;
+          state.yearTo   = null;
+          updateSummary();
+          loadSpeeches(1);
+          refreshWordCloud();
+          return;
+        }
+        var x0 = event.selection[0], x1 = event.selection[1];
+        var sel = years.filter(function (yr) {
+          var cx = x(yr) + x.bandwidth() / 2;
+          return cx >= x0 && cx <= x1;
+        });
+        if (!sel.length) return;
+        state.yearFrom = d3.min(sel);
+        state.yearTo   = d3.max(sel);
+        bars.attr('fill', function (d) {
+          return d.year >= state.yearFrom && d.year <= state.yearTo ? '#1b4f87' : '#c8d6de';
+        });
+        document.getElementById('sp-year-clear').style.display = '';
+        updateSummary();
+        loadSpeeches(1);
+        refreshWordCloud();
+      });
+
+    brushG.call(brush);
+    _spBrushG = brushG;
+    _spBrush  = brush;
+  }
+
+  document.getElementById('sp-year-clear').addEventListener('click', function () {
+    if (_spBrushG && _spBrush) _spBrushG.call(_spBrush.move, null);
+  });
+
+  window._initSpeechesTab = function () {
+    initYearChart(computeYearData(''));
+    loadSpeeches(1);
+  };
+}());
+</script>
+
+<script>
+/* ── Representatives sidebar ───────────────────────────────────────── */
+(function () {
+  var ISO3         = '{{ country.iso3 }}';
+  var REPS_BY_YEAR = {{ reps_by_year|safe }};
+
+  var state = { body: '', yearFrom: null, yearTo: null, page: 1 };
+
+  function updateSummary() {
+    var parts = [];
+    if (state.body)    parts.push(state.body);
+    if (state.yearFrom && state.yearTo)  parts.push(state.yearFrom + '–' + state.yearTo);
+    else if (state.yearFrom) parts.push('from ' + state.yearFrom);
+    else if (state.yearTo)   parts.push('until ' + state.yearTo);
+    var el = document.getElementById('rp-filter-summary');
+    if (el) el.textContent = parts.length ? '— ' + parts.join(', ') : '';
+  }
+
+  function loadReps(page) {
+    state.page = page || 1;
+    var url = '/api/countries/' + ISO3 + '/representatives/?page=' + state.page;
+    if (state.body)     url += '&body='      + state.body;
+    if (state.yearFrom) url += '&year_from=' + state.yearFrom;
+    if (state.yearTo)   url += '&year_to='   + state.yearTo;
+
+    var list = document.getElementById('rp-reps-list');
+    var nav  = document.getElementById('rp-reps-nav');
+    list.innerHTML = '<p class="meta">Loading…</p>';
+    nav.innerHTML  = '';
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(renderReps)
+      .catch(function () { list.innerHTML = '<p class="meta">Failed to load representatives.</p>'; });
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderReps(data) {
+    var list = document.getElementById('rp-reps-list');
+    var nav  = document.getElementById('rp-reps-nav');
+
+    if (!data.representatives || !data.representatives.length) {
+      list.innerHTML = '<p class="meta">No representatives found.</p>';
+      nav.innerHTML  = '';
+      return;
+    }
+
+    list.innerHTML = '<ul style="columns:2; column-gap:2rem; list-style:none; padding:0;">'
+      + data.representatives.map(function (r) {
+          var years = '';
+          if (r.first_year) {
+            years = r.first_year === r.last_year
+              ? String(r.first_year)
+              : r.first_year + '–' + r.last_year;
+          }
+          return '<li style="margin-bottom:0.4rem;">'
+            + '<a href="' + esc(r.url) + '">' + esc(r.name) + '</a>'
+            + (r.role ? ' <span class="meta">&mdash; ' + esc(r.role) + '</span>' : '')
+            + (years ? ' <span class="meta" style="font-size:0.78rem;">(' + years + ')</span>' : '')
+            + '</li>';
+        }).join('')
+      + '</ul>';
+
+    var total = data.total, page = data.page;
+    var start = (page - 1) * 20 + 1, end = Math.min(page * 20, total);
+    var html = '<span>' + start + '–' + end + ' of ' + total + ' representatives</span>';
+    if (data.has_prev) html += ' <a href="#" data-page="' + (page - 1) + '">&laquo; Prev</a>';
+    if (data.has_next) html += ' <a href="#" data-page="' + (page + 1) + '">Next &raquo;</a>';
+    nav.innerHTML = html;
+  }
+
+  document.querySelectorAll('.body-btn-rp').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.body-btn-rp').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.body = btn.dataset.body;
+      state.yearFrom = null;
+      state.yearTo   = null;
+      document.getElementById('rp-year-clear').style.display = 'none';
+      initRepsYearChart(computeRepsYearData(state.body));
+      updateSummary();
+      loadReps(1);
+    });
+  });
+
+  document.getElementById('rp-reps-nav').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-page]');
+    if (!el) return;
+    e.preventDefault();
+    loadReps(parseInt(el.dataset.page, 10));
+    document.getElementById('representatives').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  var _rpBrushG, _rpBrush;
+
+  function computeRepsYearData(bodyFilter) {
+    var agg = {};
+    REPS_BY_YEAR.forEach(function (d) {
+      if (!bodyFilter || d.body === bodyFilter) {
+        agg[d.year] = (agg[d.year] || 0) + d.count;
+      }
+    });
+    return Object.keys(agg).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (yr) { return { year: yr, count: agg[yr] }; });
+  }
+
+  function initRepsYearChart(data) {
+    var container = document.getElementById('rp-year-brush-chart');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!data || !data.length) return;
+
+    var margin = { top: 6, right: 4, bottom: 18, left: 4 };
+    var W  = container.clientWidth || 180;
+    var H  = 110;
+    var iW = W - margin.left - margin.right;
+    var iH = H - margin.top  - margin.bottom;
+
+    var years    = data.map(function (d) { return d.year; });
+    var maxCount = d3.max(data, function (d) { return d.count; });
+
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.1);
+    var y = d3.scaleLinear().domain([0, maxCount]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    var bars = g.selectAll('.bar').data(data).enter()
+      .append('rect').attr('class', 'bar')
+      .attr('x',      function (d) { return x(d.year); })
+      .attr('y',      function (d) { return y(d.count); })
+      .attr('width',  x.bandwidth())
+      .attr('height', function (d) { return iH - y(d.count); })
+      .attr('fill', '#4d8cc4').attr('rx', 1);
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 5));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g')
+      .attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    var brushG = g.append('g').attr('class', 'brush');
+    var brush  = d3.brushX()
+      .extent([[0, 0], [iW, iH]])
+      .on('end', function (event) {
+        if (!event.selection) {
+          bars.attr('fill', '#4d8cc4');
+          document.getElementById('rp-year-clear').style.display = 'none';
+          state.yearFrom = null;
+          state.yearTo   = null;
+          updateSummary();
+          loadReps(1);
+          return;
+        }
+        var x0 = event.selection[0], x1 = event.selection[1];
+        var sel = years.filter(function (yr) {
+          var cx = x(yr) + x.bandwidth() / 2;
+          return cx >= x0 && cx <= x1;
+        });
+        if (!sel.length) return;
+        state.yearFrom = d3.min(sel);
+        state.yearTo   = d3.max(sel);
+        bars.attr('fill', function (d) {
+          return d.year >= state.yearFrom && d.year <= state.yearTo ? '#1b4f87' : '#c8d6de';
+        });
+        document.getElementById('rp-year-clear').style.display = '';
+        updateSummary();
+        loadReps(1);
+      });
+
+    brushG.call(brush);
+    _rpBrushG = brushG;
+    _rpBrush  = brush;
+  }
+
+  document.getElementById('rp-year-clear').addEventListener('click', function () {
+    if (_rpBrushG && _rpBrush) _rpBrushG.call(_rpBrush.move, null);
+  });
+
+  window._initRepsTab = function () {
+    initRepsYearChart(computeRepsYearData(''));
+    loadReps(1);
+  };
+}());
+</script>
+
+<script>
+/* ── Tab controller ────────────────────────────────────────────────── */
+(function () {
+  var TABS = [
+    {% if country.iso3 %}'voting',{% endif %}
+    'speeches',
+    'representatives',
+    {% if debate_entries %}'debate',{% endif %}
+  ];
+  var initialized = {};
+
+  function showTab(name) {
+    TABS.forEach(function (t) {
+      var el = document.getElementById('tab-' + t);
+      if (el) el.style.display = 'none';
+    });
+    var panel = document.getElementById('tab-' + name);
+    if (panel) panel.style.display = '';
+
+    document.querySelectorAll('.tab-link').forEach(function (a) {
+      a.classList.toggle('active', a.dataset.tab === name);
+    });
+
+    if (!initialized[name]) {
+      initialized[name] = true;
+      if (name === 'voting'          && window._initVotingTab)   window._initVotingTab();
+      if (name === 'speeches'        && window._initSpeechesTab) window._initSpeechesTab();
+      if (name === 'representatives' && window._initRepsTab)     window._initRepsTab();
+    }
+
+    history.replaceState(null, '', location.pathname + '#' + name);
+  }
+
+  document.querySelectorAll('.tab-link').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      showTab(a.dataset.tab);
+    });
+  });
+
+  var hash    = location.hash.replace('#', '');
+  var initial = TABS.indexOf(hash) !== -1 ? hash : TABS[0];
+  showTab(initial);
 }());
 </script>
 {% endif %}

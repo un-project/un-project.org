@@ -94,66 +94,90 @@
     return '#7ab0d8';
   }
 
+  function renderWordCloud(widget, url) {
+    var svgEl = widget.querySelector('svg');
+    var loading = widget.querySelector('.wc-loading');
+    if (!svgEl) return;
+
+    var w = widget.clientWidth - 32;
+    if (w < 100) w = 600;
+    var h = Math.round(w * 0.55);
+
+    d3.select(svgEl).selectAll('*').remove();
+    if (loading) loading.style.display = '';
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.words || !data.words.length) { widget.style.display = 'none'; return; }
+        widget.style.display = '';
+
+        var maxCount = data.words[0].count;
+        var minCount = data.words[data.words.length - 1].count;
+        var countRange = maxCount - minCount || 1;
+        var scale = w / 600;
+        var minFont = Math.round(12 * scale);
+        var maxFont = Math.round(72 * scale);
+
+        var words = data.words.map(function (d) {
+          var ratio = (d.count - minCount) / countRange;
+          return { text: d.word, size: Math.round(minFont + ratio * (maxFont - minFont)) };
+        });
+
+        d3.layout.cloud()
+          .size([w, h])
+          .words(words)
+          .padding(4)
+          .rotate(0)
+          .font('system-ui, sans-serif')
+          .fontSize(function (d) { return d.size; })
+          .on('end', function (placed) {
+            if (loading) loading.style.display = 'none';
+            d3.select(svgEl)
+              .attr('width', w).attr('height', h)
+              .attr('viewBox', '0 0 ' + w + ' ' + h)
+              .style('max-width', '100%').style('display', 'block')
+              .append('g')
+              .attr('transform', 'translate(' + w / 2 + ',' + h / 2 + ')')
+              .selectAll('text')
+              .data(placed).enter().append('text')
+              .style('font-size', function (d) { return d.size + 'px'; })
+              .style('font-family', 'system-ui, sans-serif')
+              .style('fill', function (d) { return wcColor(d.size, maxFont); })
+              .style('cursor', 'default')
+              .attr('text-anchor', 'middle')
+              .attr('transform', function (d) {
+                return 'translate(' + [d.x, d.y] + ')rotate(' + d.rotate + ')';
+              })
+              .text(function (d) { return d.text; });
+          })
+          .start();
+      })
+      .catch(function () { widget.style.display = 'none'; });
+  }
+
   function initWordClouds() {
     document.querySelectorAll('.wc-widget').forEach(function (widget) {
       var url = widget.dataset.url;
-      var svgEl = widget.querySelector('svg');
-      var loading = widget.querySelector('.wc-loading');
-      if (!url || !svgEl) return;
-
-      var w = widget.clientWidth - 32;
-      if (w < 100) w = 600;
-      var h = Math.round(w * 0.55);
-
-      fetch(url)
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.words || !data.words.length) { widget.style.display = 'none'; return; }
-
-          var maxCount = data.words[0].count;
-          var minCount = data.words[data.words.length - 1].count;
-          var countRange = maxCount - minCount || 1;
-          var scale = w / 600;
-          var minFont = Math.round(12 * scale);
-          var maxFont = Math.round(72 * scale);
-
-          var words = data.words.map(function (d) {
-            var ratio = (d.count - minCount) / countRange;
-            return { text: d.word, size: Math.round(minFont + ratio * (maxFont - minFont)) };
-          });
-
-          d3.layout.cloud()
-            .size([w, h])
-            .words(words)
-            .padding(4)
-            .rotate(0)
-            .font('system-ui, sans-serif')
-            .fontSize(function (d) { return d.size; })
-            .on('end', function (placed) {
-              if (loading) loading.style.display = 'none';
-              d3.select(svgEl)
-                .attr('width', w).attr('height', h)
-                .attr('viewBox', '0 0 ' + w + ' ' + h)
-                .style('max-width', '100%').style('display', 'block')
-                .append('g')
-                .attr('transform', 'translate(' + w / 2 + ',' + h / 2 + ')')
-                .selectAll('text')
-                .data(placed).enter().append('text')
-                .style('font-size', function (d) { return d.size + 'px'; })
-                .style('font-family', 'system-ui, sans-serif')
-                .style('fill', function (d) { return wcColor(d.size, maxFont); })
-                .style('cursor', 'default')
-                .attr('text-anchor', 'middle')
-                .attr('transform', function (d) {
-                  return 'translate(' + [d.x, d.y] + ')rotate(' + d.rotate + ')';
-                })
-                .text(function (d) { return d.text; });
-            })
-            .start();
-        })
-        .catch(function () { widget.style.display = 'none'; });
+      if (!url) return;
+      renderWordCloud(widget, url);
     });
   }
+
+  document.addEventListener('wc:yearfilter', function (e) {
+    document.querySelectorAll('.wc-widget').forEach(function (widget) {
+      var baseUrl = widget.dataset.url;
+      if (!baseUrl) return;
+      var url = baseUrl;
+      if (e.detail) {
+        url += (baseUrl.indexOf('?') >= 0 ? '&' : '?') +
+               'year_from=' + e.detail.yearFrom + '&year_to=' + e.detail.yearTo;
+      }
+      renderWordCloud(widget, url);
+    });
+  });
+
+  window.renderWordCloud = renderWordCloud;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initWordClouds);

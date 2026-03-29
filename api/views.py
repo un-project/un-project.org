@@ -2,11 +2,13 @@ import math
 
 from django.db import connection
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Min, Max
 
 from meetings.models import Document
 from speakers.models import Speaker
+from speeches.models import Speech
 from votes.models import Resolution, ResolutionCitation
 from countries.models import Country
 from un_site.ratelimit import ratelimit
@@ -460,6 +462,9 @@ def wordcloud(request):
     speaker_id = request.GET.get('speaker_id', '')
     country_id = request.GET.get('country_id', '')
 
+    year_from = request.GET.get('year_from', '')
+    year_to   = request.GET.get('year_to',   '')
+
     conditions = ["item_type = 'speech'"]
     if body in ('GA', 'SC'):
         conditions.append(f"body = '{body}'")
@@ -469,6 +474,10 @@ def wordcloud(request):
         conditions.append(f"speaker_id = {int(speaker_id)}")
     if country_id and country_id.isdigit():
         conditions.append(f"country_id = {int(country_id)}")
+    if year_from and year_from.isdigit():
+        conditions.append(f"EXTRACT(YEAR FROM date) >= {int(year_from)}")
+    if year_to and year_to.isdigit():
+        conditions.append(f"EXTRACT(YEAR FROM date) <= {int(year_to)}")
 
     where = ' AND '.join(conditions)
     limit = 3000 if (speaker_id or country_id) else 5000
@@ -516,3 +525,188 @@ def wordcloud(request):
     resp = JsonResponse({'words': words})
     resp['Cache-Control'] = 'public, max-age=3600'
     return resp
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def speaker_speeches(request, pk):
+    speaker = get_object_or_404(Speaker, pk=pk)
+    body = request.GET.get('body', '')
+    year_from = request.GET.get('year_from', '')
+    year_to   = request.GET.get('year_to', '')
+    try:
+        page_num = max(1, int(request.GET.get('page', '1')))
+    except ValueError:
+        page_num = 1
+
+    qs = (
+        Speech.objects.filter(speaker=speaker, document__date__year__gt=1900)
+        .select_related('document')
+        .order_by('-document__date', '-position_in_document')
+    )
+    if body in ('GA', 'SC'):
+        qs = qs.filter(document__body=body)
+    if year_from and year_from.isdigit():
+        qs = qs.filter(document__date__year__gte=int(year_from))
+    if year_to and year_to.isdigit():
+        qs = qs.filter(document__date__year__lte=int(year_to))
+
+    paginator = Paginator(qs, 20)
+    page = paginator.get_page(page_num)
+
+    speeches = []
+    for speech in page:
+        speeches.append({
+            'url':             speech.get_absolute_url(),
+            'document_symbol': speech.document.symbol,
+            'document_url':    speech.document.get_absolute_url(),
+            'date':            speech.document.date.isoformat() if speech.document.date else '',
+            'body':            speech.document.body or '',
+            'excerpt':         speech.excerpt,
+        })
+
+    return JsonResponse({
+        'speeches':  speeches,
+        'page':      page.number,
+        'total':     paginator.count,
+        'num_pages': paginator.num_pages,
+        'has_next':  page.has_next(),
+        'has_prev':  page.has_previous(),
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_speeches(request, iso3):
+    country = get_object_or_404(Country, iso3=iso3)
+    body = request.GET.get('body', '')
+    year_from = request.GET.get('year_from', '')
+    year_to   = request.GET.get('year_to', '')
+    try:
+        page_num = max(1, int(request.GET.get('page', '1')))
+    except ValueError:
+        page_num = 1
+
+    qs = (
+        Speech.objects.filter(speaker__country=country, document__date__year__gt=1900)
+        .select_related('speaker', 'document')
+        .order_by('-document__date', '-position_in_document')
+    )
+    if body in ('GA', 'SC'):
+        qs = qs.filter(document__body=body)
+    if year_from and year_from.isdigit():
+        qs = qs.filter(document__date__year__gte=int(year_from))
+    if year_to and year_to.isdigit():
+        qs = qs.filter(document__date__year__lte=int(year_to))
+
+    paginator = Paginator(qs, 20)
+    page = paginator.get_page(page_num)
+
+    speeches = []
+    for speech in page:
+        speeches.append({
+            'url':             speech.get_absolute_url(),
+            'speaker_name':    speech.speaker.name,
+            'speaker_url':     speech.speaker.get_absolute_url(),
+            'speaker_pk':      speech.speaker.pk,
+            'document_symbol': speech.document.symbol,
+            'document_url':    speech.document.get_absolute_url(),
+            'date':            speech.document.date.isoformat() if speech.document.date else '',
+            'body':            speech.document.body or '',
+            'excerpt':         speech.excerpt,
+        })
+
+    return JsonResponse({
+        'speeches':  speeches,
+        'page':      page.number,
+        'total':     paginator.count,
+        'num_pages': paginator.num_pages,
+        'has_next':  page.has_next(),
+        'has_prev':  page.has_previous(),
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_representatives(request, iso3):
+    country = get_object_or_404(Country, iso3=iso3)
+    body = request.GET.get('body', '')
+    year_from = request.GET.get('year_from', '')
+    year_to   = request.GET.get('year_to', '')
+    try:
+        page_num = max(1, int(request.GET.get('page', '1')))
+    except ValueError:
+        page_num = 1
+
+    qs = Speech.objects.filter(speaker__country=country, document__date__year__gt=1900)
+    if body in ('GA', 'SC'):
+        qs = qs.filter(document__body=body)
+    if year_from and year_from.isdigit():
+        qs = qs.filter(document__date__year__gte=int(year_from))
+    if year_to and year_to.isdigit():
+        qs = qs.filter(document__date__year__lte=int(year_to))
+
+    rep_qs = (
+        qs.values('speaker_id', 'speaker__name', 'speaker__role')
+        .annotate(
+            first_year=Min('document__date__year'),
+            last_year=Max('document__date__year'),
+        )
+        .order_by('speaker__name')
+    )
+
+    paginator = Paginator(rep_qs, 20)
+    page = paginator.get_page(page_num)
+
+    reps = [
+        {
+            'name':       r['speaker__name'],
+            'url':        f'/speaker/{r["speaker_id"]}/',
+            'role':       r['speaker__role'] or '',
+            'first_year': r['first_year'],
+            'last_year':  r['last_year'],
+        }
+        for r in page
+    ]
+
+    return JsonResponse({
+        'representatives': reps,
+        'page':            page.number,
+        'total':           paginator.count,
+        'num_pages':       paginator.num_pages,
+        'has_next':        page.has_next(),
+        'has_prev':        page.has_previous(),
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def speaker_meetings(request, pk):
+    speaker = get_object_or_404(Speaker, pk=pk)
+    body = request.GET.get('body', '')
+    year_from = request.GET.get('year_from', '')
+    year_to   = request.GET.get('year_to', '')
+    try:
+        page_num = max(1, int(request.GET.get('page', '1')))
+    except ValueError:
+        page_num = 1
+
+    qs = (
+        Document.objects.filter(speeches__speaker=speaker)
+        .distinct()
+        .order_by('-date')
+    )
+    if body in ('GA', 'SC'):
+        qs = qs.filter(body=body)
+    if year_from and year_from.isdigit():
+        qs = qs.filter(date__year__gte=int(year_from))
+    if year_to and year_to.isdigit():
+        qs = qs.filter(date__year__lte=int(year_to))
+
+    paginator = Paginator(qs, 20)
+    page = paginator.get_page(page_num)
+
+    return JsonResponse({
+        'meetings':  [_meeting_summary(doc) for doc in page],
+        'page':      page.number,
+        'total':     paginator.count,
+        'num_pages': paginator.num_pages,
+        'has_next':  page.has_next(),
+        'has_prev':  page.has_previous(),
+    })

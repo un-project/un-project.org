@@ -453,13 +453,23 @@ def country_similarity_json(request, iso3):
     POS_MAP = {'yes': 1, 'abstain': 2, 'no': 3}
     MIN_SHARED = 10
 
+    year_from = request.GET.get('year_from', '')
+    year_to   = request.GET.get('year_to', '')
+    body      = request.GET.get('body', '')
+
     # Fetch all non-absent votes for the reference country: vote_id → position
-    a_votes = dict(
+    ref_qs = (
         CountryVote.objects
         .filter(country=country, vote__document__date__year__gt=1900)
         .exclude(vote_position='absent')
-        .values_list('vote_id', 'vote_position')
     )
+    if year_from and year_from.isdigit():
+        ref_qs = ref_qs.filter(vote__document__date__year__gte=int(year_from))
+    if year_to and year_to.isdigit():
+        ref_qs = ref_qs.filter(vote__document__date__year__lte=int(year_to))
+    if body in ('GA', 'SC'):
+        ref_qs = ref_qs.filter(vote__document__body=body)
+    a_votes = dict(ref_qs.values_list('vote_id', 'vote_position'))
 
     if not a_votes:
         return JsonResponse({'similar': [], 'dissimilar': []})
