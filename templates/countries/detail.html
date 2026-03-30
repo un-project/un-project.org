@@ -213,32 +213,6 @@
       <a href="/votes/?country={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">full page ↗</a>
       <a href="/votes/compare/?a={{ country.iso3 }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">compare ↗</a>
     </h2>
-    {% if top_categories %}
-    <div style="margin-bottom:1.5rem;">
-      <h3 style="font-size:0.9rem; font-weight:700; margin:0 0 0.6rem; color:var(--text);">Top Voting Topics</h3>
-      <div style="display:flex; flex-direction:column; gap:0.45rem;">
-        {% for row in top_categories %}
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
-            <span style="font-size:0.83rem; font-weight:600;">{{ row.category }}</span>
-            <span style="font-size:0.75rem; color:var(--muted);">{{ row.total }} vote{{ row.total|pluralize }}</span>
-          </div>
-          <div style="height:7px; border-radius:3px; overflow:hidden; display:flex; background:#f0f0f0;">
-            <div style="width:{{ row.yes_pct }}%; background:#27ae60;" title="{{ row.yes_pct }}% Yes"></div>
-            <div style="width:{{ row.abstain_pct }}%; background:#f39c12;" title="{{ row.abstain_pct }}% Abstain"></div>
-            <div style="width:{{ row.no_pct }}%; background:#e74c3c;" title="{{ row.no_pct }}% No"></div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      <div style="display:flex; gap:0.9rem; font-size:0.75rem; margin-top:0.5rem; color:var(--muted);">
-        <span><span style="color:#27ae60;">■</span> Yes</span>
-        <span><span style="color:#f39c12;">■</span> Abstain</span>
-        <span><span style="color:#e74c3c;">■</span> No</span>
-      </div>
-    </div>
-    {% endif %}
-
     <div id="cv-loading" class="meta">Loading voting data…</div>
     <div id="cv-inner" style="display:none;">
       <div class="chart-row">

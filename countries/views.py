@@ -65,27 +65,6 @@ def _render_country_detail(request, country):
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/'
 
-    # Top voting categories
-    top_categories = list(
-        CountryVote.objects
-        .filter(country=country, vote__resolution__category__isnull=False)
-        .exclude(vote__resolution__category='')
-        .exclude(vote_position='absent')
-        .values(category=F('vote__resolution__category'))
-        .annotate(
-            total=Count('pk'),
-            yes=Count('pk', filter=Q(vote_position='yes')),
-            no=Count('pk', filter=Q(vote_position='no')),
-            abstain=Count('pk', filter=Q(vote_position='abstain')),
-        )
-        .order_by('-total')[:8]
-    )
-    for row in top_categories:
-        t = row['total'] or 1
-        row['yes_pct']     = round(100 * row['yes']     / t)
-        row['no_pct']      = round(100 * row['no']      / t)
-        row['abstain_pct'] = round(100 * row['abstain'] / t)
-
     # General Debate entries for this country
     debate_entries = (
         GeneralDebateEntry.objects
@@ -105,7 +84,6 @@ def _render_country_detail(request, country):
         'wc_url':               wc_url,
         'votes_api_url':        votes_api_url,
         'debate_entries':       debate_entries,
-        'top_categories':       top_categories,
     })
 
 
