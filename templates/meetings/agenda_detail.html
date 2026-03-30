@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ title|truncatechars:60 }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.agenda-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .agenda-detail-grid { grid-template-columns: 1fr; }
+}
+
+.meetings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.meetings-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 0.4rem 0.75rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+.meetings-table td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.meetings-table tr:last-child td { border-bottom: none; }
+.meetings-table tr:hover td { background: var(--hover-bg); }
+
+.country-list {
+  list-style: none;
+  margin: 0; padding: 0;
+}
+.country-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.country-list li:last-child { border-bottom: none; }
+.country-list .bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.country-list .bar-fill {
+  height: 100%;
+  background: var(--un-blue);
+  border-radius: 3px;
+}
+.country-list .speech-count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  min-width: 2rem;
+  text-align: right;
+}
+
+.section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--border);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<p class="meta" style="margin-bottom:0.5rem;">
+  <a href="/meeting/agenda/">← All agenda items</a>
+</p>
+
+<h1 style="margin-bottom:0.25rem;">{{ title }}</h1>
+<p class="meta" style="margin-bottom:1.75rem;">
+  {{ meetings|length }} meeting{{ meetings|length|pluralize }}
+  {% if sessions %}· Sessions {{ sessions.0 }}–{{ sessions|last }}{% endif %}
+</p>
+
+<div class="agenda-detail-grid">
+
+  <div>
+    <p class="section-title">Meetings</p>
+    <table class="meetings-table">
+      <thead>
+        <tr>
+          <th>Meeting</th>
+          <th>Body</th>
+          <th>Session</th>
+          <th>Date</th>
+          <th style="text-align:right;">Speeches</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in meetings %}
+        <tr>
+          <td><a href="/meeting/{{ doc.slug }}/">{{ doc.symbol }}</a></td>
+          <td><span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span></td>
+          <td style="color:var(--muted);">{{ doc.session }}</td>
+          <td style="color:var(--muted); white-space:nowrap;">{% if doc.date %}{{ doc.date|date:"N j, Y" }}{% endif %}</td>
+          <td style="text-align:right; color:var(--muted);">{{ doc.speech_count }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="meta">No meetings found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    <p class="section-title">Countries that spoke</p>
+    {% if countries %}
+    {% with max_count=countries.0.speech_count %}
+    <ul class="country-list">
+      {% for c in countries %}
+      <li>
+        {% if c.speaker__country__iso3 %}
+        <img src="/static/flags/{{ c.speaker__country__iso3 }}.svg" alt="" style="width:18px;height:13px;object-fit:cover;border-radius:1px;flex-shrink:0;">
+        <a href="/country/{{ c.speaker__country__iso3 }}/" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.speaker__country__name }}</a>
+        {% else %}
+        <span style="flex:1;">{{ c.speaker__country__name }}</span>
+        {% endif %}
+        <div class="bar"><div class="bar-fill" style="width:{{ c.speech_count|floatformat:0 }}%;" data-max="{{ max_count }}" data-val="{{ c.speech_count }}"></div></div>
+        <span class="speech-count">{{ c.speech_count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endwith %}
+    {% else %}
+    <p class="meta">No speech data available.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scale bar widths properly (Django can't divide in templates easily)
+document.querySelectorAll('.bar-fill').forEach(function (el) {
+  var max = parseInt(el.getAttribute('data-max'), 10);
+  var val = parseInt(el.getAttribute('data-val'), 10);
+  el.style.width = (max > 0 ? (val / max * 100) : 0).toFixed(1) + '%';
+});
+</script>
+{% endblock %}

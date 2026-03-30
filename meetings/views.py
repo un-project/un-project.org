@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
-from django.db.models import Min, Max
+from django.db.models import Count, Min, Max
 from django.http import Http404
 from django.conf import settings
 from .models import Document, DocumentItem
@@ -191,4 +191,63 @@ def session_detail(request, body, session):
         'year_max': year_max,
         'crumbs': crumbs,
         'wc_url': f'/api/wordcloud/?body={body}&session={session}',
+    })
+
+
+# ── Agenda item pages ────────────────────────────────────────────────────────
+
+def agenda_list(request):
+    body = request.GET.get('body', '')
+
+    qs = (
+        DocumentItem.objects
+        .filter(item_type=DocumentItem.ITEM_TYPE_AGENDA)
+        .values('title')
+        .annotate(
+            meeting_count=Count('document_id', distinct=True),
+            canonical_pk=Min('id'),
+            session_min=Min('document__session'),
+            session_max=Max('document__session'),
+        )
+        .filter(meeting_count__gte=2)
+        .order_by('-meeting_count')
+    )
+    if body in ('GA', 'SC'):
+        qs = qs.filter(document__body=body)
+
+    return render(request, 'meetings/agenda_list.html', {
+        'items': list(qs[:300]),
+        'current_body': body,
+    })
+
+
+def agenda_detail(request, pk):
+    canonical = get_object_or_404(DocumentItem, pk=pk, item_type=DocumentItem.ITEM_TYPE_AGENDA)
+    title = canonical.title
+
+    meetings = list(
+        Document.objects
+        .filter(items__title=title, items__item_type=DocumentItem.ITEM_TYPE_AGENDA)
+        .annotate(speech_count=Count('speeches', distinct=True))
+        .order_by('-date')
+        .distinct()
+    )
+
+    countries = list(
+        Speech.objects
+        .filter(item__title=title, item__item_type=DocumentItem.ITEM_TYPE_AGENDA)
+        .exclude(speaker__country=None)
+        .values('speaker__country__id', 'speaker__country__name', 'speaker__country__iso3')
+        .annotate(speech_count=Count('id'))
+        .order_by('-speech_count')[:60]
+    )
+
+    sessions = sorted({m.session for m in meetings})
+
+    return render(request, 'meetings/agenda_detail.html', {
+        'title': title,
+        'canonical_pk': pk,
+        'meetings': meetings,
+        'countries': countries,
+        'sessions': sessions,
     })

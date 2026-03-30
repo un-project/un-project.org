@@ -13,7 +13,6 @@ Tracked tasks and future features for the UN Project web application.
 ## Data & Backend
 
 - [ ] **Full data pipeline** — automate ingestion of new UN meeting PDFs into the database.
-- [ ] **Agenda item pages** — dedicate a page to each recurring agenda item, listing all meetings and countries that discussed it.
 
 ## Future / Research
 

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Recurring Agenda Items{% endblock %}
+
+{% block extra_head %}
+<style>
+.agenda-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.agenda-list-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 0.4rem 0.75rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+.agenda-list-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.agenda-list-table tr:last-child td { border-bottom: none; }
+.agenda-list-table tr:hover td { background: var(--hover-bg); }
+.count-badge {
+  display: inline-block;
+  background: var(--un-blue);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Recurring Agenda Items</h1>
+<p class="meta" style="margin-bottom:1.25rem;">
+  Topics that appeared in two or more meetings, sorted by number of appearances.
+</p>
+
+<form class="filters" method="get" action="/meeting/agenda/" style="margin-bottom:1.5rem;">
+  <select name="body">
+    <option value="">All bodies</option>
+    <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
+    <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
+  </select>
+  <button type="submit">Filter</button>
+  {% if current_body %}
+  <a href="/meeting/agenda/" style="font-size:0.88rem; color:var(--muted); text-decoration:none;">Clear</a>
+  {% endif %}
+</form>
+
+<table class="agenda-list-table">
+  <thead>
+    <tr>
+      <th>Agenda item</th>
+      <th style="text-align:right;">Meetings</th>
+      <th>Sessions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td><a href="/meeting/agenda/{{ item.canonical_pk }}/">{{ item.title }}</a></td>
+      <td style="text-align:right;"><span class="count-badge">{{ item.meeting_count }}</span></td>
+      <td style="color:var(--muted); font-size:0.85rem;">
+        {% if item.session_min == item.session_max %}
+          Session {{ item.session_min }}
+        {% else %}
+          Sessions {{ item.session_min }}–{{ item.session_max }}
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3" class="meta">No recurring agenda items found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
