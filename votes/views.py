@@ -402,6 +402,19 @@ def votes_page(request):
         .order_by('-count')[:8]
     )
 
+    # Countries voting Yes most on non-adopted resolutions
+    top_yes_on_rejected = list(
+        CountryVote.objects
+        .filter(
+            vote_position='yes',
+            vote__vote_type='recorded',
+            vote__resolution__adopted_symbol__isnull=True,
+        )
+        .values('country__name', 'country__iso3', 'country__short_name')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:8]
+    )
+
     return render(request, 'votes/index.html', {
         'countries':           countries,
         'coalition_blocs':     coalition_blocs,
@@ -412,8 +425,9 @@ def votes_page(request):
         'no_pct':              no_pct,
         'abstain_pct':         abstain_pct,
         'most_contested':      most_contested,
-        'recent_votes':        recent_votes,
-        'top_no_voters':       top_no_voters,
+        'recent_votes':           recent_votes,
+        'top_no_voters':          top_no_voters,
+        'top_yes_on_rejected':    top_yes_on_rejected,
     })
 
 

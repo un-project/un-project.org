@@ -204,6 +204,23 @@
   </div>
 </div>
 
+<!-- ── Countries voting Yes on non-adopted resolutions ────────── -->
+<div style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Countries Voting "Yes" on Non-Adopted Resolutions</h2>
+  <p class="meta" style="margin-bottom:0.75rem;">Countries most frequently casting yes votes on resolutions that were ultimately rejected.</p>
+  <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
+    {% for row in top_yes_on_rejected %}
+    {% with iso=row.country__iso3 name=row.country__short_name|default:row.country__name count=row.count %}
+    <a href="/country/{{ iso }}/" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
+      {% if iso %}<img src="/static/flags/{{ iso }}.svg" alt="" style="height:14px; border-radius:1px; flex-shrink:0;">{% endif %}
+      <span style="font-weight:600;">{{ name }}</span>
+      <span style="color:#27ae60; font-weight:700; font-size:0.82rem;">{{ count }}×</span>
+    </a>
+    {% endwith %}
+    {% endfor %}
+  </div>
+</div>
+
 <!-- ── Voting Blocs ─────────────────────────────────────────────── -->
 <div style="margin-bottom:2.5rem;">
   <h2 class="section-title">Voting Blocs</h2>
