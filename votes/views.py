@@ -404,6 +404,7 @@ def country_compare(request):
             'matrix_rows': matrix_rows,
             'matrix_positions': POSITIONS,
             'by_session': by_session,
+            'by_session_json': json.dumps(by_session),
             'divergent': divergent,
             'agreed_contested': agreed_contested,
             'year_votes': year_votes,

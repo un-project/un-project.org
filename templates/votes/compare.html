@@ -55,12 +55,6 @@
 .cell-disagree { background: #fff3cd; color: #856404; }
 .cell-zero     { color: var(--muted); }
 
-.session-bars-scroll { overflow-x: auto; margin: 0.75rem 0 0.25rem; }
-.session-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; width: max-content; }
-.session-bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 0 0 28px; width: 28px; height: 100%; }
-.session-bar-bg { width: 100%; flex: 1; background: #e5e7eb; border-radius: 2px 2px 0 0; position: relative; }
-.session-bar-fill { width: 100%; border-radius: 2px 2px 0 0; position: absolute; bottom: 0; left: 0; }
-.session-bar-label { font-size: 0.6rem; color: var(--muted); margin-top: 3px; white-space: nowrap; }
 
 .compare-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
 .compare-table th { padding: 0.4rem 0.6rem; text-align: left; color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
@@ -191,78 +185,54 @@
 </p>
 {% endif %}
 
-<!-- ── Position matrix + year chart ───────────────────────────── -->
-<div class="two-col" style="margin-bottom:2rem; align-items:start;">
+<!-- ── Agreement trend (full-width) ───────────────────────────── -->
+{% if comparison.by_session %}
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Agreement Trend over Time</h2>
+  <p class="meta" style="margin-bottom:0.75rem;">
+    Agreement rate per year (years with ≥2 shared votes). Click a point or year label to filter the vote list below.
+    {% if selected_year %}<a href="?a_type={{ a_type }}&a={{ a_val }}&b_type={{ b_type }}&b={{ b_val }}" style="margin-left:0.5rem; font-size:0.82rem;">✕ clear year filter</a>{% endif %}
+  </p>
+  <div id="trend-chart" style="width:100%;"></div>
+</div>
+{% endif %}
 
-  <div>
-    <h2 class="section-title">Position Matrix</h2>
-    <p class="meta" style="margin-bottom:0.75rem;">How often each combination of positions occurred across all shared votes.</p>
-    <table class="matrix-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th colspan="{{ comparison.matrix_positions|length }}" style="text-align:center; border-bottom:none;">{{ entity_b.name }}</th>
-        </tr>
-        <tr>
-          <th>{{ entity_a.name }}</th>
-          {% for pb in comparison.matrix_positions %}
-          <th>{{ pb|capfirst }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in comparison.matrix_rows %}
-        <tr>
-          <th>{{ row.pos|capfirst }}</th>
-          {% for cell in row.cells %}
-          <td class="{% if cell.same %}cell-agree{% elif cell.count > 0 %}cell-disagree{% else %}cell-zero{% endif %}">
-            {% if cell.count %}{{ cell.count }}{% else %}—{% endif %}
-          </td>
-          {% endfor %}
-        </tr>
+<!-- ── Position matrix ────────────────────────────────────────── -->
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Position Matrix</h2>
+  <p class="meta" style="margin-bottom:0.75rem;">How often each combination of positions occurred across all shared votes.</p>
+  <div style="overflow-x:auto;">
+  <table class="matrix-table" style="max-width:420px;">
+    <thead>
+      <tr>
+        <th></th>
+        <th colspan="{{ comparison.matrix_positions|length }}" style="text-align:center; border-bottom:none;">{{ entity_b.name }}</th>
+      </tr>
+      <tr>
+        <th>{{ entity_a.name }}</th>
+        {% for pb in comparison.matrix_positions %}
+        <th>{{ pb|capfirst }}</th>
         {% endfor %}
-      </tbody>
-    </table>
-    <p class="meta" style="margin-top:0.5rem; font-size:0.8rem;">
-      <span style="background:#d4edda; padding:1px 6px; border-radius:2px;">green</span> = same position &nbsp;
-      <span style="background:#fff3cd; padding:1px 6px; border-radius:2px;">amber</span> = different position
-    </p>
-  </div>
-
-  {% if comparison.by_session %}
-  <div style="min-width:0;">
-    <h2 class="section-title">Agreement by Year</h2>
-    <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per year (years with ≥2 shared votes). Click a bar to filter votes.</p>
-    <div class="session-bars-scroll">
-    <div class="session-bars">
-      {% for s in comparison.by_session %}
-      {% if s.year == selected_year %}
-      <a href="?a_type={{ a_type }}&a={{ a_val }}&b_type={{ b_type }}&b={{ b_val }}" class="session-bar-wrap"
-         title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes"
-         style="text-decoration:none; outline:2px solid #1b4f87; border-radius:3px;">
-      {% else %}
-      <a href="?a_type={{ a_type }}&a={{ a_val }}&b_type={{ b_type }}&b={{ b_val }}&year={{ s.year }}#year-votes" class="session-bar-wrap"
-         title="{{ s.year }}: {{ s.rate }}% — {{ s.agree }}/{{ s.total }} votes"
-         style="text-decoration:none;">
-      {% endif %}
-        <div class="session-bar-bg">
-          <div class="session-bar-fill"
-               style="height:{{ s.rate }}%; background:{% if s.rate >= 60 %}#27ae60{% elif s.rate >= 35 %}#f39c12{% else %}#e74c3c{% endif %};">
-          </div>
-        </div>
-        <div class="session-bar-label">{{ s.year }}</div>
-      </a>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in comparison.matrix_rows %}
+      <tr>
+        <th>{{ row.pos|capfirst }}</th>
+        {% for cell in row.cells %}
+        <td class="{% if cell.same %}cell-agree{% elif cell.count > 0 %}cell-disagree{% else %}cell-zero{% endif %}">
+          {% if cell.count %}{{ cell.count }}{% else %}—{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
       {% endfor %}
-    </div>
-    </div>
-    <div class="meta" style="font-size:0.78rem; display:flex; gap:1rem; margin-top:0.4rem;">
-      <span style="color:#27ae60;">■ ≥60%</span>
-      <span style="color:#f39c12;">■ 35–59%</span>
-      <span style="color:#e74c3c;">■ &lt;35%</span>
-    </div>
+    </tbody>
+  </table>
   </div>
-  {% endif %}
-
+  <p class="meta" style="margin-top:0.5rem; font-size:0.8rem;">
+    <span style="background:#d4edda; padding:1px 6px; border-radius:2px;">green</span> = same position &nbsp;
+    <span style="background:#fff3cd; padding:1px 6px; border-radius:2px;">amber</span> = different position
+  </p>
 </div>
 
 <!-- ── Year-filtered votes ─────────────────────────────────────── -->
@@ -377,6 +347,133 @@
 
 {% block extra_js %}
 <script>
+{% if comparison.by_session %}
+(function () {
+  var data = {{ comparison.by_session_json|safe }};
+  if (!data || !data.length) return;
+
+  var el = document.getElementById('trend-chart');
+  if (!el) return;
+
+  var selectedYear = {{ selected_year|default:"null" }};
+  var baseUrl = '?a_type={{ a_type }}&a={{ a_val }}&b_type={{ b_type }}&b={{ b_val }}';
+
+  var margin = { top: 16, right: 24, bottom: 36, left: 44 };
+  var W = el.clientWidth || 700;
+  var H = 200;
+  var w = W - margin.left - margin.right;
+  var h = H - margin.top - margin.bottom;
+
+  var svg = d3.select(el).append('svg')
+    .attr('width', W).attr('height', H)
+    .attr('viewBox', '0 0 ' + W + ' ' + H)
+    .style('max-width', '100%').style('display', 'block')
+    .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+  var xScale = d3.scaleLinear()
+    .domain(d3.extent(data, function (d) { return d.year; }))
+    .range([0, w]);
+
+  var yScale = d3.scaleLinear().domain([0, 100]).range([h, 0]);
+
+  // Threshold reference lines
+  [35, 60].forEach(function (pct) {
+    svg.append('line')
+      .attr('x1', 0).attr('x2', w)
+      .attr('y1', yScale(pct)).attr('y2', yScale(pct))
+      .attr('stroke', '#e0e0e0').attr('stroke-dasharray', '4,3').attr('stroke-width', 1);
+    svg.append('text')
+      .attr('x', w + 3).attr('y', yScale(pct) + 4)
+      .attr('font-size', '10px').attr('fill', '#bbb').text(pct + '%');
+  });
+
+  // Shaded area
+  var area = d3.area()
+    .x(function (d) { return xScale(d.year); })
+    .y0(h)
+    .y1(function (d) { return yScale(d.rate); })
+    .curve(d3.curveMonotoneX);
+
+  svg.append('path').datum(data)
+    .attr('fill', 'var(--un-blue)').attr('opacity', 0.08).attr('d', area);
+
+  // Line
+  var line = d3.line()
+    .x(function (d) { return xScale(d.year); })
+    .y(function (d) { return yScale(d.rate); })
+    .curve(d3.curveMonotoneX);
+
+  svg.append('path').datum(data)
+    .attr('fill', 'none').attr('stroke', 'var(--un-blue)')
+    .attr('stroke-width', 2).attr('d', line);
+
+  // Selected year vertical line
+  if (selectedYear) {
+    svg.append('line')
+      .attr('x1', xScale(selectedYear)).attr('x2', xScale(selectedYear))
+      .attr('y1', 0).attr('y2', h)
+      .attr('stroke', '#1b4f87').attr('stroke-width', 1.5).attr('stroke-dasharray', '4,3');
+  }
+
+  // Tooltip
+  var tooltip = d3.select(el).append('div').style('position', 'absolute')
+    .style('background', '#fff').style('border', '1px solid var(--border)')
+    .style('border-radius', '5px').style('padding', '0.4rem 0.7rem')
+    .style('font-size', '0.82rem').style('pointer-events', 'none')
+    .style('box-shadow', '0 2px 8px rgba(0,0,0,0.1)').style('display', 'none');
+  d3.select(el).style('position', 'relative');
+
+  // Clickable data points
+  svg.selectAll('.dot').data(data).enter().append('circle')
+    .attr('class', 'dot')
+    .attr('cx', function (d) { return xScale(d.year); })
+    .attr('cy', function (d) { return yScale(d.rate); })
+    .attr('r', function (d) { return d.year === selectedYear ? 6 : 4; })
+    .attr('fill', function (d) {
+      if (d.year === selectedYear) return '#1b4f87';
+      return d.rate >= 60 ? '#27ae60' : d.rate >= 35 ? '#f39c12' : '#e74c3c';
+    })
+    .attr('stroke', '#fff').attr('stroke-width', 1.5)
+    .style('cursor', 'pointer')
+    .on('mouseover', function (event, d) {
+      d3.select(this).attr('r', 7);
+      var rateColor = d.rate >= 60 ? '#27ae60' : d.rate >= 35 ? '#f39c12' : '#e74c3c';
+      tooltip.style('display', 'block').html(
+        '<strong>' + d.year + '</strong> &mdash; '
+        + '<span style="color:' + rateColor + ';font-weight:700;">' + d.rate + '%</span> agreement<br>'
+        + '<span style="color:var(--muted);">' + d.agree + ' agreed / ' + d.total + ' votes</span>'
+      );
+    })
+    .on('mousemove', function (event) {
+      var rect = el.getBoundingClientRect();
+      var x = event.clientX - rect.left + 12;
+      var y = event.clientY - rect.top - 10;
+      if (x + 180 > W) x = x - 200;
+      tooltip.style('left', x + 'px').style('top', y + 'px');
+    })
+    .on('mouseout', function (event, d) {
+      d3.select(this).attr('r', d.year === selectedYear ? 6 : 4);
+      tooltip.style('display', 'none');
+    })
+    .on('click', function (event, d) {
+      if (d.year === selectedYear) {
+        window.location = baseUrl;
+      } else {
+        window.location = baseUrl + '&year=' + d.year + '#year-votes';
+      }
+    });
+
+  // Axes
+  svg.append('g').attr('transform', 'translate(0,' + h + ')')
+    .call(d3.axisBottom(xScale).ticks(Math.min(data.length, 12)).tickFormat(d3.format('d')))
+    .selectAll('text').style('font-size', '0.72rem');
+
+  svg.append('g')
+    .call(d3.axisLeft(yScale).ticks(5).tickFormat(function (d) { return d + '%'; }))
+    .selectAll('text').style('font-size', '0.72rem');
+}());
+{% endif %}
+
 (function () {
   // Type tab toggle for each side
   function initSide(side) {
