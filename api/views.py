@@ -146,6 +146,47 @@ def speaker_search(request):
     return JsonResponse(results, safe=False)
 
 
+def suggest(request):
+    """Autocomplete suggestions: countries + speakers matching a query."""
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'countries': [], 'speakers': []})
+
+    countries = list(
+        Country.objects
+        .filter(Q(name__icontains=q) | Q(short_name__icontains=q))
+        .filter(iso3__isnull=False)
+        .exclude(iso3='')
+        .order_by('name')[:6]
+    )
+    speakers = list(
+        Speaker.objects
+        .filter(Q(name__icontains=q) | Q(organization__icontains=q))
+        .select_related('country')
+        .order_by('name')[:6]
+    )
+
+    return JsonResponse({
+        'countries': [
+            {
+                'name': c.display_name,
+                'iso3': c.iso3,
+                'url': f'/country/{c.iso3}/',
+            }
+            for c in countries
+        ],
+        'speakers': [
+            {
+                'name': s.name,
+                'detail': s.country.display_name if s.country else (s.organization or ''),
+                'iso3': s.country.iso3 if s.country else None,
+                'url': f'/speaker/{s.pk}/',
+            }
+            for s in speakers
+        ],
+    })
+
+
 # ── Meetings ───────────────────────────────────────────────────────────────────
 
 def _meeting_summary(doc):

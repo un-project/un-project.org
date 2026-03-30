@@ -13,6 +13,7 @@ urlpatterns = [
     path('resolutions/', views.resolution_list, name='resolution_list'),
     path('resolutions/<str:slug>/', views.resolution_detail, name='resolution_detail'),
     path('resolutions/<str:slug>/citations/', views.resolution_citations, name='resolution_citations'),
+    path('suggest/', views.suggest, name='suggest'),
     path('wordcloud/', views.wordcloud, name='wordcloud'),
     path('speakers/<int:pk>/speeches/', views.speaker_speeches, name='speaker_speeches'),
     path('speakers/<int:pk>/meetings/', views.speaker_meetings, name='speaker_meetings'),

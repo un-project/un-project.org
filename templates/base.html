@@ -25,9 +25,16 @@
     <img src="/static/img/logo.png" alt="UN Project" style="height:38px; border-radius:4px;">
   </a>
 
-  <form class="search-form" action="/search/" method="get">
-    <input type="search" name="q" placeholder="Search speeches…" value="{{ request.GET.q|default:'' }}">
+  <form class="search-form" action="/search/" method="get" style="position:relative;">
+    <input type="search" name="q" id="nav-search" placeholder="Search speeches…"
+           value="{{ request.GET.q|default:'' }}" autocomplete="off">
     <button type="submit">Search</button>
+    <div id="nav-suggest" style="
+      display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
+      background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+      box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:1000; font-size:0.87rem;
+      min-width:280px; max-height:360px; overflow-y:auto;
+    "></div>
   </form>
 
   <ul class="nav-links">
@@ -280,5 +287,101 @@ document.querySelectorAll('select[data-search-url]').forEach(function(el) {
 });
 </script>
 {% block extra_js %}{% endblock %}
+<script>
+(function () {
+  var input   = document.getElementById('nav-search');
+  var dropdown = document.getElementById('nav-suggest');
+  if (!input || !dropdown) return;
+
+  var timer = null;
+  var activeIdx = -1;
+  var items = [];
+
+  function flagHtml(iso3) {
+    if (!iso3) return '';
+    return '<img src="/static/flags/' + iso3 + '.svg" alt="" '
+      + 'style="height:12px;width:18px;object-fit:cover;vertical-align:middle;'
+      + 'margin-right:5px;border-radius:1px;border:1px solid #e0e0e0;flex-shrink:0;">';
+  }
+
+  function renderGroup(label, rows) {
+    if (!rows.length) return '';
+    var html = '<div style="padding:0.3rem 0.75rem 0.1rem;font-size:0.7rem;font-weight:700;'
+             + 'text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">' + label + '</div>';
+    rows.forEach(function (r) {
+      html += '<a href="' + r.url + '" class="sug-item" '
+            + 'style="display:flex;align-items:center;gap:0.35rem;padding:0.35rem 0.75rem;'
+            + 'color:var(--text);text-decoration:none;white-space:nowrap;overflow:hidden;">'
+            + flagHtml(r.iso3)
+            + '<span style="overflow:hidden;text-overflow:ellipsis;">' + r.name + '</span>'
+            + (r.detail ? '<span style="color:var(--muted);font-size:0.8em;margin-left:auto;padding-left:0.5rem;flex-shrink:0;">' + r.detail + '</span>' : '')
+            + '</a>';
+    });
+    return html;
+  }
+
+  function show(data) {
+    activeIdx = -1;
+    var html = renderGroup('Countries', data.countries) + renderGroup('Speakers', data.speakers);
+    if (!html) { hide(); return; }
+    dropdown.innerHTML = html;
+    items = dropdown.querySelectorAll('.sug-item');
+    items.forEach(function (el, i) {
+      el.addEventListener('mouseenter', function () { setActive(i); });
+      el.addEventListener('mouseleave', function () { setActive(-1); });
+    });
+    dropdown.style.display = 'block';
+  }
+
+  function hide() {
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+    items = [];
+    activeIdx = -1;
+  }
+
+  function setActive(i) {
+    items.forEach(function (el) { el.style.background = ''; });
+    activeIdx = i;
+    if (i >= 0 && items[i]) items[i].style.background = 'var(--un-light)';
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    var q = input.value.trim();
+    if (q.length < 2) { hide(); return; }
+    timer = setTimeout(function () {
+      fetch('/api/suggest/?q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json(); })
+        .then(show)
+        .catch(hide);
+    }, 220);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (dropdown.style.display === 'none') return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(Math.min(activeIdx + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(Math.max(activeIdx - 1, -1));
+    } else if (e.key === 'Enter' && activeIdx >= 0) {
+      e.preventDefault();
+      items[activeIdx].click();
+    } else if (e.key === 'Escape') {
+      hide();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) hide();
+  });
+
+  input.addEventListener('focus', function () {
+    if (input.value.trim().length >= 2) input.dispatchEvent(new Event('input'));
+  });
+}());
+</script>
 </body>
 </html>
