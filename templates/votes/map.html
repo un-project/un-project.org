@@ -254,10 +254,9 @@
     854:'BFA',858:'URY',860:'UZB',862:'VEN',882:'WSM',887:'YEM',894:'ZMB'
   };
 
-  /* Set of iso3 codes for currently-existing countries, derived from N2A
-     which only contains current ISO 3166-1 numeric codes */
-  var currentIso3 = {};
-  Object.keys(N2A).forEach(function (n) { currentIso3[N2A[n]] = true; });
+  /* Set of dissolved/historical iso3 codes (from server) */
+  var historicalIso3 = {};
+  {{ historical_iso3_json|safe }}.forEach(function (iso) { historicalIso3[iso] = true; });
 
   /*
    * Territories shared between current and historical countries.
@@ -519,7 +518,7 @@
     _lastAllCountries = all;
     document.getElementById('similarity-panel').style.display = 'block';
     var filtered = mapFilters.currentOnly
-      ? all.filter(function (c) { return currentIso3[c.iso3]; })
+      ? all.filter(function (c) { return !historicalIso3[c.iso3]; })
       : all;
     var sorted = filtered.slice().sort(function (a, b) { return b.score - a.score; });
     renderSimList('sim-high', sorted.slice(0, 10), '#27ae60');

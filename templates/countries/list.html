@@ -3,8 +3,9 @@
 
 {% block content %}
 <h1>Countries</h1>
+
 <div style="display:flex; flex-wrap:wrap; gap:0.6rem 0.8rem; margin-top:1.25rem;">
-  {% for country in countries %}
+  {% for country in current %}
   <a href="{{ country.get_absolute_url }}"
      style="display:flex; align-items:center; gap:0.45rem; padding:0.35rem 0.7rem;
             background:var(--un-light); border:1px solid var(--border); border-radius:5px;
@@ -17,4 +18,24 @@
   </a>
   {% endfor %}
 </div>
+
+{% if historical %}
+<h2 style="margin-top:2.5rem; font-size:1.1rem;">Historical States</h2>
+<p class="meta" style="margin-bottom:1rem;">Countries and entities that no longer exist as independent states.</p>
+<div style="display:flex; flex-wrap:wrap; gap:0.6rem 0.8rem;">
+  {% for country in historical %}
+  <a href="{{ country.get_absolute_url }}"
+     style="display:flex; align-items:center; gap:0.45rem; padding:0.35rem 0.7rem;
+            background:var(--un-light); border:1px solid var(--border); border-radius:5px;
+            font-size:0.88rem; color:var(--muted); text-decoration:none; white-space:nowrap;"
+     title="{{ country.name }}">
+    {% if country.flag_url %}
+    <img src="{{ country.flag_url }}" alt="" style="height:14px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #ddd; flex-shrink:0;">
+    {% endif %}
+    {{ country.display_name }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% endblock %}

@@ -9,6 +9,7 @@ from django.db.models import Count, F, Min, Max
 from django.db import connection
 
 from countries.models import Country
+from countries.constants import HISTORICAL_ISO3
 from .coalitions import COALITIONS
 from .models import CountryVote, Resolution, ResolutionCitation, Vote
 
@@ -29,9 +30,11 @@ def voting_map(request):
         Resolution.objects.aggregate(min_year=Min('votes__document__date__year'),
                                      max_year=Max('votes__document__date__year'))
     )
+    historical_iso3_json = json.dumps(sorted(HISTORICAL_ISO3))
     return render(request, 'votes/map.html', {
         'countries': countries,
         'countries_json': countries_json,
+        'historical_iso3_json': historical_iso3_json,
         'categories': list(categories),
         'year_min': year_range['min_year'] or 1946,
         'year_max': year_range['max_year'] or 2024,

@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Min, Max, Count, Q, F
 from .models import Country
+from .constants import HISTORICAL_ISO3
 from debate.models import GeneralDebateEntry
 from speakers.models import Speaker
 from speeches.models import Speech
@@ -87,8 +88,13 @@ def _render_country_detail(request, country):
 
 
 def country_list(request):
-    countries = Country.objects.filter(iso3__isnull=False).order_by('name')
-    return render(request, 'countries/list.html', {'countries': countries})
+    qs = Country.objects.filter(iso3__isnull=False).order_by('name')
+    current    = qs.exclude(iso3__in=HISTORICAL_ISO3)
+    historical = qs.filter(iso3__in=HISTORICAL_ISO3)
+    return render(request, 'countries/list.html', {
+        'current': current,
+        'historical': historical,
+    })
 
 
 def country_detail(request, iso3):
