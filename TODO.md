@@ -34,6 +34,9 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **Map hover tooltips** — show country name and similarity score on hover over the voting similarity map, without requiring a click.
 - [ ] **Export votes to CSV** — allow downloading a country's vote records as a CSV file from the country page or the votes API.
 - [ ] **Voting similarity over time** — extend the map or compare page to show how alignment between two countries has shifted across sessions.
+- [x] **Voting blocs** — display aggregate voting breakdown by major political groups (NATO, G77, EU, P5, regional groups, etc.) on the votes page; each bloc links to a detail page with trend chart, cohesion chart, most divisive votes, and most agreed contested votes.
+- [x] **Compare blocs** — extended the compare page to support bloc vs country and bloc vs bloc comparisons (plurality position used for bloc votes).
+- [x] **Sidebar filters on meetings/resolutions lists** — year and session filters with mutual server-side narrowing (selecting a year filters the session list and vice versa).
 
 ## Navigation & UI
 

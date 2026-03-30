@@ -258,8 +258,12 @@ These were listed as future features and have since been implemented:
 - country voting alignment graphs — similarity charts comparing a country's votes to others
 - JSON API access — read-only REST API at `/api/` (meetings, speakers, resolutions) and `/votes/api/<iso3>/` (country votes and similarity scores)
 - GA/SC body filter — country profiles and vote API accept `?body=GA|SC` to restrict to one body
-- compare countries — `/votes/compare/` page with agreement rate, cross-matrix, year-by-year breakdown, and divergent vote lists
-- voting similarity map — `/votes/map/` interactive D3 choropleth with zoom, country picker, disambiguation popup for overlapping territories, and similarity bar charts
+- compare countries/blocs — `/votes/compare/` supports country vs country, country vs bloc, and bloc vs bloc; uses plurality position for blocs
+- voting similarity map — `/votes/map/` interactive D3 choropleth with hover tooltips, body/year/category filters, and "current countries only" toggle
+- voting blocs — `/votes/bloc/<slug>/` detail pages with member grid, voting trend (stacked area), internal cohesion (line chart), most divisive votes, and most agreed contested votes; 23 blocs defined
+- sidebar filters — meetings (`/meeting/`) and resolutions (`/votes/resolutions/`) lists have sticky year/session sidebars with mutual server-side narrowing
+- General Debate link — moved to the General Assembly dropdown in the nav
+- search filter by country → speaker — speaker autocomplete on the search page is pre-filtered by the selected country
 
 # Future Features (Not Yet Implemented)
 
