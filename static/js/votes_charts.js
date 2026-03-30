@@ -9,6 +9,8 @@
     var _catDim      = null;
     var _dateDim     = null;
     var _tableDim    = null;
+    var _majDim      = null;
+    var _majFilter   = null;
     var _ndx         = null;
     var _containerSel = null;
     var _iso3        = null;
@@ -25,6 +27,8 @@
         _catDim    = null;
         _dateDim   = null;
         _tableDim  = null;
+        _majDim    = null;
+        _majFilter = null;
         _ndx       = null;
         _body      = null;
         _yearFrom  = null;
@@ -42,8 +46,7 @@
 
     /* Compute how this country voted relative to the majority */
     function towardMajority(mp, position) {
-        if (position === 'absent') return 'absent';
-        if (mp === null) return position;
+        if (position === 'absent' || mp === null) return null;
         if (position === mp) return 'agree';
         if (position === 'abstain') return 'abstain';
         return 'against';
@@ -221,10 +224,80 @@
         });
     }
 
+    /* ── Majority alignment donut chart (d3, not dc.js) ────────────────────── */
+    function renderMajorityAlignment(votes) {
+        var el = document.querySelector(_containerSel + ' #toward-majority-chart');
+        if (!el) return;
+        el.innerHTML = '';
+
+        var counts = { agree: 0, against: 0, abstain: 0 };
+        votes.forEach(function (d) {
+            if (counts[d.toward_majority] !== undefined) counts[d.toward_majority]++;
+        });
+
+        var data = [
+            { key: 'Agree',   value: counts.agree,   color: '#27ae60' },
+            { key: 'Against', value: counts.against,  color: '#e74c3c' },
+            { key: 'Abstain', value: counts.abstain,  color: '#f39c12' },
+        ].filter(function (d) { return d.value > 0; });
+
+        if (!data.length) return;
+
+        var W = 220, H = 220, r = 90, ir = 50;
+        var svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+        var g   = svg.append('g').attr('transform', 'translate(' + W/2 + ',' + H/2 + ')');
+
+        var pie  = d3.pie().value(function (d) { return d.value; }).sort(null);
+        var labelArc = d3.arc().innerRadius(r - 28).outerRadius(r - 28);
+
+        var total = d3.sum(data, function (x) { return x.value; });
+
+        var slices = g.selectAll('g.slice').data(pie(data)).enter()
+            .append('g').attr('class', 'slice')
+            .style('cursor', 'pointer')
+            .on('click', function (_, d) {
+                var key = d.data.key.toLowerCase();
+                if (_majFilter === key) {
+                    _majFilter = null;
+                    _majDim.filterAll();
+                } else {
+                    _majFilter = key;
+                    _majDim.filter(key);
+                }
+                dc.redrawAll(GROUP);
+                redrawExtras(false);
+            });
+
+        slices.append('path')
+            .attr('d', function (d) {
+                var key = d.data.key.toLowerCase();
+                var active = _majFilter === null || _majFilter === key;
+                var outerR = active ? r : r - 8;
+                return d3.arc().innerRadius(ir).outerRadius(outerR)(d);
+            })
+            .attr('fill', function (d) { return d.data.color; })
+            .attr('opacity', function (d) {
+                return (_majFilter === null || _majFilter === d.data.key.toLowerCase()) ? 1 : 0.35;
+            })
+            .append('title')
+            .text(function (d) { return d.data.key + ': ' + d.data.value; });
+
+        slices.append('text')
+            .attr('transform', function (d) { return 'translate(' + labelArc.centroid(d) + ')'; })
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '0.7rem')
+            .attr('fill', '#fff')
+            .text(function (d) {
+                var pct = Math.round(d.data.value / total * 100);
+                return pct >= 8 ? d.data.key : '';
+            });
+    }
+
     /* Re-render charts that operate on filtered record sets */
     function redrawExtras(refetchSimilarity) {
         if (!_ndx || !_tableDim || !_containerSel) return;
         var filtered = _tableDim.top(Infinity);
+        renderMajorityAlignment(filtered);
         renderSessionTrend(filtered);
         if (refetchSimilarity) fetchSimilarity();
     }
@@ -269,10 +342,12 @@
             var chartDateDim = ndx.dimension(parseDate);
             var catDim       = ndx.dimension(function (d) { return d.category || 'Uncategorized'; });
             var tableDim     = ndx.dimension(function (d) { return d.year || 0; });
+            var majDim       = ndx.dimension(function (d) { return d.toward_majority; });
 
             _catDim   = catDim;
             _dateDim  = dateDim;
             _tableDim = tableDim;
+            _majDim   = majDim;
 
             /* ── Position pie chart ───────────────────────────────────── */
             var posDim   = ndx.dimension(function (d) { return d.position; });
@@ -289,22 +364,6 @@
                 .title(function (d) { return d.key + ': ' + d.value; });
 
             posChart.on('filtered', function () { redrawExtras(false); });
-
-            /* ── Toward majority pie chart ────────────────────────────── */
-            var majDim   = ndx.dimension(function (d) { return d.toward_majority; });
-            var majGroup = majDim.group();
-            var majChart = dc.pieChart(containerSel + ' #toward-majority-chart', GROUP);
-            majChart
-                .width(220).height(220)
-                .innerRadius(50)
-                .dimension(majDim).group(majGroup)
-                .colors(d3.scaleOrdinal()
-                    .domain(['agree', 'against', 'abstain', 'absent'])
-                    .range(['#27ae60', '#e74c3c', '#f39c12', '#95a7b5']))
-                .colorAccessor(function (d) { return d.key; })
-                .title(function (d) { return d.key + ': ' + d.value; });
-
-            majChart.on('filtered', function () { redrawExtras(false); });
 
             /* ── Voting records toward majority stacked bar ───────────── */
             var allDates = votes.map(parseDate).sort(function (a, b) { return a - b; });
@@ -410,11 +469,11 @@
                     updateTableNav();
                 });
 
-            _charts = [posChart, majChart, majYearChart, countWidget, dataTable];
+            _charts = [posChart, majYearChart, countWidget, dataTable];
             dc.renderAll(GROUP);
 
             /* Reset table offset on filter */
-            [posChart, majChart, majYearChart].forEach(function (c) {
+            [posChart, majYearChart].forEach(function (c) {
                 c.on('filtered.tblreset', function () {
                     tableOffset = 0;
                     dataTable.beginSlice(0).endSlice(TABLE_PAGE_SIZE).redraw();
@@ -441,6 +500,7 @@
             });
 
             /* Initial render of extras */
+            renderMajorityAlignment(votes);
             renderSessionTrend(votes);
             fetchSimilarity();
         },
@@ -470,10 +530,12 @@
         },
 
         resetAll: function () {
-            _yearFrom = null;
-            _yearTo   = null;
+            _yearFrom  = null;
+            _yearTo    = null;
+            _majFilter = null;
             if (_catDim)  _catDim.filterAll();
             if (_dateDim) _dateDim.filterAll();
+            if (_majDim)  _majDim.filterAll();
             dc.filterAll(GROUP);
             dc.renderAll(GROUP);
             redrawExtras(true);
