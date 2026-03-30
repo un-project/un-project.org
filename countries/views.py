@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Min, Max, Count, Q, F
 from .models import Country
-from .constants import HISTORICAL_ISO3
+from .constants import HISTORICAL_ISO3, HISTORICAL_INFO
 from debate.models import GeneralDebateEntry
 from speakers.models import Speaker
 from speeches.models import Speech
@@ -84,6 +84,7 @@ def _render_country_detail(request, country):
         'wc_url':               wc_url,
         'votes_api_url':        votes_api_url,
         'debate_entries':       debate_entries,
+        'historical_info':      HISTORICAL_INFO.get(country.iso3),
     })
 
 
