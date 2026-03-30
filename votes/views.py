@@ -456,6 +456,7 @@ def country_similarity_json(request, iso3):
     year_from = request.GET.get('year_from', '')
     year_to   = request.GET.get('year_to', '')
     body      = request.GET.get('body', '')
+    category  = request.GET.get('category', '')
 
     # Fetch all non-absent votes for the reference country: vote_id → position
     ref_qs = (
@@ -469,6 +470,8 @@ def country_similarity_json(request, iso3):
         ref_qs = ref_qs.filter(vote__document__date__year__lte=int(year_to))
     if body in ('GA', 'SC'):
         ref_qs = ref_qs.filter(vote__document__body=body)
+    if category:
+        ref_qs = ref_qs.filter(vote__resolution__category=category)
     a_votes = dict(ref_qs.values_list('vote_id', 'vote_position'))
 
     if not a_votes:

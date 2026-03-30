@@ -11,6 +11,7 @@
     var _tableDim    = null;
     var _majDim      = null;
     var _majFilter   = null;
+    var _catFilter   = null;
     var _ndx         = null;
     var _containerSel = null;
     var _iso3        = null;
@@ -29,6 +30,7 @@
         _tableDim  = null;
         _majDim    = null;
         _majFilter = null;
+        _catFilter = null;
         _ndx       = null;
         _body      = null;
         _yearFrom  = null;
@@ -109,9 +111,10 @@
         var params = [];
         if (_body)             params.push('body=' + _body);
         if (_yearFrom != null) { params.push('year_from=' + _yearFrom); params.push('year_to=' + _yearTo); }
+        if (_catFilter)        params.push('category=' + encodeURIComponent(_catFilter));
         if (params.length) url += '?' + params.join('&');
 
-        var cacheKey = _iso3 + ':' + (_body || '') + ':' + (_yearFrom || '') + ':' + (_yearTo || '');
+        var cacheKey = _iso3 + ':' + (_body || '') + ':' + (_yearFrom || '') + ':' + (_yearTo || '') + ':' + (_catFilter || '');
         if (_simCache[cacheKey]) {
             applySimilarity(_simCache[cacheKey]);
             return;
@@ -523,16 +526,18 @@
 
         filterCategory: function (val) {
             if (!_catDim) return;
+            _catFilter = val || null;
             if (val) _catDim.filter(val);
             else _catDim.filterAll();
             dc.redrawAll(GROUP);
-            redrawExtras(false);
+            redrawExtras(true);
         },
 
         resetAll: function () {
             _yearFrom  = null;
             _yearTo    = null;
             _majFilter = null;
+            _catFilter = null;
             if (_catDim)  _catDim.filterAll();
             if (_dateDim) _dateDim.filterAll();
             if (_majDim)  _majDim.filterAll();
