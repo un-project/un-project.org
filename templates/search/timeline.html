@@ -21,10 +21,11 @@
 
   #timeline-svg {
     display: block;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .tl-cell {
-    cursor: pointer;
     rx: 2;
   }
 
@@ -38,10 +39,9 @@
 
   .tl-tooltip {
     position: fixed;
-    left: 0;
-    top: 0;
-    /* Start off-screen; repositioned via transform — never toggled display/visibility */
-    transform: translate(-9999px, -9999px);
+    left: -9999px;
+    top: -9999px;
+    visibility: hidden;
     background: rgba(0,0,0,0.8);
     color: #fff;
     padding: 0.4rem 0.65rem;
@@ -84,7 +84,9 @@
   #tl-state {
     color: var(--muted);
     font-size: 0.9rem;
-    min-height: 1.5rem;
+    height: 1.5rem;
+    line-height: 1.5rem;
+    overflow: hidden;
   }
 </style>
 {% endblock %}
@@ -113,12 +115,12 @@
     {% if query %}Loading…{% else %}Enter a topic above to visualise speech activity across sessions.{% endif %}
   </div>
 
-  <div id="tl-tooltip" class="tl-tooltip"></div>
   <div id="timeline-container" style="{% if not query %}display:none{% endif %}">
     <svg id="timeline-svg"></svg>
   </div>
 
 </div>
+<div id="tl-tooltip" class="tl-tooltip"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -133,7 +135,8 @@
   var container = document.getElementById('timeline-container');
   var stateEl   = document.getElementById('tl-state');
   var svg       = document.getElementById('timeline-svg');
-  var tooltip   = document.getElementById('tl-tooltip');
+
+  var tooltip = document.getElementById('tl-tooltip');
 
   var CELL_W = 14, CELL_H = 18, CELL_GAP = 2;
   var LABEL_W = 160, MARGIN_TOP = 50, MARGIN_BOTTOM = 10;
@@ -255,6 +258,7 @@
           width: CELL_W, height: CELL_H,
           rx: 2,
           fill: colorScale(count, maxCount),
+          cursor: count > 0 ? 'pointer' : 'default',
           'data-iso3': country.iso3,
           'data-country': country.name,
           'data-year': yr,
@@ -266,13 +270,9 @@
 
     // Highlight rect — parked off-screen until a cell is hovered
     var highlight = el('rect', { id: 'tl-highlight',
+      'pointer-events': 'none',
       x: -999, y: -999, width: CELL_W, height: CELL_H, rx: 2 });
     svg.appendChild(highlight);
-
-    // Tooltip lives in body so no ancestor style can affect its fixed positioning
-    document.body.appendChild(tooltip);
-    var OFFSCREEN = 'translate(-9999px,-9999px)';
-    tooltip.style.transform = OFFSCREEN;
 
     var lastCell = null;
     var pendingX = 0, pendingY = 0, pendingCell = null, rafPending = false;
@@ -292,9 +292,15 @@
           highlight.setAttribute('y', cell.getAttribute('y'));
           lastCell = cell;
         }
-        tooltip.style.transform = 'translate(' + (pendingX + 14) + 'px,' + (pendingY - 8) + 'px)';
+        // Position before making visible so it never flashes at the wrong spot
+        var tipX = pendingX + 14;
+        if (tipX + 280 > window.innerWidth) tipX = pendingX - 280 - 8;
+        if (tipX < 4) tipX = 4;
+        tooltip.style.left = tipX + 'px';
+        tooltip.style.top  = Math.max(4, pendingY - 8) + 'px';
+        tooltip.style.visibility = 'visible';
       } else {
-        tooltip.style.transform = OFFSCREEN;
+        tooltip.style.visibility = 'hidden';
         highlight.setAttribute('x', -999);
         highlight.setAttribute('y', -999);
         lastCell = null;
@@ -314,8 +320,8 @@
     });
 
     svg.addEventListener('click', function (e) {
-      var rect = e.target.closest ? e.target : null;
-      if (rect && rect.classList.contains('tl-cell')) {
+      var rect = e.target.closest ? e.target.closest('.tl-cell') : null;
+      if (rect) {
         var iso3  = rect.getAttribute('data-iso3');
         var year  = rect.getAttribute('data-year');
         var count = parseInt(rect.getAttribute('data-count'), 10);
@@ -326,7 +332,7 @@
         if (countryObj && countryObj.pk) params.set('country', countryObj.pk);
         params.set('date_from', year + '-01-01');
         params.set('date_to',   year + '-12-31');
-        window.open('/search/?' + params.toString(), '_blank');
+        window.location.href = '/search/?' + params.toString();
       }
     });
 
