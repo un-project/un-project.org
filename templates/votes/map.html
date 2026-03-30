@@ -174,6 +174,10 @@
     <option value="{{ cat }}">{{ cat }}</option>
     {% endfor %}
   </select>
+  <span class="map-filter-sep">|</span>
+  <label style="display:flex; align-items:center; gap:0.3rem; text-transform:none; letter-spacing:normal; font-weight:400; cursor:pointer;">
+    <input type="checkbox" id="map-current-only"> Current countries only
+  </label>
 </div>
 
 <div id="map-wrap">
@@ -249,6 +253,11 @@
     798:'TUV',800:'UGA',804:'UKR',818:'EGY',826:'GBR',834:'TZA',840:'USA',
     854:'BFA',858:'URY',860:'UZB',862:'VEN',882:'WSM',887:'YEM',894:'ZMB'
   };
+
+  /* Set of iso3 codes for currently-existing countries, derived from N2A
+     which only contains current ISO 3166-1 numeric codes */
+  var currentIso3 = {};
+  Object.keys(N2A).forEach(function (n) { currentIso3[N2A[n]] = true; });
 
   /*
    * Territories shared between current and historical countries.
@@ -344,7 +353,8 @@
   var selectedIso3 = null;
   var simScores    = {};   /* iso3 → score for every country returned by API */
   var tomSelect    = null;
-  var mapFilters   = { body: '', yearFrom: '{{ year_min }}', yearTo: '{{ year_max }}', category: '' };
+  var mapFilters   = { body: '', yearFrom: '{{ year_min }}', yearTo: '{{ year_max }}', category: '', currentOnly: false };
+  var _lastAllCountries = [];
 
   /* ── Helpers ────────────────────────────────────────────────────── */
   function flagImg(iso3) {
@@ -506,8 +516,12 @@
 
   /* ── Similarity lists ───────────────────────────────────────────── */
   function renderSimilarity(all) {
+    _lastAllCountries = all;
     document.getElementById('similarity-panel').style.display = 'block';
-    var sorted = all.slice().sort(function (a, b) { return b.score - a.score; });
+    var filtered = mapFilters.currentOnly
+      ? all.filter(function (c) { return currentIso3[c.iso3]; })
+      : all;
+    var sorted = filtered.slice().sort(function (a, b) { return b.score - a.score; });
     renderSimList('sim-high', sorted.slice(0, 10), '#27ae60');
     var bottom = sorted.slice(-10).reverse();
     renderSimList('sim-low',  bottom, '#e74c3c');
@@ -578,6 +592,11 @@
   document.getElementById('map-category').addEventListener('change', function () {
     mapFilters.category = this.value;
     refetchIfSelected();
+  });
+
+  document.getElementById('map-current-only').addEventListener('change', function () {
+    mapFilters.currentOnly = this.checked;
+    if (_lastAllCountries.length) renderSimilarity(_lastAllCountries);
   });
 
 }());
