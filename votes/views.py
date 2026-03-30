@@ -323,12 +323,6 @@ def country_compare(request):
 
 
 def votes_page(request):
-    countries = (
-        Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
-        .distinct()
-        .order_by('name')
-    )
-
     # Summary counts
     total_resolutions = Resolution.objects.filter(votes__vote_type='recorded').distinct().count()
     total_recorded_votes = Vote.objects.filter(vote_type='recorded', yes_count__isnull=False).count()
@@ -416,7 +410,6 @@ def votes_page(request):
     )
 
     return render(request, 'votes/index.html', {
-        'countries':           countries,
         'coalition_blocs':     coalition_blocs,
         'total_resolutions':   total_resolutions,
         'total_recorded_votes': total_recorded_votes,
