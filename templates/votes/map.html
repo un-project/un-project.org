@@ -70,6 +70,19 @@
 #disambiguation-popup img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid #e0e0e0; flex-shrink: 0; }
 #disambiguation-popup .popup-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
+#map-tooltip {
+  position: absolute;
+  background: rgba(0,0,0,0.78);
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 20;
+  display: none;
+}
+
 #map-legend {
   display: flex;
   align-items: center;
@@ -130,6 +143,7 @@
 
 <div id="map-wrap">
   <svg id="world-map"></svg>
+  <div id="map-tooltip"></div>
   <div id="disambiguation-popup" style="display:none;"></div>
   <button id="map-zoom-reset" title="Reset zoom" style="position:absolute;top:8px;right:8px;padding:4px 8px;font-size:0.78rem;background:rgba(255,255,255,0.85);border:1px solid var(--border);border-radius:4px;cursor:pointer;line-height:1.4;">Reset zoom</button>
 </div>
@@ -265,6 +279,32 @@
 
   var colorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 1]);
 
+  /* ── Tooltip ────────────────────────────────────────────────────── */
+  var tooltip = document.getElementById('map-tooltip');
+
+  function showTooltip(event, a3) {
+    var c = a3 && countryByIso3[a3];
+    if (!c) return;
+    var label = c.name;
+    if (simScores[a3] !== undefined) {
+      label += ' — ' + Math.round(simScores[a3] * 100) + '%';
+    }
+    tooltip.textContent = label;
+    tooltip.style.display = 'block';
+    moveTooltip(event);
+  }
+
+  function moveTooltip(event) {
+    var rect = mapWrap.getBoundingClientRect();
+    var tx = event.clientX - rect.left + 12;
+    var ty = event.clientY - rect.top - 28;
+    if (tx + tooltip.offsetWidth > W - 8) tx = event.clientX - rect.left - tooltip.offsetWidth - 8;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top  = ty + 'px';
+  }
+
+  function hideTooltip() { tooltip.style.display = 'none'; }
+
   /* ── State ──────────────────────────────────────────────────────── */
   var selectedIso3 = null;
   var simScores    = {};   /* iso3 → score for every country returned by API */
@@ -307,10 +347,19 @@
           .attr('stroke-width', 0.4)
           .on('click', handleClick)
           .on('mouseover', function (event, d) {
-            if (N2A[+d.id]) d3.select(this).attr('stroke', '#444').attr('stroke-width', 1.2);
+            var a3 = N2A[+d.id];
+            if (a3) {
+              d3.select(this).attr('stroke', '#444').attr('stroke-width', 1.2);
+              showTooltip(event, a3);
+            }
+          })
+          .on('mousemove', function (event, d) {
+            var a3 = N2A[+d.id];
+            if (a3) moveTooltip(event);
           })
           .on('mouseout', function () {
             d3.select(this).attr('stroke', '#fff').attr('stroke-width', 0.4);
+            hideTooltip();
           });
 
       /* Apply pre-selection from URL hash (e.g. /votes/map/#USA) */

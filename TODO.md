@@ -21,7 +21,7 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Most active speakers** — list the top speakers for the country (by speech count) on the country page.
 - [ ] **Top topics** — show the agenda categories a country speaks on most often.
 - [ ] **Historical country info** — for defunct states (USSR, DDR, CSK, etc.), show context such as dissolution date and successor states.
-- [ ] **Body filter on speaker page** — the speaker detail page lacks a GA/SC body filter; add one to mirror the country page.
+- [x] **Body filter on speaker page** — the speaker detail page lacks a GA/SC body filter; add one to mirror the country page.
 
 ## Speaker Page
 
@@ -31,7 +31,7 @@ Tracked tasks and future features for the UN Project web application.
 ## Resolution & Votes
 
 - [ ] **Amendment tracking** — the `amendments` table is reserved; implement models and UI when data is ready.
-- [ ] **Map hover tooltips** — show country name and similarity score on hover over the voting similarity map, without requiring a click.
+- [x] **Map hover tooltips** — show country name and similarity score on hover over the voting similarity map, without requiring a click.
 - [ ] **Export votes to CSV** — allow downloading a country's vote records as a CSV file from the country page or the votes API.
 - [ ] **Voting similarity over time** — extend the map or compare page to show how alignment between two countries has shifted across sessions.
 
