@@ -1,6 +1,86 @@
 {% extends "base.html" %}
 {% block title %}{% if current_body == 'GA' %}General Assembly{% elif current_body == 'SC' %}Security Council{% else %}Meetings{% endif %}{% endblock %}
 
+{% block extra_head %}
+<style>
+.meetings-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .meetings-layout { grid-template-columns: 1fr; }
+  .meetings-sidebar { display: flex; gap: 2rem; flex-wrap: wrap; }
+  .meetings-sidebar .filter-section { flex: 1; min-width: 140px; }
+}
+
+.meetings-sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.filter-section { margin-bottom: 1.5rem; }
+.filter-section h3 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-list {
+  list-style: none; margin: 0; padding: 0;
+  max-height: 260px; overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+.filter-list::-webkit-scrollbar { width: 5px; }
+.filter-list::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
+.filter-list::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+.filter-list::-webkit-scrollbar-thumb:hover { background: #999; }
+.filter-list li { margin: 0; }
+.filter-list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.22rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.filter-list a:hover { background: var(--un-light); color: var(--un-blue); }
+.filter-list a.active {
+  background: var(--un-blue);
+  color: #fff;
+  font-weight: 600;
+}
+.filter-list a.active:hover { background: #1558a0; }
+.filter-list .filter-sub {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.filter-list a.active .filter-sub { opacity: 0.85; }
+
+.clear-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.15rem 0.4rem;
+}
+.clear-link:hover { color: var(--un-blue); }
+</style>
+{% endblock %}
+
 {% block content %}
 {% if current_body %}
 <div style="display:flex; align-items:center; gap:1.5rem; margin:2rem 0 1.5rem; flex-wrap:wrap;">
@@ -16,53 +96,121 @@
 <h1>Meetings</h1>
 {% endif %}
 
-<form class="filters" method="get">
-  {% if current_body %}<input type="hidden" name="body" value="{{ current_body }}">{% else %}
+{% if not current_body %}
+<form class="filters" method="get" style="margin-bottom:1rem;">
   <select name="body">
     <option value="">All bodies</option>
     <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
     <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
   </select>
-  {% endif %}
-
-  <select name="session">
-    <option value="">All sessions</option>
-    {% for s in sessions %}
-    <option value="{{ s }}" {% if current_session == s|stringformat:"s" %}selected{% endif %}>Session {{ s }}</option>
-    {% endfor %}
-  </select>
-  {% if current_session and current_body %}
-  <a href="/session/{{ current_body }}/{{ current_session }}/" class="btn btn-secondary btn-sm">Session page ↗</a>
-  {% endif %}
-
-  <select name="year">
-    <option value="">All years</option>
-    {% for y in years %}
-    <option value="{{ y|date:'Y' }}" {% if current_year == y|date:"Y" %}selected{% endif %}>{{ y|date:"Y" }}</option>
-    {% endfor %}
-  </select>
-
   <button type="submit">Filter</button>
-  {% if current_session or current_year %}
-  <a href="/meeting/{% if current_body %}?body={{ current_body }}{% endif %}" class="btn btn-secondary btn-sm">Clear</a>
-  {% endif %}
 </form>
+{% endif %}
 
-<p class="meta">{{ page.paginator.count }} meeting{{ page.paginator.count|pluralize }} found</p>
+<div class="meetings-layout">
 
-{% for doc in page %}
-<div class="card">
-  <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-    <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
-    <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
-    {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
-    <span class="meta">Session {{ doc.session }}</span>
-    <span class="meta">Meeting {{ doc.meeting_number }}</span>
+  <!-- ── Sidebar filters ───────────────────────────────────────── -->
+  <aside class="meetings-sidebar">
+
+    <!-- Year filter -->
+    <div class="filter-section">
+      <h3>Year</h3>
+      <ul class="filter-list">
+        {% for y in years %}
+        {% with ystr=y|date:"Y" %}
+        {% if current_year == ystr %}
+        <li>
+          <a href="/meeting/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}" class="active">
+            {{ ystr }}
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="/meeting/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}year={{ ystr }}">
+            {{ ystr }}
+          </a>
+        </li>
+        {% endif %}
+        {% endwith %}
+        {% empty %}
+        <li style="font-size:0.82rem; color:var(--muted); padding:0.2rem 0.4rem;">No years</li>
+        {% endfor %}
+      </ul>
+      {% if current_year %}
+      <a href="/meeting/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}{% endif %}" class="clear-link">✕ Clear year</a>
+      {% endif %}
+    </div>
+
+    <!-- Session filter -->
+    <div class="filter-section">
+      <h3>Session</h3>
+      <ul class="filter-list">
+        {% for s in sessions %}
+        {% with sstr=s.session|stringformat:"s" %}
+        {% if current_session == sstr %}
+        <li>
+          <a href="/meeting/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}" class="active">
+            <span>Session {{ s.session }}</span>
+            <span class="filter-sub">{{ s.label }}</span>
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="/meeting/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}session={{ s.session }}">
+            <span>Session {{ s.session }}</span>
+            <span class="filter-sub">{{ s.label }}</span>
+          </a>
+        </li>
+        {% endif %}
+        {% endwith %}
+        {% empty %}
+        <li style="font-size:0.82rem; color:var(--muted); padding:0.2rem 0.4rem;">No sessions</li>
+        {% endfor %}
+      </ul>
+      {% if current_session %}
+      <a href="/meeting/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}{% endif %}" class="clear-link">✕ Clear session</a>
+      {% if current_body %}
+      <a href="/session/{{ current_body }}/{{ current_session }}/" class="clear-link" style="display:block; margin-top:0.2rem; color:var(--un-blue);">Session page ↗</a>
+      {% endif %}
+      {% endif %}
+    </div>
+
+  </aside>
+
+  <!-- ── Main content ──────────────────────────────────────────── -->
+  <div>
+    <p class="meta" style="margin-bottom:0.75rem;">
+      {{ page.paginator.count }} meeting{{ page.paginator.count|pluralize }} found
+      {% if current_year %} in {{ current_year }}{% endif %}
+      {% if current_session %} — Session {{ current_session }}{% endif %}
+    </p>
+
+    {% for doc in page %}
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+        <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
+        <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
+        {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
+        <span class="meta">Session {{ doc.session }}</span>
+        <span class="meta">Meeting {{ doc.meeting_number }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <p class="meta">No meetings match the selected filters.</p>
+    {% endfor %}
+
+    {% include "partials/pagination.html" with page_obj=page %}
   </div>
-</div>
-{% empty %}
-<p class="meta">No meetings match the selected filters.</p>
-{% endfor %}
 
-{% include "partials/pagination.html" with page_obj=page %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll active filter item into view within its scrollable list
+document.querySelectorAll('.filter-list').forEach(function (list) {
+  var active = list.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+});
+</script>
 {% endblock %}

@@ -49,17 +49,54 @@ def voting_map(request):
 def resolution_list(request):
     body = request.GET.get('body', '')
     session = request.GET.get('session', '')
+    year = request.GET.get('year', '')
 
     qs = Resolution.objects.all()
     if body in ('GA', 'SC'):
         qs = qs.filter(body=body)
     if session and session.isdigit():
         qs = qs.filter(session=int(session))
+    if year and year.isdigit():
+        qs = qs.filter(votes__document__date__year=int(year)).distinct()
 
+    # Base queryset for sidebar (body-filtered only)
     filter_qs = Resolution.objects.all()
     if body in ('GA', 'SC'):
         filter_qs = filter_qs.filter(body=body)
-    sessions = filter_qs.order_by('-session').values_list('session', flat=True).distinct()
+
+    # Years sidebar: filtered to current session if one is selected
+    year_qs = filter_qs.filter(votes__document__date__isnull=False)
+    if session and session.isdigit():
+        year_qs = year_qs.filter(session=int(session))
+    years = (
+        year_qs
+        .values_list('votes__document__date__year', flat=True)
+        .distinct()
+        .order_by('-votes__document__date__year')
+    )
+
+    # Sessions sidebar: filtered to current year if one is selected
+    session_qs = filter_qs
+    if year and year.isdigit():
+        session_qs = session_qs.filter(votes__document__date__year=int(year))
+    session_rows = (
+        session_qs
+        .filter(session__isnull=False, votes__document__date__isnull=False)
+        .values('session')
+        .annotate(year_min=Min('votes__document__date__year'),
+                  year_max=Max('votes__document__date__year'))
+        .order_by('-session')
+    )
+    sessions = [
+        {
+            'session': row['session'],
+            'label': (
+                str(row['year_min']) if row['year_min'] == row['year_max']
+                else f"{row['year_min']}–{row['year_max']}"
+            ),
+        }
+        for row in session_rows
+    ]
 
     paginator = Paginator(qs.order_by('-session', 'adopted_symbol', 'draft_symbol'), 50)
     page = paginator.get_page(request.GET.get('page'))
@@ -67,8 +104,10 @@ def resolution_list(request):
     return render(request, 'votes/resolutions.html', {
         'page': page,
         'sessions': sessions,
+        'years': years,
         'current_body': body,
         'current_session': session,
+        'current_year': year,
     })
 
 

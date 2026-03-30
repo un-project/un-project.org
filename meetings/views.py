@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
+from django.db.models import Min, Max
 from django.http import Http404
 from django.conf import settings
 from .models import Document, DocumentItem
@@ -22,18 +23,43 @@ def meeting_list(request):
     if year and year.isdigit():
         qs = qs.filter(date__year=int(year))
 
+    # Base queryset for sidebar lists (body-filtered only)
     filter_qs = Document.objects.all()
     if body in ('GA', 'SC'):
         filter_qs = filter_qs.filter(body=body)
 
-    sessions = filter_qs.order_by('-session').values_list('session', flat=True).distinct()
-    years = (
-        filter_qs.filter(date__isnull=False)
-        .order_by('-date__year')
-        .dates('date', 'year')
-    )
+    # Years: filtered to current session if one is selected
+    year_qs = filter_qs.filter(date__isnull=False)
+    if session and session.isdigit():
+        year_qs = year_qs.filter(session=int(session))
+    years = year_qs.dates('date', 'year', order='DESC')
 
-    paginator = Paginator(qs, getattr(settings, 'MEETINGS_PER_PAGE', 25))
+    # Sessions with year ranges: filtered to current year if one is selected
+    session_qs = filter_qs
+    if year and year.isdigit():
+        session_qs = session_qs.filter(date__year=int(year))
+
+    session_rows = (
+        session_qs
+        .filter(date__isnull=False, session__isnull=False)
+        .values('session')
+        .annotate(year_min=Min('date__year'), year_max=Max('date__year'))
+        .order_by('-session')
+    )
+    sessions = [
+        {
+            'session': row['session'],
+            'year_min': row['year_min'],
+            'year_max': row['year_max'],
+            'label': (
+                str(row['year_min']) if row['year_min'] == row['year_max']
+                else f"{row['year_min']}–{row['year_max']}"
+            ),
+        }
+        for row in session_rows
+    ]
+
+    paginator = Paginator(qs.order_by('-date', '-meeting_number'), getattr(settings, 'MEETINGS_PER_PAGE', 25))
     page = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'meetings/list.html', {
