@@ -31,7 +31,6 @@ services:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py refresh_search_index --full &&
              python manage.py collectstatic --noinput &&
              gunicorn un_site.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
     develop:
@@ -53,6 +52,7 @@ services:
   cron:
     build: .
     restart: unless-stopped
+    profiles: [cron]
     user: root
     env_file:
       - .env
