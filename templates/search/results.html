@@ -33,7 +33,7 @@ document.querySelector('form.filters').addEventListener('submit', function (e) {
     {% endfor %}
   </select>
 
-  <select name="speaker" data-search-url="/api/speakers/search/">
+  <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country">
     <option value="">All speakers</option>
     {% if selected_speaker %}
     <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>

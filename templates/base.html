@@ -243,13 +243,20 @@ document.querySelectorAll('select[data-searchable]').forEach(function(el) {
 
 document.querySelectorAll('select[data-search-url]').forEach(function(el) {
   var url = el.dataset.searchUrl;
+  var countrySelectName = el.dataset.countrySelect;
   new TomSelect(el, {
     valueField: 'id',
     labelField: 'name',
     searchField: 'name',
     load: function(query, callback) {
       if (query.length < 2) return callback();
-      fetch(url + '?q=' + encodeURIComponent(query))
+      var fetchUrl = url + '?q=' + encodeURIComponent(query);
+      if (countrySelectName) {
+        var countryEl = el.form && el.form.elements[countrySelectName];
+        var countryVal = countryEl ? countryEl.value : '';
+        if (countryVal) fetchUrl += '&country=' + encodeURIComponent(countryVal);
+      }
+      fetch(fetchUrl)
         .then(function(r) { return r.json(); })
         .then(function(data) { callback(data); })
         .catch(function() { callback(); });

@@ -123,13 +123,17 @@ def speaker_search(request):
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
         return JsonResponse([], safe=False)
+    country_id = request.GET.get('country', '')
     from speakers.models import Speaker
     qs = (
         Speaker.objects
         .filter(Q(name__icontains=q) | Q(organization__icontains=q))
         .select_related('country')
-        .order_by('name')[:30]
+        .order_by('name')
     )
+    if country_id and country_id.isdigit():
+        qs = qs.filter(country_id=int(country_id))
+    qs = qs[:30]
     results = [
         {
             'id': s.pk,
