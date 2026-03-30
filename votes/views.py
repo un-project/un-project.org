@@ -10,7 +10,7 @@ from django.db import connection
 
 from countries.models import Country
 from countries.constants import HISTORICAL_ISO3
-from .coalitions import COALITIONS
+from .coalitions import COALITIONS, COALITIONS_BY_SLUG
 from .models import CountryVote, Resolution, ResolutionCitation, Vote
 
 
@@ -370,6 +370,7 @@ def votes_page(request):
         members = [countries_by_iso3[iso3] for iso3 in bloc['iso3'] if iso3 in countries_by_iso3]
         coalition_blocs.append({
             'name': bloc['name'],
+            'slug': bloc.get('slug', ''),
             'label': bloc['label'],
             'members': members,
             'members_extra': max(0, len(members) - 8),
@@ -540,4 +541,220 @@ def country_similarity_json(request, iso3):
     return JsonResponse({
         'similar': results[:10],
         'dissimilar': list(reversed(results[-10:])),
+    })
+
+
+def bloc_detail(request, slug):
+    bloc = COALITIONS_BY_SLUG.get(slug)
+    if not bloc:
+        raise Http404('Bloc not found')
+
+    iso3_list = bloc['iso3']
+    countries_by_iso3 = {
+        c.iso3: c
+        for c in Country.objects.filter(iso3__in=iso3_list)
+    }
+    members = [countries_by_iso3[iso3] for iso3 in iso3_list if iso3 in countries_by_iso3]
+
+    # Overall breakdown
+    pos_counts = {
+        row['vote_position']: row['n']
+        for row in (
+            CountryVote.objects
+            .filter(country__iso3__in=iso3_list)
+            .exclude(vote_position='absent')
+            .values('vote_position')
+            .annotate(n=Count('id'))
+        )
+    }
+    total_pos = sum(pos_counts.values())
+    yes_pct     = round(100 * pos_counts.get('yes',     0) / total_pos) if total_pos else 0
+    no_pct      = round(100 * pos_counts.get('no',      0) / total_pos) if total_pos else 0
+    abstain_pct = round(100 * pos_counts.get('abstain', 0) / total_pos) if total_pos else 0
+
+    # Voting trend by year: yes/no/abstain counts per year
+    year_rows = (
+        CountryVote.objects
+        .filter(country__iso3__in=iso3_list, vote__document__date__year__gt=1900)
+        .exclude(vote_position='absent')
+        .values('vote__document__date__year', 'vote_position')
+        .annotate(n=Count('id'))
+        .order_by('vote__document__date__year')
+    )
+    trend_by_year = {}
+    for row in year_rows:
+        yr = row['vote__document__date__year']
+        if yr not in trend_by_year:
+            trend_by_year[yr] = {'year': yr, 'yes': 0, 'no': 0, 'abstain': 0}
+        pos = row['vote_position']
+        if pos in ('yes', 'no', 'abstain'):
+            trend_by_year[yr][pos] = row['n']
+    trend_json = json.dumps(sorted(trend_by_year.values(), key=lambda x: x['year']))
+
+    # Cohesion by year: fraction of votes where bloc plurality position matches per year
+    # For each vote, find the plurality position among bloc members, then measure agreement
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            WITH vote_positions AS (
+                SELECT
+                    cv.vote_id,
+                    EXTRACT(YEAR FROM d.date)::int AS year,
+                    cv.vote_position,
+                    COUNT(*) AS cnt
+                FROM country_votes cv
+                JOIN countries c ON c.id = cv.country_id
+                JOIN votes v ON v.id = cv.vote_id
+                JOIN documents d ON d.id = v.document_id
+                WHERE c.iso3 = ANY(%s)
+                  AND cv.vote_position IN ('yes', 'no', 'abstain')
+                  AND EXTRACT(YEAR FROM d.date) > 1900
+                GROUP BY cv.vote_id, year, cv.vote_position
+            ),
+            vote_totals AS (
+                SELECT vote_id, year, SUM(cnt) AS total_votes
+                FROM vote_positions
+                GROUP BY vote_id, year
+            ),
+            vote_plurality AS (
+                SELECT DISTINCT ON (vp.vote_id)
+                    vp.vote_id,
+                    vp.year,
+                    vp.cnt AS plurality_cnt,
+                    vt.total_votes
+                FROM vote_positions vp
+                JOIN vote_totals vt ON vt.vote_id = vp.vote_id
+                ORDER BY vp.vote_id, vp.cnt DESC
+            )
+            SELECT year,
+                   ROUND(AVG(plurality_cnt::numeric / total_votes) * 100) AS cohesion_pct,
+                   COUNT(*) AS vote_count
+            FROM vote_plurality
+            WHERE total_votes >= 2
+            GROUP BY year
+            ORDER BY year
+        """, [iso3_list])
+        cohesion_rows = cursor.fetchall()
+
+    cohesion_json = json.dumps([
+        {'year': row[0], 'cohesion': float(row[1]), 'votes': row[2]}
+        for row in cohesion_rows
+    ])
+
+    # Most divisive votes: votes with highest internal disagreement (lowest cohesion)
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            WITH vote_positions AS (
+                SELECT
+                    cv.vote_id,
+                    cv.vote_position,
+                    COUNT(*) AS cnt
+                FROM country_votes cv
+                JOIN countries c ON c.id = cv.country_id
+                WHERE c.iso3 = ANY(%s)
+                  AND cv.vote_position IN ('yes', 'no', 'abstain')
+                GROUP BY cv.vote_id, cv.vote_position
+            ),
+            vote_totals AS (
+                SELECT vote_id, SUM(cnt) AS total_votes
+                FROM vote_positions
+                GROUP BY vote_id
+            ),
+            vote_plurality AS (
+                SELECT DISTINCT ON (vp.vote_id)
+                    vp.vote_id,
+                    vp.cnt AS plurality_cnt,
+                    vt.total_votes,
+                    vp.cnt::numeric / vt.total_votes AS cohesion
+                FROM vote_positions vp
+                JOIN vote_totals vt ON vt.vote_id = vp.vote_id
+                ORDER BY vp.vote_id, vp.cnt DESC
+            )
+            SELECT vote_id, cohesion, total_votes
+            FROM vote_plurality
+            WHERE total_votes >= %s
+            ORDER BY cohesion ASC
+            LIMIT 8
+        """, [iso3_list, max(3, len(members) // 4)])
+        divisive_vote_ids = [(row[0], float(row[1]), row[2]) for row in cursor.fetchall()]
+
+    divisive_votes = []
+    if divisive_vote_ids:
+        vote_map = {v.pk: v for v in Vote.objects.filter(
+            pk__in=[r[0] for r in divisive_vote_ids]
+        ).select_related('resolution', 'document')}
+        for vote_id, cohesion, participating in divisive_vote_ids:
+            if vote_id in vote_map:
+                divisive_votes.append({
+                    'vote': vote_map[vote_id],
+                    'cohesion': round(cohesion * 100),
+                    'participating': participating,
+                })
+
+    # Most agreed contested votes (high no_count AND high internal cohesion)
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            WITH vote_positions AS (
+                SELECT
+                    cv.vote_id,
+                    cv.vote_position,
+                    COUNT(*) AS cnt
+                FROM country_votes cv
+                JOIN countries c ON c.id = cv.country_id
+                WHERE c.iso3 = ANY(%s)
+                  AND cv.vote_position IN ('yes', 'no', 'abstain')
+                GROUP BY cv.vote_id, cv.vote_position
+            ),
+            vote_totals AS (
+                SELECT vote_id, SUM(cnt) AS total_votes
+                FROM vote_positions
+                GROUP BY vote_id
+            ),
+            vote_plurality AS (
+                SELECT DISTINCT ON (vp.vote_id)
+                    vp.vote_id,
+                    vp.cnt::numeric / vt.total_votes AS cohesion,
+                    vt.total_votes
+                FROM vote_positions vp
+                JOIN vote_totals vt ON vt.vote_id = vp.vote_id
+                ORDER BY vp.vote_id, vp.cnt DESC
+            )
+            SELECT vp.vote_id, vp.cohesion, v.no_count
+            FROM vote_plurality vp
+            JOIN votes v ON v.id = vp.vote_id
+            WHERE vp.cohesion >= 0.8
+              AND v.no_count >= 10
+              AND vp.total_votes >= %s
+            ORDER BY v.no_count DESC
+            LIMIT 8
+        """, [iso3_list, max(3, len(members) // 4)])
+        contested_rows = cursor.fetchall()
+
+    agreed_contested = []
+    if contested_rows:
+        cmap = {v.pk: v for v in Vote.objects.filter(
+            pk__in=[r[0] for r in contested_rows]
+        ).select_related('resolution', 'document')}
+        for vote_id, cohesion, no_count in contested_rows:
+            if vote_id in cmap:
+                agreed_contested.append({
+                    'vote': cmap[vote_id],
+                    'cohesion': round(float(cohesion) * 100),
+                    'no_count': no_count,
+                })
+
+    return render(request, 'votes/bloc.html', {
+        'bloc': bloc,
+        'members': members,
+        'yes_pct': yes_pct,
+        'no_pct': no_pct,
+        'abstain_pct': abstain_pct,
+        'trend_json': trend_json,
+        'cohesion_json': cohesion_json,
+        'divisive_votes': divisive_votes,
+        'agreed_contested': agreed_contested,
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': bloc['name'], 'url': None},
+        ],
     })

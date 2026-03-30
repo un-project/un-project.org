@@ -5,6 +5,7 @@ COALITIONS = [
     # ── UN Security Council ──────────────────────────────────────────────────
     {
         'name': 'P5',
+        'slug': 'p5',
         'label': 'UN Security Council Permanent Members',
         'iso3': ['CHN', 'FRA', 'GBR', 'RUS', 'USA'],
     },
@@ -12,6 +13,7 @@ COALITIONS = [
     # ── Major political groupings ────────────────────────────────────────────
     {
         'name': 'G77',
+        'slug': 'g77',
         'label': 'Group of 77 (developing nations coalition, 134 members)',
         'iso3': [
             'AFG', 'DZA', 'AGO', 'ATG', 'ARG', 'AZE', 'BHS', 'BHR', 'BGD',
@@ -33,6 +35,7 @@ COALITIONS = [
     },
     {
         'name': 'NAM',
+        'slug': 'nam',
         'label': 'Non-Aligned Movement (120 member states)',
         'iso3': [
             'AFG', 'DZA', 'AGO', 'ATG', 'AZE', 'BHS', 'BHR', 'BGD', 'BRB',
@@ -53,11 +56,13 @@ COALITIONS = [
     },
     {
         'name': 'BRICS+',
+        'slug': 'brics-plus',
         'label': 'BRICS+ (expanded group from 2024)',
         'iso3': ['BRA', 'CHN', 'IND', 'RUS', 'ZAF', 'EGY', 'ETH', 'IRN', 'SAU', 'ARE'],
     },
     {
         'name': 'BRICS',
+        'slug': 'brics',
         'label': 'BRICS original (Brazil, Russia, India, China, South Africa)',
         'iso3': ['BRA', 'CHN', 'IND', 'RUS', 'ZAF'],
     },
@@ -65,6 +70,7 @@ COALITIONS = [
     # ── Western alliances ────────────────────────────────────────────────────
     {
         'name': 'NATO',
+        'slug': 'nato',
         'label': 'NATO (32 member states)',
         'iso3': [
             'ALB', 'BEL', 'BGR', 'CAN', 'HRV', 'CZE', 'DNK', 'EST', 'FIN',
@@ -75,6 +81,7 @@ COALITIONS = [
     },
     {
         'name': 'EU',
+        'slug': 'eu',
         'label': 'European Union (27 members)',
         'iso3': [
             'AUT', 'BEL', 'BGR', 'CYP', 'CZE', 'DEU', 'DNK', 'EST', 'ESP',
@@ -84,6 +91,7 @@ COALITIONS = [
     },
     {
         'name': 'OSCE',
+        'slug': 'osce',
         'label': 'Organisation for Security and Co-operation in Europe (57 members)',
         'iso3': [
             'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BLR', 'BEL', 'BIH', 'BGR',
@@ -97,6 +105,7 @@ COALITIONS = [
     },
     {
         'name': 'Council of Europe',
+        'slug': 'council-of-europe',
         'label': 'Council of Europe (46 members)',
         'iso3': [
             'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BGR', 'HRV',
@@ -111,6 +120,7 @@ COALITIONS = [
     # ── UN Regional Groups ───────────────────────────────────────────────────
     {
         'name': 'African Group',
+        'slug': 'african-group',
         'label': 'UN African Group (54 member states)',
         'iso3': [
             'DZA', 'AGO', 'BEN', 'BWA', 'BFA', 'BDI', 'CMR', 'CPV', 'CAF',
@@ -123,6 +133,7 @@ COALITIONS = [
     },
     {
         'name': 'Arab Group',
+        'slug': 'arab-group',
         'label': 'UN Arab Group / League of Arab States (22 members)',
         'iso3': [
             'DZA', 'BHR', 'COM', 'DJI', 'EGY', 'IRQ', 'JOR', 'KWT', 'LBN',
@@ -132,6 +143,7 @@ COALITIONS = [
     },
     {
         'name': 'Asia-Pacific Group',
+        'slug': 'asia-pacific-group',
         'label': 'UN Asia-Pacific Group (53 members)',
         'iso3': [
             'AFG', 'ARM', 'AUS', 'AZE', 'BHR', 'BGD', 'BTN', 'BRN', 'KHM',
@@ -145,6 +157,7 @@ COALITIONS = [
     },
     {
         'name': 'GRULAC',
+        'slug': 'grulac',
         'label': 'UN Latin America & Caribbean Group (33 members)',
         'iso3': [
             'ATG', 'ARG', 'BHS', 'BRB', 'BLZ', 'BOL', 'BRA', 'CHL', 'COL',
@@ -155,6 +168,7 @@ COALITIONS = [
     },
     {
         'name': 'WEOG',
+        'slug': 'weog',
         'label': 'UN Western European & Others Group (29 members)',
         'iso3': [
             'AND', 'AUS', 'AUT', 'BEL', 'CAN', 'DNK', 'FIN', 'FRA', 'DEU',
@@ -165,6 +179,7 @@ COALITIONS = [
     },
     {
         'name': 'EAEG',
+        'slug': 'eaeg',
         'label': 'UN Eastern European Group (23 members)',
         'iso3': [
             'ALB', 'ARM', 'AZE', 'BLR', 'BIH', 'BGR', 'HRV', 'CZE', 'EST',
@@ -177,6 +192,7 @@ COALITIONS = [
     # ── Economic groups ──────────────────────────────────────────────────────
     {
         'name': 'G20',
+        'slug': 'g20',
         'label': 'G20 (major economies)',
         'iso3': [
             'ARG', 'AUS', 'BRA', 'CAN', 'CHN', 'FRA', 'DEU', 'IND', 'IDN',
@@ -186,6 +202,7 @@ COALITIONS = [
     },
     {
         'name': 'OPEC',
+        'slug': 'opec',
         'label': 'OPEC (13 member states)',
         'iso3': ['DZA', 'COG', 'GAB', 'GNQ', 'IRN', 'IRQ', 'KWT', 'LBY', 'NGA', 'SAU', 'ARE', 'VEN'],
     },
@@ -193,11 +210,13 @@ COALITIONS = [
     # ── Regional / thematic groups ───────────────────────────────────────────
     {
         'name': 'ASEAN',
+        'slug': 'asean',
         'label': 'Association of Southeast Asian Nations (10 members)',
         'iso3': ['BRN', 'KHM', 'IDN', 'LAO', 'MYS', 'MMR', 'PHL', 'SGP', 'THA', 'VNM'],
     },
     {
         'name': 'OIC',
+        'slug': 'oic',
         'label': 'Organisation of Islamic Cooperation (57 members)',
         'iso3': [
             'AFG', 'ALB', 'DZA', 'AZE', 'BHR', 'BGD', 'BEN', 'BRN', 'BFA',
@@ -211,22 +230,28 @@ COALITIONS = [
     },
     {
         'name': 'IBSA',
+        'slug': 'ibsa',
         'label': 'IBSA Dialogue Forum (India, Brazil, South Africa)',
         'iso3': ['IND', 'BRA', 'ZAF'],
     },
     {
         'name': 'BASIC',
+        'slug': 'basic',
         'label': 'BASIC (climate negotiating bloc: Brazil, South Africa, India, China)',
         'iso3': ['BRA', 'ZAF', 'IND', 'CHN'],
     },
     {
         'name': 'CARICOM',
+        'slug': 'caricom',
         'label': 'Caribbean Community (15 members)',
         'iso3': ['ATG', 'BHS', 'BRB', 'BLZ', 'DMA', 'GRD', 'GUY', 'HTI', 'JAM', 'KNA', 'LCA', 'SUR', 'TTO', 'VCT'],
     },
     {
         'name': 'Pacific Islands',
+        'slug': 'pacific-islands',
         'label': 'Pacific Islands Forum (18 members)',
         'iso3': ['AUS', 'COK', 'FJI', 'KIR', 'MHL', 'FSM', 'NRU', 'NZL', 'NIU', 'PLW', 'PNG', 'WSM', 'SLB', 'TON', 'TUV', 'VUT'],
     },
 ]
+
+COALITIONS_BY_SLUG = {c['slug']: c for c in COALITIONS}

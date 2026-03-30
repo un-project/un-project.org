@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}{{ bloc.name }} — Voting Bloc{% endblock %}
+
+{% block extra_head %}
+<style>
+.bloc-stat-grid {
+  display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem;
+}
+.bloc-stat { text-align: center; }
+.bloc-stat .num { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.bloc-stat .lbl { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+.section-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 0.6rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.35rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom:0.2rem;">{{ bloc.name }}</h1>
+<p class="meta" style="margin-bottom:1.5rem;">{{ bloc.label }}</p>
+
+<!-- ── Member flags ──────────────────────────────────────────────── -->
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Members</h2>
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+    {% for member in members %}
+    <a href="/country/{{ member.iso3 }}/" title="{{ member.display_name }}"
+       style="display:flex; align-items:center; gap:0.4rem; padding:0.3rem 0.6rem;
+              border:1px solid var(--border); border-radius:5px; font-size:0.83rem;
+              color:var(--text); text-decoration:none; background:#fff;">
+      <img src="/static/flags/{{ member.iso3 }}.svg" alt=""
+           style="height:13px; width:20px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; flex-shrink:0;">
+      {{ member.display_name }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── Overall breakdown ─────────────────────────────────────────── -->
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Overall Voting Breakdown</h2>
+  <div class="bloc-stat-grid">
+    <div class="bloc-stat">
+      <div class="num" style="color:#27ae60;">{{ yes_pct }}%</div>
+      <div class="lbl">Voted Yes</div>
+    </div>
+    <div class="bloc-stat">
+      <div class="num" style="color:#f39c12;">{{ abstain_pct }}%</div>
+      <div class="lbl">Abstained</div>
+    </div>
+    <div class="bloc-stat">
+      <div class="num" style="color:#e74c3c;">{{ no_pct }}%</div>
+      <div class="lbl">Voted No</div>
+    </div>
+  </div>
+  <div style="height:12px; border-radius:4px; overflow:hidden; display:flex; background:#f0f0f0; max-width:400px;">
+    <div style="width:{{ yes_pct }}%; background:#27ae60;" title="{{ yes_pct }}% Yes"></div>
+    <div style="width:{{ abstain_pct }}%; background:#f39c12;" title="{{ abstain_pct }}% Abstain"></div>
+    <div style="width:{{ no_pct }}%; background:#e74c3c;" title="{{ no_pct }}% No"></div>
+  </div>
+</div>
+
+<!-- ── Voting trend by year ──────────────────────────────────────── -->
+<div style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Voting Trend by Year</h2>
+  <div id="trend-chart" style="width:100%; height:220px;"></div>
+</div>
+
+<!-- ── Cohesion by year ──────────────────────────────────────────── -->
+<div style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Internal Cohesion by Year</h2>
+  <p class="meta" style="margin-bottom:0.6rem; font-size:0.83rem;">Percentage of bloc members voting with the plurality position on each vote, averaged per year.</p>
+  <div id="cohesion-chart" style="width:100%; height:200px;"></div>
+</div>
+
+<!-- ── Two-column: divisive / agreed ────────────────────────────── -->
+<div class="two-col" style="margin-bottom:2rem;">
+
+  <div>
+    <h2 class="section-title">Most Divisive Votes</h2>
+    <p class="meta" style="font-size:0.8rem; margin-bottom:0.5rem;">Votes with the lowest internal agreement among bloc members.</p>
+    {% if divisive_votes %}
+    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="padding:0.3rem 0.4rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase;">Resolution</th>
+          <th style="padding:0.3rem 0.4rem; text-align:center; color:var(--muted); font-size:0.78rem; text-transform:uppercase;">Cohesion</th>
+          <th style="padding:0.3rem 0.4rem; text-align:center; color:var(--muted); font-size:0.78rem; text-transform:uppercase;">Participating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in divisive_votes %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.3rem 0.4rem;">
+            <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
+            {% if row.vote.resolution.title %}<div style="font-size:0.78rem; color:var(--muted);">{{ row.vote.resolution.title|truncatechars:60 }}</div>{% endif %}
+            {% if row.vote.document.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.document.date|date:"Y" }}</div>{% endif %}
+          </td>
+          <td style="padding:0.3rem 0.4rem; text-align:center;">
+            <span style="font-weight:600; color:#e74c3c;">{{ row.cohesion }}%</span>
+          </td>
+          <td style="padding:0.3rem 0.4rem; text-align:center; color:var(--muted);">{{ row.participating }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="meta">No data available.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2 class="section-title">Most Agreed Contested Votes</h2>
+    <p class="meta" style="font-size:0.8rem; margin-bottom:0.5rem;">Highly contested votes (globally) where this bloc voted with strong internal unity.</p>
+    {% if agreed_contested %}
+    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="padding:0.3rem 0.4rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase;">Resolution</th>
+          <th style="padding:0.3rem 0.4rem; text-align:center; color:var(--muted); font-size:0.78rem; text-transform:uppercase;">Cohesion</th>
+          <th style="padding:0.3rem 0.4rem; text-align:center; color:var(--muted); font-size:0.78rem; text-transform:uppercase;">Global No</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in agreed_contested %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.3rem 0.4rem;">
+            <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
+            {% if row.vote.resolution.title %}<div style="font-size:0.78rem; color:var(--muted);">{{ row.vote.resolution.title|truncatechars:60 }}</div>{% endif %}
+            {% if row.vote.document.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.document.date|date:"Y" }}</div>{% endif %}
+          </td>
+          <td style="padding:0.3rem 0.4rem; text-align:center;">
+            <span style="font-weight:600; color:#27ae60;">{{ row.cohesion }}%</span>
+          </td>
+          <td style="padding:0.3rem 0.4rem; text-align:center; color:#e74c3c; font-weight:600;">{{ row.no_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="meta">No data available.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var trendData   = {{ trend_json|safe }};
+  var cohesionData = {{ cohesion_json|safe }};
+
+  /* ── Voting trend stacked area ─────────────────────────────────── */
+  (function () {
+    var el = document.getElementById('trend-chart');
+    if (!el || !trendData.length) return;
+
+    var margin = {top: 10, right: 20, bottom: 28, left: 44};
+    var W = el.clientWidth || 700;
+    var H = 220;
+    var w = W - margin.left - margin.right;
+    var h = H - margin.top  - margin.bottom;
+
+    var svg = d3.select(el).append('svg')
+      .attr('width', W).attr('height', H)
+      .attr('viewBox', '0 0 ' + W + ' ' + H)
+      .style('max-width','100%').style('display','block')
+      .append('g').attr('transform','translate('+margin.left+','+margin.top+')');
+
+    var keys = ['yes', 'abstain', 'no'];
+    var colors = {'yes':'#27ae60','abstain':'#f39c12','no':'#e74c3c'};
+
+    var stack = d3.stack().keys(keys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
+    var series = stack(trendData);
+
+    var xScale = d3.scaleLinear()
+      .domain(d3.extent(trendData, function(d){ return d.year; }))
+      .range([0, w]);
+    var maxVal = d3.max(series, function(s){ return d3.max(s, function(d){ return d[1]; }); });
+    var yScale = d3.scaleLinear().domain([0, maxVal]).nice().range([h, 0]);
+
+    var area = d3.area()
+      .x(function(d){ return xScale(d.data.year); })
+      .y0(function(d){ return yScale(d[0]); })
+      .y1(function(d){ return yScale(d[1]); })
+      .curve(d3.curveMonotoneX);
+
+    series.forEach(function(s){
+      svg.append('path')
+        .datum(s)
+        .attr('fill', colors[s.key])
+        .attr('opacity', 0.8)
+        .attr('d', area);
+    });
+
+    svg.append('g')
+      .attr('transform','translate(0,'+h+')')
+      .call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.format('d')))
+      .selectAll('text').style('font-size','0.75rem');
+
+    svg.append('g')
+      .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.format('~s')))
+      .selectAll('text').style('font-size','0.75rem');
+  }());
+
+  /* ── Cohesion line chart ───────────────────────────────────────── */
+  (function () {
+    var el = document.getElementById('cohesion-chart');
+    if (!el || !cohesionData.length) return;
+
+    var margin = {top: 10, right: 20, bottom: 28, left: 44};
+    var W = el.clientWidth || 700;
+    var H = 200;
+    var w = W - margin.left - margin.right;
+    var h = H - margin.top  - margin.bottom;
+
+    var svg = d3.select(el).append('svg')
+      .attr('width', W).attr('height', H)
+      .attr('viewBox', '0 0 ' + W + ' ' + H)
+      .style('max-width','100%').style('display','block')
+      .append('g').attr('transform','translate('+margin.left+','+margin.top+')');
+
+    var xScale = d3.scaleLinear()
+      .domain(d3.extent(cohesionData, function(d){ return d.year; }))
+      .range([0, w]);
+    var yScale = d3.scaleLinear().domain([50, 100]).clamp(true).range([h, 0]);
+
+    // grid lines
+    svg.append('g').attr('class','grid')
+      .call(d3.axisLeft(yScale).ticks(5).tickSize(-w).tickFormat(''))
+      .selectAll('line').style('stroke','#e8e8e8').style('stroke-dasharray','3,3');
+    svg.selectAll('.grid .domain').remove();
+
+    // 75% reference line
+    svg.append('line')
+      .attr('x1',0).attr('x2',w)
+      .attr('y1',yScale(75)).attr('y2',yScale(75))
+      .attr('stroke','#ccc').attr('stroke-dasharray','4,4').attr('stroke-width',1);
+
+    var line = d3.line()
+      .x(function(d){ return xScale(d.year); })
+      .y(function(d){ return yScale(d.cohesion); })
+      .curve(d3.curveMonotoneX);
+
+    svg.append('path')
+      .datum(cohesionData)
+      .attr('fill','none')
+      .attr('stroke','var(--un-blue)')
+      .attr('stroke-width',2)
+      .attr('d',line);
+
+    svg.append('g')
+      .attr('transform','translate(0,'+h+')')
+      .call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.format('d')))
+      .selectAll('text').style('font-size','0.75rem');
+
+    svg.append('g')
+      .call(d3.axisLeft(yScale).ticks(5).tickFormat(function(d){ return d+'%'; }))
+      .selectAll('text').style('font-size','0.75rem');
+  }());
+}());
+</script>
+{% endblock %}
