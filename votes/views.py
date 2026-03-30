@@ -4,7 +4,7 @@ from collections import defaultdict
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import Http404, JsonResponse
-from django.db.models import Count, F
+from django.db.models import Count, F, Min, Max
 
 from django.db import connection
 
@@ -21,9 +21,20 @@ def voting_map(request):
     countries_json = json.dumps([
         {'iso3': c.iso3, 'name': c.display_name} for c in countries
     ])
+    categories = (
+        Resolution.objects.exclude(category__isnull=True).exclude(category='')
+        .values_list('category', flat=True).distinct().order_by('category')
+    )
+    year_range = (
+        Resolution.objects.aggregate(min_year=Min('votes__document__date__year'),
+                                     max_year=Max('votes__document__date__year'))
+    )
     return render(request, 'votes/map.html', {
         'countries': countries,
         'countries_json': countries_json,
+        'categories': list(categories),
+        'year_min': year_range['min_year'] or 1946,
+        'year_max': year_range['max_year'] or 2024,
         'crumbs': [
             {'label': 'Home', 'url': '/'},
             {'label': 'Votes', 'url': '/votes/'},

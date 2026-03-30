@@ -11,6 +11,21 @@
   flex-wrap: wrap;
 }
 #map-toolbar .ts-wrapper { min-width: 260px; flex-shrink: 0; }
+
+#map-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+#map-filters label { color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+#map-filters select { font-size: 0.83rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+#map-filters input[type=number] { width: 64px; font-size: 0.83rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; }
+.map-filter-sep { color: var(--border); }
+.map-body-btn { font-size: 0.83rem; padding: 0.2rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
+.map-body-btn.active { background: var(--un-blue, #1a6fa8); color: #fff; border-color: var(--un-blue, #1a6fa8); }
 #selected-display {
   display: flex;
   align-items: center;
@@ -139,6 +154,26 @@
     {% endfor %}
   </select>
   <div id="selected-display"><span class="meta">No country selected</span></div>
+</div>
+
+<div id="map-filters">
+  <label>Body</label>
+  <button class="map-body-btn active" data-body="">GA + SC</button>
+  <button class="map-body-btn" data-body="GA">GA</button>
+  <button class="map-body-btn" data-body="SC">SC</button>
+  <span class="map-filter-sep">|</span>
+  <label>Years</label>
+  <input type="number" id="map-year-from" value="{{ year_min }}" min="{{ year_min }}" max="{{ year_max }}">
+  <span>–</span>
+  <input type="number" id="map-year-to" value="{{ year_max }}" min="{{ year_min }}" max="{{ year_max }}">
+  <span class="map-filter-sep">|</span>
+  <label>Category</label>
+  <select id="map-category">
+    <option value="">All categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat }}">{{ cat }}</option>
+    {% endfor %}
+  </select>
 </div>
 
 <div id="map-wrap">
@@ -309,6 +344,7 @@
   var selectedIso3 = null;
   var simScores    = {};   /* iso3 → score for every country returned by API */
   var tomSelect    = null;
+  var mapFilters   = { body: '', yearFrom: '{{ year_min }}', yearTo: '{{ year_max }}', category: '' };
 
   /* ── Helpers ────────────────────────────────────────────────────── */
   function flagImg(iso3) {
@@ -423,6 +459,16 @@
     if (popup.style.display !== 'none' && !popup.contains(e.target)) closePopup();
   });
 
+  /* ── Build similarity API URL with current filters ─────────────── */
+  function simUrl(iso3) {
+    var params = ['all=1'];
+    if (mapFilters.body)     params.push('body=' + mapFilters.body);
+    if (mapFilters.yearFrom) params.push('year_from=' + mapFilters.yearFrom);
+    if (mapFilters.yearTo)   params.push('year_to='   + mapFilters.yearTo);
+    if (mapFilters.category) params.push('category='  + encodeURIComponent(mapFilters.category));
+    return '/votes/api/' + iso3 + '/similarity/?' + params.join('&');
+  }
+
   /* ── Select country + fetch similarity scores ───────────────────── */
   function selectCountry(iso3) {
     selectedIso3 = iso3;
@@ -445,7 +491,7 @@
     simScores = {};
     updateMap();
 
-    fetch('/votes/api/' + iso3 + '/similarity/?all=1')
+    fetch(simUrl(iso3))
       .then(function (r) { return r.json(); })
       .then(function (data) {
         simScores = {};
@@ -499,6 +545,39 @@
   window.addEventListener('load', function () {
     var ts = document.getElementById('country-select').tomselect;
     if (ts) tomSelect = ts;
+  });
+
+  /* ── Filter controls ────────────────────────────────────────────── */
+  function refetchIfSelected() {
+    if (selectedIso3) selectCountry(selectedIso3);
+  }
+
+  document.querySelectorAll('.map-body-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.map-body-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      mapFilters.body = btn.dataset.body;
+      refetchIfSelected();
+    });
+  });
+
+  var yearFromEl = document.getElementById('map-year-from');
+  var yearToEl   = document.getElementById('map-year-to');
+  var yearTimer;
+  function onYearChange() {
+    clearTimeout(yearTimer);
+    yearTimer = setTimeout(function () {
+      mapFilters.yearFrom = yearFromEl.value;
+      mapFilters.yearTo   = yearToEl.value;
+      refetchIfSelected();
+    }, 600);
+  }
+  yearFromEl.addEventListener('input', onYearChange);
+  yearToEl.addEventListener('input', onYearChange);
+
+  document.getElementById('map-category').addEventListener('change', function () {
+    mapFilters.category = this.value;
+    refetchIfSelected();
   });
 
 }());
