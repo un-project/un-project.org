@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}Topic Timeline{% if query %}: {{ query }}{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timeline-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .timeline-form input[type="search"] {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  #timeline-container {
+    overflow-x: auto;
+    position: relative;
+  }
+
+  #timeline-svg {
+    display: block;
+  }
+
+  .tl-cell {
+    cursor: pointer;
+    rx: 2;
+  }
+
+  #tl-highlight {
+    pointer-events: none;
+    fill: none;
+    stroke: var(--un-blue);
+    stroke-width: 1.5;
+    rx: 2;
+  }
+
+  .tl-tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    /* Start off-screen; repositioned via transform — never toggled display/visibility */
+    transform: translate(-9999px, -9999px);
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 0.4rem 0.65rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1000;
+  }
+
+  .tl-axis text {
+    font-size: 11px;
+    fill: var(--text);
+  }
+
+  .tl-axis line, .tl-axis path {
+    stroke: var(--border);
+  }
+
+  .tl-country-label {
+    font-size: 11px;
+    fill: var(--text);
+    dominant-baseline: middle;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .tl-country-label:hover {
+    fill: var(--un-blue);
+  }
+
+  .tl-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  #tl-state {
+    color: var(--muted);
+    font-size: 0.9rem;
+    min-height: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Topic Timeline</h1>
+<p class="meta" style="margin-bottom:1rem;">See which countries spoke on a topic, and when — across all sessions.</p>
+
+<div class="timeline-layout">
+
+  <form class="filters timeline-form" id="tl-form" method="get" action="/search/timeline/">
+    <input type="search" name="q" id="tl-q" value="{{ query }}"
+           placeholder="Search speeches… (e.g. climate, peacekeeping)" autocomplete="off">
+    <select name="body" id="tl-body">
+      <option value="">All bodies</option>
+      <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
+      <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
+    </select>
+    <button type="submit">Show timeline</button>
+    {% if query %}
+    <a href="/search/timeline/" style="font-size:0.88rem; color:var(--muted); text-decoration:none;">Clear</a>
+    {% endif %}
+  </form>
+
+  <div id="tl-state">
+    {% if query %}Loading…{% else %}Enter a topic above to visualise speech activity across sessions.{% endif %}
+  </div>
+
+  <div id="tl-tooltip" class="tl-tooltip"></div>
+  <div id="timeline-container" style="{% if not query %}display:none{% endif %}">
+    <svg id="timeline-svg"></svg>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+
+  var QUERY = "{{ query|escapejs }}";
+  var BODY  = "{{ current_body|escapejs }}";
+
+  if (!QUERY) return;
+
+  var container = document.getElementById('timeline-container');
+  var stateEl   = document.getElementById('tl-state');
+  var svg       = document.getElementById('timeline-svg');
+  var tooltip   = document.getElementById('tl-tooltip');
+
+  var CELL_W = 14, CELL_H = 18, CELL_GAP = 2;
+  var LABEL_W = 160, MARGIN_TOP = 50, MARGIN_BOTTOM = 10;
+
+  // Truncate at last word boundary before exceeding maxChars
+  function truncateName(name, maxChars) {
+    if (name.length <= maxChars) return name;
+    var cut = name.slice(0, maxChars);
+    var lastSpace = cut.lastIndexOf(' ');
+    return (lastSpace > maxChars * 0.55 ? cut.slice(0, lastSpace) : cut) + '\u2026';
+  }
+
+  function buildUrl() {
+    var p = new URLSearchParams({ q: QUERY });
+    if (BODY) p.set('body', BODY);
+    return '/api/topic-timeline/?' + p.toString();
+  }
+
+  function colorScale(count, maxCount) {
+    if (count === 0) return '#f5f5f5';
+    var t = Math.pow(count / maxCount, 0.5);          // sqrt for better contrast
+    // interpolate from light blue → dark blue
+    var r = Math.round(219 - t * (219 - 8));
+    var g = Math.round(234 - t * (234 - 81));
+    var b = Math.round(254 - t * (254 - 156));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function render(data) {
+    var years     = data.years;
+    var countries = data.countries;
+    var cells     = data.cells;
+
+    if (!years.length || !countries.length) {
+      stateEl.textContent = 'No speeches found for "' + QUERY + '".';
+      container.style.display = 'none';
+      return;
+    }
+
+    stateEl.textContent = countries.length + ' countries · ' + years.length + ' years';
+    container.style.display = '';
+
+    // Build lookup
+    var lookup = {};
+    cells.forEach(function (c) {
+      lookup[c.iso3 + '|' + c.year] = c.count;
+    });
+
+    var maxCount = 0;
+    cells.forEach(function (c) { if (c.count > maxCount) maxCount = c.count; });
+
+    var W = LABEL_W + years.length * (CELL_W + CELL_GAP);
+    var H = MARGIN_TOP + countries.length * (CELL_H + CELL_GAP) + MARGIN_BOTTOM;
+
+    // Clear
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    var NS = 'http://www.w3.org/2000/svg';
+
+    function el(tag, attrs, text) {
+      var e = document.createElementNS(NS, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    // Clip path so labels can't bleed into the cell area
+    var defs = el('defs', {});
+    var clip = el('clipPath', { id: 'label-clip' });
+    clip.appendChild(el('rect', { x: 0, y: 0, width: LABEL_W - 4, height: H }));
+    defs.appendChild(clip);
+    svg.appendChild(defs);
+
+    // Year axis (top)
+    years.forEach(function (yr, xi) {
+      var x = LABEL_W + xi * (CELL_W + CELL_GAP) + CELL_W / 2;
+      // show every 5 years or every year if < 20 total
+      if (years.length <= 20 || yr % 5 === 0) {
+        svg.appendChild(el('text', {
+          x: x, y: MARGIN_TOP - 6,
+          'text-anchor': 'middle',
+          'font-size': '10',
+          fill: 'var(--muted)',
+          transform: 'rotate(-45,' + x + ',' + (MARGIN_TOP - 6) + ')',
+        }, yr));
+      }
+    });
+
+    // Country rows
+    countries.forEach(function (country, yi) {
+      var y = MARGIN_TOP + yi * (CELL_H + CELL_GAP);
+
+      // Flag + label (clipped so long names never bleed into cells)
+      var labelG = el('a', { href: '/country/' + country.iso3 + '/', target: '_blank', 'clip-path': 'url(#label-clip)' });
+      var imgEl = el('image', {
+        href: '/static/flags/' + country.iso3 + '.svg',
+        x: 0, y: y + 1,
+        width: 18, height: 14,
+        preserveAspectRatio: 'xMidYMid meet',
+      });
+      labelG.appendChild(imgEl);
+      var textEl = el('text', {
+        x: 22, y: y + CELL_H / 2,
+        'class': 'tl-country-label',
+      }, truncateName(country.name, 22));
+      labelG.appendChild(textEl);
+      svg.appendChild(labelG);
+
+      // Cells
+      years.forEach(function (yr, xi) {
+        var count = lookup[country.iso3 + '|' + yr] || 0;
+        var cx = LABEL_W + xi * (CELL_W + CELL_GAP);
+        var rect = el('rect', {
+          'class': 'tl-cell',
+          x: cx, y: y,
+          width: CELL_W, height: CELL_H,
+          rx: 2,
+          fill: colorScale(count, maxCount),
+          'data-iso3': country.iso3,
+          'data-country': country.name,
+          'data-year': yr,
+          'data-count': count,
+        });
+        svg.appendChild(rect);
+      });
+    });
+
+    // Highlight rect — parked off-screen until a cell is hovered
+    var highlight = el('rect', { id: 'tl-highlight',
+      x: -999, y: -999, width: CELL_W, height: CELL_H, rx: 2 });
+    svg.appendChild(highlight);
+
+    // Tooltip lives in body so no ancestor style can affect its fixed positioning
+    document.body.appendChild(tooltip);
+    var OFFSCREEN = 'translate(-9999px,-9999px)';
+    tooltip.style.transform = OFFSCREEN;
+
+    var lastCell = null;
+    var pendingX = 0, pendingY = 0, pendingCell = null, rafPending = false;
+
+    function applyHover() {
+      rafPending = false;
+      var cell = pendingCell;
+      if (cell && cell.classList && cell.classList.contains('tl-cell')) {
+        if (cell !== lastCell) {
+          var country = cell.getAttribute('data-country');
+          var year    = cell.getAttribute('data-year');
+          var count   = parseInt(cell.getAttribute('data-count'), 10);
+          tooltip.textContent = count > 0
+            ? country + ' \u00b7 ' + year + ' \u2014 ' + count + ' speech' + (count !== 1 ? 'es' : '')
+            : country + ' \u00b7 ' + year + ' \u2014 no speeches';
+          highlight.setAttribute('x', cell.getAttribute('x'));
+          highlight.setAttribute('y', cell.getAttribute('y'));
+          lastCell = cell;
+        }
+        tooltip.style.transform = 'translate(' + (pendingX + 14) + 'px,' + (pendingY - 8) + 'px)';
+      } else {
+        tooltip.style.transform = OFFSCREEN;
+        highlight.setAttribute('x', -999);
+        highlight.setAttribute('y', -999);
+        lastCell = null;
+      }
+    }
+
+    svg.addEventListener('mousemove', function (e) {
+      pendingX    = e.clientX;
+      pendingY    = e.clientY;
+      pendingCell = e.target;
+      if (!rafPending) { rafPending = true; requestAnimationFrame(applyHover); }
+    });
+
+    svg.addEventListener('mouseleave', function () {
+      pendingCell = null;
+      if (!rafPending) { rafPending = true; requestAnimationFrame(applyHover); }
+    });
+
+    svg.addEventListener('click', function (e) {
+      var rect = e.target.closest ? e.target : null;
+      if (rect && rect.classList.contains('tl-cell')) {
+        var iso3  = rect.getAttribute('data-iso3');
+        var year  = rect.getAttribute('data-year');
+        var count = parseInt(rect.getAttribute('data-count'), 10);
+        if (count === 0) return;
+        var countryObj = countries.find(function (c) { return c.iso3 === iso3; });
+        var params = new URLSearchParams({ q: QUERY });
+        if (BODY) params.set('body', BODY);
+        if (countryObj && countryObj.pk) params.set('country', countryObj.pk);
+        params.set('date_from', year + '-01-01');
+        params.set('date_to',   year + '-12-31');
+        window.open('/search/?' + params.toString(), '_blank');
+      }
+    });
+
+    // Legend
+    var legendG = el('g', { transform: 'translate(' + LABEL_W + ',' + (H - MARGIN_BOTTOM - 4) + ')' });
+    var stops = [0, 0.25, 0.5, 0.75, 1.0];
+    stops.forEach(function (t, i) {
+      var fakeCount = Math.round(t * maxCount);
+      legendG.appendChild(el('rect', {
+        x: i * (CELL_W + CELL_GAP), y: 0,
+        width: CELL_W, height: 8, rx: 2,
+        fill: colorScale(fakeCount, maxCount),
+      }));
+    });
+    svg.appendChild(legendG);
+  }
+
+  fetch(buildUrl())
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      render(data);
+    })
+    .catch(function (err) {
+      stateEl.textContent = 'Error loading data.';
+      console.error(err);
+    });
+
+})();
+</script>
+{% endblock %}

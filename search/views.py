@@ -8,6 +8,16 @@ from .models import SearchIndex
 
 
 @ratelimit(30, key_prefix='rl:search')
+def timeline(request):
+    query_str = request.GET.get('q', '').strip()
+    body      = request.GET.get('body', '')
+    return render(request, 'search/timeline.html', {
+        'query':       query_str,
+        'current_body': body,
+    })
+
+
+@ratelimit(30, key_prefix='rl:search')
 def search(request):
     query_str  = request.GET.get('q', '').strip()
     body       = request.GET.get('body', '')

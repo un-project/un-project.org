@@ -14,6 +14,7 @@ urlpatterns = [
     path('resolutions/<str:slug>/', views.resolution_detail, name='resolution_detail'),
     path('resolutions/<str:slug>/citations/', views.resolution_citations, name='resolution_citations'),
     path('suggest/', views.suggest, name='suggest'),
+    path('topic-timeline/', views.topic_timeline, name='topic_timeline'),
     path('wordcloud/', views.wordcloud, name='wordcloud'),
     path('speakers/<int:pk>/speeches/', views.speaker_speeches, name='speaker_speeches'),
     path('speakers/<int:pk>/meetings/', views.speaker_meetings, name='speaker_meetings'),

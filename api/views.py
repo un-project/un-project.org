@@ -146,6 +146,69 @@ def speaker_search(request):
     return JsonResponse(results, safe=False)
 
 
+def topic_timeline(request):
+    """
+    For a search query, return per-country-per-year speech counts.
+    Used by the /search/timeline/ heatmap page.
+    """
+    from django.contrib.postgres.search import SearchQuery
+    from django.db.models import Count, F
+    from search.models import SearchIndex
+
+    q    = request.GET.get('q', '').strip()
+    body = request.GET.get('body', '')
+
+    if len(q) < 2:
+        return JsonResponse({'years': [], 'countries': [], 'cells': []})
+
+    search_query = SearchQuery(q, config='english', search_type='websearch')
+    qs = (
+        SearchIndex.objects
+        .filter(search_vector=search_query, item_type='speech')
+        .filter(country_iso3__isnull=False)
+        .exclude(country_iso3='')
+        .filter(date__isnull=False)
+    )
+    if body in ('GA', 'SC'):
+        qs = qs.filter(body=body)
+
+    rows = list(
+        qs.values('country_name', 'country_iso3', 'country_id', year=F('date__year'))
+        .annotate(count=Count('id'))
+        .order_by('country_name', 'year')
+    )
+
+    if not rows:
+        return JsonResponse({'years': [], 'countries': [], 'cells': []})
+
+    # Aggregate per country — keep one country_id per iso3
+    from collections import defaultdict
+    country_totals = defaultdict(int)
+    country_id_map = {}
+    for r in rows:
+        key = (r['country_iso3'], r['country_name'])
+        country_totals[key] += r['count']
+        if r['country_iso3'] not in country_id_map and r['country_id']:
+            country_id_map[r['country_iso3']] = r['country_id']
+
+    # Top 40 countries by total speech count
+    top = sorted(country_totals.items(), key=lambda x: -x[1])[:40]
+    top_iso3 = {iso3 for (iso3, _), _ in top}
+
+    years = sorted({r['year'] for r in rows if r['country_iso3'] in top_iso3})
+    countries = [
+        {'iso3': iso3, 'name': name, 'total': total, 'pk': country_id_map.get(iso3)}
+        for (iso3, name), total in top
+    ]
+    cells = [
+        {'iso3': r['country_iso3'], 'year': r['year'], 'count': r['count']}
+        for r in rows
+        if r['country_iso3'] in top_iso3
+    ]
+
+    return JsonResponse({'years': years, 'countries': countries, 'cells': cells})
+
+
 def suggest(request):
     """Autocomplete suggestions: countries + speakers matching a query."""
     q = request.GET.get('q', '').strip()
