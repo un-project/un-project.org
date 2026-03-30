@@ -167,9 +167,81 @@ def citation_network(request, slug):
     })
 
 
+def _resolve_compare_entity(entity_type, value):
+    """
+    Resolve a selector (type + value) to a display entity dict, or None.
+    Returns dict with: type, name, iso3, slug, flag_url, url, iso3_list
+    """
+    if entity_type == 'bloc':
+        bloc = COALITIONS_BY_SLUG.get(value)
+        if not bloc:
+            return None
+        return {
+            'type': 'bloc',
+            'name': bloc['name'],
+            'label': bloc['label'],
+            'iso3': None,
+            'slug': bloc['slug'],
+            'flag_url': None,
+            'url': f"/votes/bloc/{bloc['slug']}/",
+            'iso3_list': bloc['iso3'],
+            'member_count': len(bloc['iso3']),
+        }
+    else:
+        iso3 = value.upper()
+        country = Country.objects.filter(iso3=iso3).first()
+        if not country:
+            return None
+        return {
+            'type': 'country',
+            'name': country.display_name,
+            'label': None,
+            'iso3': iso3,
+            'slug': None,
+            'flag_url': country.flag_url,
+            'url': country.get_absolute_url(),
+            'iso3_list': [iso3],
+            'member_count': None,
+        }
+
+
+def _get_entity_vote_positions(entity):
+    """
+    Return {vote_id: position} for an entity.
+    For a country: each vote has exactly one position.
+    For a bloc: plurality position among members on each vote.
+    """
+    if entity['type'] == 'country':
+        return dict(
+            CountryVote.objects
+            .filter(country__iso3=entity['iso3'], vote__document__date__year__gt=1900)
+            .exclude(vote_position='absent')
+            .values_list('vote_id', 'vote_position')
+        )
+    else:
+        # Bloc: compute plurality position per vote
+        rows = (
+            CountryVote.objects
+            .filter(country__iso3__in=entity['iso3_list'],
+                    vote__document__date__year__gt=1900)
+            .exclude(vote_position='absent')
+            .values('vote_id', 'vote_position')
+            .annotate(n=Count('id'))
+            .order_by('vote_id', '-n')
+        )
+        # First row per vote_id is plurality (ordered by -n)
+        positions = {}
+        for row in rows:
+            if row['vote_id'] not in positions:
+                positions[row['vote_id']] = row['vote_position']
+        return positions
+
+
 def country_compare(request):
-    iso3_a = request.GET.get('a', '').strip().upper()
-    iso3_b = request.GET.get('b', '').strip().upper()
+    a_type = request.GET.get('a_type', 'country')
+    b_type = request.GET.get('b_type', 'country')
+    a_val  = request.GET.get('a', '').strip()
+    b_val  = request.GET.get('b', '').strip()
     try:
         selected_year = int(request.GET.get('year', ''))
     except (ValueError, TypeError):
@@ -180,28 +252,21 @@ def country_compare(request):
         .distinct().order_by('name')
     )
 
-    country_a = country_b = comparison = None
+    entity_a = entity_b = comparison = None
 
-    if iso3_a and iso3_b and iso3_a != iso3_b:
-        country_a = Country.objects.filter(iso3=iso3_a).first()
-        country_b = Country.objects.filter(iso3=iso3_b).first()
+    if a_val and b_val:
+        entity_a = _resolve_compare_entity(a_type, a_val)
+        entity_b = _resolve_compare_entity(b_type, b_val)
+        # prevent comparing an entity with itself
+        if entity_a and entity_b and entity_a['name'] == entity_b['name']:
+            entity_b = None
 
-    if country_a and country_b:
+    if entity_a and entity_b:
         POSITIONS = ['yes', 'no', 'abstain']
 
-        votes_a = dict(
-            CountryVote.objects
-            .filter(country=country_a, vote__document__date__year__gt=1900)
-            .exclude(vote_position='absent')
-            .values_list('vote_id', 'vote_position')
-        )
-        votes_b = dict(
-            CountryVote.objects
-            .filter(country=country_b, vote_id__in=votes_a.keys(),
-                    vote__document__date__year__gt=1900)
-            .exclude(vote_position='absent')
-            .values_list('vote_id', 'vote_position')
-        )
+        votes_a = _get_entity_vote_positions(entity_a)
+        votes_b = _get_entity_vote_positions(entity_b)
+
         shared_ids = set(votes_a) & set(votes_b)
         total = len(shared_ids)
 
@@ -215,7 +280,7 @@ def country_compare(request):
             if pa in matrix and pb in matrix[pa]:
                 matrix[pa][pb] += 1
 
-        # Agreement by session
+        # Agreement by year
         shared_vote_qs = (
             Vote.objects
             .filter(id__in=shared_ids)
@@ -307,12 +372,15 @@ def country_compare(request):
         }
 
     return render(request, 'votes/compare.html', {
-        'countries':     countries,
-        'country_a':     country_a,
-        'country_b':     country_b,
-        'iso3_a':        iso3_a,
-        'iso3_b':        iso3_b,
-        'comparison':    comparison,
+        'countries':   countries,
+        'blocs':       COALITIONS,
+        'entity_a':    entity_a,
+        'entity_b':    entity_b,
+        'a_type':      a_type,
+        'b_type':      b_type,
+        'a_val':       a_val,
+        'b_val':       b_val,
+        'comparison':  comparison,
         'selected_year': selected_year,
         'crumbs': [
             {'label': 'Home', 'url': '/'},
