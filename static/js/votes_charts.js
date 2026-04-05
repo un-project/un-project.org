@@ -390,6 +390,11 @@
             var agreeYG   = makeYearGroup(function (d) { return d.toward_majority === 'agree'; });
             var againstYG = makeYearGroup(function (d) { return d.toward_majority === 'against'; });
             var abstainYG = makeYearGroup(function (d) { return d.toward_majority === 'abstain'; });
+            /* Votes with no tally data (yes/no/abstain counts all NULL) —
+               majority alignment cannot be determined for these. */
+            var noTallyYG = makeYearGroup(function (d) {
+                return d.toward_majority === null && d.position !== 'absent';
+            });
 
             var majYearChart = dc.barChart(containerSel + ' #toward-majority-year-chart', GROUP);
             majYearChart
@@ -406,9 +411,10 @@
                 .group(agreeYG,   'Agree')
                 .stack(againstYG, 'Against')
                 .stack(abstainYG, 'Abstain')
+                .stack(noTallyYG, 'No tally data')
                 .valueAccessor(function (d) { return d.value; })
-                .ordinalColors(['#27ae60', '#e74c3c', '#f39c12'])
-                .legend(dc.legend().x(yearW - 110).y(6).itemHeight(12).gap(5));
+                .ordinalColors(['#27ae60', '#e74c3c', '#f39c12', '#bbb'])
+                .legend(dc.legend().x(yearW - 145).y(6).itemHeight(12).gap(5));
 
             /* ── Data count widget ───────────────────────────────────── */
             var countWidget = dc.dataCount(containerSel + ' #data-count', GROUP);
