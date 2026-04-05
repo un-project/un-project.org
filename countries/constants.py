@@ -4,7 +4,8 @@
 HISTORICAL_ISO3 = frozenset([
     'SUN',  # Soviet Union (USSR)
     'DDR',  # East Germany
-    'GER',  # West Germany (pre-reunification)
+    'GER',  # West Germany (pre-reunification, legacy code — DB uses DEU)
+    'DEU',  # Federal Republic of Germany in DB (pre-reunification West Germany entry)
     'CSK',  # Czechoslovakia
     'YUG',  # Yugoslavia (SFRY)
     'SCG',  # Serbia and Montenegro
@@ -32,12 +33,17 @@ HISTORICAL_INFO = {
     'DDR': {
         'dissolved': 1990,
         'note': 'East Germany (German Democratic Republic) was absorbed into the Federal Republic of Germany on 3 October 1990 following German reunification.',
-        'successors': [('Germany', 'DEU')],
+        'successors': [('Germany', None)],
+    },
+    'DEU': {
+        'dissolved': 1990,
+        'note': 'The Federal Republic of Germany (West Germany) formally unified with East Germany on 3 October 1990. The reunified Federal Republic of Germany continued the FRG\'s United Nations membership.',
+        'successors': [('Germany', None)],
     },
     'GER': {
         'dissolved': 1990,
         'note': 'West Germany (Federal Republic of Germany) formally unified with East Germany on 3 October 1990 to form the reunified Federal Republic of Germany.',
-        'successors': [('Germany', 'DEU')],
+        'successors': [('Germany', None)],
     },
     'CSK': {
         'dissolved': 1993,

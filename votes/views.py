@@ -19,9 +19,16 @@ def voting_map(request):
         Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
         .distinct().order_by('name')
     )
-    countries_json = json.dumps([
-        {'iso3': c.iso3, 'name': c.display_name} for c in countries
-    ])
+    # Also include countries with votes but no iso3 (e.g. Germany unified, pk=326).
+    # Give them a synthetic iso3 key of the form '__pk_<id>' for JS lookups.
+    extra_countries = list(
+        Country.objects.filter(country_votes__isnull=False, iso3__isnull=True)
+        .distinct().order_by('name')
+    )
+    countries_json = json.dumps(
+        [{'iso3': c.iso3, 'name': c.display_name} for c in countries] +
+        [{'iso3': f'__pk_{c.pk}', 'name': c.display_name, 'pk': c.pk} for c in extra_countries]
+    )
     categories = (
         Resolution.objects.exclude(category__isnull=True).exclude(category='')
         .values_list('category', flat=True).distinct().order_by('category')
@@ -576,10 +583,8 @@ def country_votes_json(request, iso3):
     return JsonResponse({'country': country.name, 'iso3': iso3, 'votes': records})
 
 
-def country_similarity_json(request, iso3):
-    """Return top-10 most and least similar countries by voting pattern."""
-    country = get_object_or_404(Country, iso3=iso3)
-
+def _compute_similarity(request, country):
+    """Compute voting similarity scores for a country. Returns a JsonResponse."""
     POS_MAP = {'yes': 1, 'abstain': 2, 'no': 3}
     MIN_SHARED = 10
 
@@ -588,7 +593,6 @@ def country_similarity_json(request, iso3):
     body      = request.GET.get('body', '')
     category  = request.GET.get('category', '')
 
-    # Fetch all non-absent votes for the reference country: vote_id → position
     ref_qs = (
         CountryVote.objects
         .filter(country=country, vote__document__date__year__gt=1900)
@@ -605,9 +609,8 @@ def country_similarity_json(request, iso3):
     a_votes = dict(ref_qs.values_list('vote_id', 'vote_position'))
 
     if not a_votes:
-        return JsonResponse({'similar': [], 'dissimilar': []})
+        return JsonResponse({'similar': [], 'dissimilar': [], 'countries': []})
 
-    # Fetch all other countries' non-absent votes on the same vote_ids
     other_votes = (
         CountryVote.objects
         .filter(vote_id__in=a_votes.keys())
@@ -616,7 +619,6 @@ def country_similarity_json(request, iso3):
         .values('country_id', 'country__name', 'country__iso3', 'vote_id', 'vote_position')
     )
 
-    # Accumulate per-country absolute differences (scale 0–2)
     cdata = defaultdict(lambda: {'name': '', 'iso3': '', 'diffs': []})
     for row in other_votes:
         cid = row['country_id']
@@ -633,7 +635,6 @@ def country_similarity_json(request, iso3):
         if len(d['diffs']) < MIN_SHARED:
             continue
         mean_diff = sum(d['diffs']) / len(d['diffs'])
-        # similarity: 1 = identical, 0 = always opposite
         results.append({
             'iso3': d['iso3'],
             'name': d['name'],
@@ -650,6 +651,18 @@ def country_similarity_json(request, iso3):
         'similar': results[:10],
         'dissimilar': list(reversed(results[-10:])),
     })
+
+
+def country_similarity_json(request, iso3):
+    """Return voting similarity scores for a country identified by ISO 3166-1 alpha-3."""
+    country = get_object_or_404(Country, iso3=iso3)
+    return _compute_similarity(request, country)
+
+
+def country_similarity_json_by_pk(request, pk):
+    """Return voting similarity scores for a country identified by primary key."""
+    country = get_object_or_404(Country, pk=pk)
+    return _compute_similarity(request, country)
 
 
 def bloc_detail(request, slug):

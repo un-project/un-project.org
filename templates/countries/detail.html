@@ -153,6 +153,7 @@
   <div style="font-size:0.83rem; color:var(--muted); font-weight:600; margin-bottom:0.4rem;">Successor state{{ historical_info.successors|length|pluralize }}:</div>
   <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
     {% for name, iso3 in historical_info.successors %}
+    {% if iso3 %}
     <a href="/country/{{ iso3 }}/"
        style="display:flex; align-items:center; gap:0.35rem; padding:0.25rem 0.6rem;
               border:1px solid var(--border); border-radius:5px; font-size:0.83rem;
@@ -161,6 +162,13 @@
            style="height:12px; width:18px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; flex-shrink:0;">
       {{ name }}
     </a>
+    {% else %}
+    <span style="display:flex; align-items:center; gap:0.35rem; padding:0.25rem 0.6rem;
+                 border:1px solid var(--border); border-radius:5px; font-size:0.83rem;
+                 color:var(--muted); background:#fff;">
+      {{ name }}
+    </span>
+    {% endif %}
     {% endfor %}
   </div>
   {% endif %}
