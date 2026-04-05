@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS public.general_debate_entries (
     undl_link   TEXT
 );
 
+CREATE TABLE IF NOT EXISTS public.country_ideal_points (
+    id          SERIAL PRIMARY KEY,
+    country_id  INTEGER REFERENCES public.countries(id) ON DELETE CASCADE,
+    iso3        VARCHAR(3) NOT NULL,
+    year        INTEGER NOT NULL,
+    ideal_point DOUBLE PRECISION NOT NULL,
+    se          DOUBLE PRECISION,
+    UNIQUE (iso3, year)
+);
+
 CREATE TABLE IF NOT EXISTS public.speech_search_index (
     speech_id   integer PRIMARY KEY,
     document_id integer,
