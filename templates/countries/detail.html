@@ -413,11 +413,7 @@
       </td>
       <td style="padding:0.4rem 0.6rem;">
         {% if entry.salutation %}{{ entry.salutation }} {% endif %}
-        {% if entry.speaker %}
-          <a href="{{ entry.speaker.get_absolute_url }}">{{ entry.speaker_name }}</a>
-        {% else %}
-          {{ entry.speaker_name }}
-        {% endif %}
+        <a href="{{ entry.get_absolute_url }}">{{ entry.speaker_name }}</a>
       </td>
       <td style="padding:0.4rem 0.6rem;">
         {% if entry.undl_link %}

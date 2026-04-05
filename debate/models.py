@@ -20,6 +20,7 @@ class GeneralDebateEntry(models.Model):
     meeting_date = models.DateField(null=True, blank=True)
     undl_id = models.CharField(max_length=30, null=True, blank=True)
     undl_link = models.TextField(null=True, blank=True)
+    text = models.TextField(null=True, blank=True)
 
     class Meta:
         managed = False
@@ -28,3 +29,7 @@ class GeneralDebateEntry(models.Model):
 
     def __str__(self):
         return f'Session {self.ga_session} — {self.speaker_name}'
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('debate:entry', args=[self.ga_session, self.pk])

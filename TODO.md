@@ -20,9 +20,10 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Awaiting data / extractor work
 
-- [ ] **General Debate speech page** — `general_debate_entries.text` column exists but is empty
-  (the Baturo corpus import has not been run yet). Once populated, add a detail page per speech
-  showing the full text, with links from the session and country pages.
+- [x] **General Debate speech page** — detail page at `/debate/<session>/<pk>/` with full
+  text, speaker/country/meeting metadata, prev/next navigation. Session list and country
+  page General Debate tab now link to each entry. Shows a placeholder when text is NULL
+  (re-run `import_gdebate_corpus.py` with `DATABASE_URL=postgresql://myuser:mypassword@localhost:5433/unproject`).
 
 - [ ] **UNBIS subject taxonomy on resolutions** — the extractor normalises subjects to 18 UNBIS
   scheme names (`resolutions.subjects` column, not yet added to the DB schema). Once the column

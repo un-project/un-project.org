@@ -6,6 +6,35 @@ from countries.models import Country
 from .models import GeneralDebateEntry
 
 
+def debate_entry(request, session, pk):
+    entry = get_object_or_404(
+        GeneralDebateEntry.objects.select_related('country', 'speaker', 'document'),
+        pk=pk, ga_session=session,
+    )
+
+    # Previous / next in same session (ordered by meeting_date, id)
+    qs = GeneralDebateEntry.objects.filter(ga_session=session).order_by('meeting_date', 'id')
+    ids = list(qs.values_list('id', flat=True))
+    try:
+        pos = ids.index(pk)
+    except ValueError:
+        pos = -1
+    prev_entry = GeneralDebateEntry.objects.filter(pk=ids[pos - 1]).first() if pos > 0 else None
+    next_entry = GeneralDebateEntry.objects.filter(pk=ids[pos + 1]).first() if 0 <= pos < len(ids) - 1 else None
+
+    return render(request, 'debate/entry.html', {
+        'entry':      entry,
+        'prev_entry': prev_entry,
+        'next_entry': next_entry,
+        'crumbs': [
+            {'label': 'Home',            'url': '/'},
+            {'label': 'General Debate',  'url': '/debate/'},
+            {'label': f'Session {session}', 'url': f'/debate/{session}/'},
+            {'label': entry.speaker_name, 'url': None},
+        ],
+    })
+
+
 def debate_index(request):
     # Per-session summary: session, first date, last date, entry count
     sessions = (

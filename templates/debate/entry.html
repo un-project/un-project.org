@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.speaker_name }} — Session {{ entry.ga_session }} General Debate{% endblock %}
+
+{% block extra_head %}
+<style>
+.speech-text {
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  max-width: 72ch;
+}
+.entry-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.88rem;
+}
+.entry-meta-grid dt {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.1rem;
+}
+.entry-meta-grid dd { margin: 0 0 0.5rem; }
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.88rem;
+  margin-top: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1 style="margin-bottom:0.25rem;">
+  {% if entry.salutation %}{{ entry.salutation }} {% endif %}{{ entry.speaker_name }}
+</h1>
+<p class="meta" style="margin-bottom:1.5rem;">
+  Session {{ entry.ga_session }} General Debate
+  {% if entry.meeting_date %}&middot; {{ entry.meeting_date|date:"N j, Y" }}{% endif %}
+</p>
+
+<dl class="entry-meta-grid">
+  {% if entry.country %}
+  <div>
+    <dt>Country</dt>
+    <dd>
+      {% if entry.country.flag_url %}
+      <img src="{{ entry.country.flag_url }}" alt="" style="height:13px; vertical-align:middle; margin-right:4px; border-radius:1px; border:1px solid #e0e0e0;">
+      {% endif %}
+      <a href="{{ entry.country.get_absolute_url }}">{{ entry.country.display_name }}</a>
+    </dd>
+  </div>
+  {% endif %}
+
+  {% if entry.speaker %}
+  <div>
+    <dt>Speaker profile</dt>
+    <dd><a href="{{ entry.speaker.get_absolute_url }}">{{ entry.speaker_name }}</a></dd>
+  </div>
+  {% endif %}
+
+  {% if entry.document %}
+  <div>
+    <dt>Meeting</dt>
+    <dd><a href="{{ entry.document.get_absolute_url }}">{{ entry.document.symbol }}</a></dd>
+  </div>
+  {% endif %}
+
+  {% if entry.undl_link %}
+  <div>
+    <dt>Source</dt>
+    <dd><a href="{{ entry.undl_link }}" target="_blank" rel="noopener">UNDL record ↗</a></dd>
+  </div>
+  {% endif %}
+</dl>
+
+{% if entry.text %}
+<div class="speech-text">{{ entry.text }}</div>
+{% else %}
+<p class="meta" style="padding:1.5rem; background:var(--hover-bg); border:1px solid var(--border); border-radius:var(--radius);">
+  Full text not yet available for this address.
+  The corpus text will appear here once the Baturo et al. dataset has been imported.
+</p>
+{% endif %}
+
+<div class="nav-row">
+  <div>
+    {% if prev_entry %}
+    <a href="{{ prev_entry.get_absolute_url }}">← {% if prev_entry.country %}{{ prev_entry.country.display_name }}{% else %}{{ prev_entry.speaker_name }}{% endif %}</a>
+    {% endif %}
+  </div>
+  <a href="/debate/{{ entry.ga_session }}/" class="meta">Session {{ entry.ga_session }} ↑</a>
+  <div style="text-align:right;">
+    {% if next_entry %}
+    <a href="{{ next_entry.get_absolute_url }}">{% if next_entry.country %}{{ next_entry.country.display_name }}{% else %}{{ next_entry.speaker_name }}{% endif %} →</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
