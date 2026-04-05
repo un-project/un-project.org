@@ -1018,7 +1018,7 @@
   window._initRepsTab = function () {
     initRepsYearChart(computeRepsYearData(''));
     loadReps(1);
-    {% if has_sc_reps %}loadScReps(1);{% endif %}
+    {% if has_sc_reps %}if (window._loadScReps) window._loadScReps(1);{% endif %}
   };
 }());
 </script>
