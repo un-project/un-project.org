@@ -105,3 +105,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
         # then apply post-dump additions.
         with connection.cursor() as cursor:
             cursor.execute(_EXTRA_SQL)
+
+        # Populate materialized views (schema creates them empty).
+        with connection.cursor() as cursor:
+            cursor.execute("REFRESH MATERIALIZED VIEW public.search_index;")
