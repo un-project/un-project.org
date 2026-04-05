@@ -12,8 +12,8 @@ Tracked tasks and future features for the UN Project web application.
   rendered in the Voting Analysis tab. Keyed by iso3 from `country_ideal_points`
   (201 countries, 1946–2025). Zero line marks USA reference position.
 
-- [ ] **Resolution full text** — 6 465 SC resolutions already have `full_text` populated via
-  CR-UNSC. Display it in a collapsible section on the resolution detail page.
+- [x] **Resolution full text** — collapsible `<details>` section on the resolution detail page.
+  SC resolutions labelled "CR-UNSC"; GA resolutions note OCR extraction. Scrollable at 600px max.
 
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate
   them from the data and display on the speaker page.

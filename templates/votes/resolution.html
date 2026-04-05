@@ -126,8 +126,11 @@
 <details style="margin-bottom:2rem;">
   <summary style="cursor:pointer; font-size:0.95rem; font-weight:600; color:var(--un-blue); user-select:none; padding:0.5rem 0;">
     Full text of resolution
+    <span class="meta" style="font-size:0.78rem; font-weight:400; margin-left:0.5rem;">
+      {% if resolution.body == 'SC' %}CR-UNSC{% else %}OCR extract — may contain errors{% endif %}
+    </span>
   </summary>
-  <div style="margin-top:0.75rem; padding:1rem 1.25rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius); font-size:0.9rem; line-height:1.7; white-space:pre-wrap;">{{ resolution.full_text }}</div>
+  <div style="margin-top:0.75rem; padding:1rem 1.25rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius); font-size:0.9rem; line-height:1.75; white-space:pre-wrap; font-family:Georgia, serif; max-height:600px; overflow-y:auto;">{{ resolution.full_text }}</div>
 </details>
 {% endif %}
 
