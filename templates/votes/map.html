@@ -223,15 +223,6 @@
   var countryByIso3 = {};
   COUNTRIES.forEach(function (c) { countryByIso3[c.iso3] = c; });
 
-  /*
-   * Synthetic iso3 keys (of the form '__pk_NNN') are used for countries that
-   * have votes in the DB but no iso3 (e.g. Germany unified, pk=326).
-   * This map translates them to the corresponding map shape iso3 for highlighting.
-   */
-  var SYNTHETIC_TO_MAP = {
-    '__pk_326': 'DEU',
-  };
-
   /* ── ISO 3166-1 numeric → alpha-3 (current countries only) ─────── */
   var N2A = {
     4:'AFG',8:'ALB',12:'DZA',20:'AND',24:'AGO',28:'ATG',32:'ARG',36:'AUS',
@@ -273,8 +264,8 @@
    * — filtered to only those present in countryByIso3.
    */
   var OVERLAPS = {
-    /* Germany: unified (all eras) + East Germany + West Germany (FRG) */
-    'DEU': ['__pk_326', 'DDR', 'DEU'],
+    /* Germany: unified (DEU) + East Germany (DDR) */
+    'DEU': ['DEU', 'DDR'],
     /* Ex-Soviet states: also offer USSR */
     'RUS': ['RUS','SUN'],
     'BLR': ['BLR','BYS','SUN'],
@@ -365,19 +356,13 @@
   var _lastAllCountries = [];
 
   /* ── Helpers ────────────────────────────────────────────────────── */
-  function flagIso(iso3) {
-    return SYNTHETIC_TO_MAP[iso3] || iso3;
-  }
-
   function flagImg(iso3) {
-    return '<img src="/static/flags/' + flagIso(iso3) + '.svg" alt="">';
+    return '<img src="/static/flags/' + iso3 + '.svg" alt="">';
   }
 
   function countryFill(a3) {
     if (!a3) return '#e8e8e8';
-    /* Highlight the map shape when a synthetic country is selected (e.g. __pk_326 → DEU shape) */
-    var mapIso = SYNTHETIC_TO_MAP[selectedIso3] || selectedIso3;
-    if (a3 === mapIso) return 'var(--un-blue, #1a6fa8)';
+    if (a3 === selectedIso3) return 'var(--un-blue, #1a6fa8)';
     if (simScores[a3] !== undefined) return colorScale(simScores[a3]);
     if (countryByIso3[a3]) return '#ccc';
     return '#e8e8e8';
@@ -490,10 +475,7 @@
     if (mapFilters.yearFrom) params.push('year_from=' + mapFilters.yearFrom);
     if (mapFilters.yearTo)   params.push('year_to='   + mapFilters.yearTo);
     if (mapFilters.category) params.push('category='  + encodeURIComponent(mapFilters.category));
-    var base = iso3.indexOf('__pk_') === 0
-      ? '/votes/api/pk/' + iso3.slice(5) + '/similarity/'
-      : '/votes/api/' + iso3 + '/similarity/';
-    return base + '?' + params.join('&');
+    return '/votes/api/' + iso3 + '/similarity/?' + params.join('&');
   }
 
   /* ── Select country + fetch similarity scores ───────────────────── */
@@ -507,15 +489,11 @@
     /* Update "selected" display */
     var disp = document.getElementById('selected-display');
     if (c) {
-      var isPk = iso3.indexOf('__pk_') === 0;
-      var countryUrl = isPk
-        ? '/country/id/' + iso3.slice(5) + '/'
-        : '/country/' + iso3 + '/';
       disp.innerHTML =
         flagImg(iso3) +
         '<strong>' + c.name + '</strong>' +
-        ' <a href="' + countryUrl + '" style="font-size:0.82rem;color:var(--muted);">country page ↗</a>' +
-        (!isPk ? ' <a href="/votes/compare/?a=' + iso3 + '" style="font-size:0.82rem;color:var(--muted);margin-left:0.4rem;">compare ↗</a>' : '');
+        ' <a href="/country/' + iso3 + '/" style="font-size:0.82rem;color:var(--muted);">country page ↗</a>' +
+        ' <a href="/votes/compare/?a=' + iso3 + '" style="font-size:0.82rem;color:var(--muted);margin-left:0.4rem;">compare ↗</a>';
     }
 
     /* Grey-out map while loading */

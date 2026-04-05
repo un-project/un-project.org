@@ -19,16 +19,9 @@ def voting_map(request):
         Country.objects.filter(country_votes__isnull=False, iso3__isnull=False)
         .distinct().order_by('name')
     )
-    # Also include countries with votes but no iso3 (e.g. Germany unified, pk=326).
-    # Give them a synthetic iso3 key of the form '__pk_<id>' for JS lookups.
-    extra_countries = list(
-        Country.objects.filter(country_votes__isnull=False, iso3__isnull=True)
-        .distinct().order_by('name')
-    )
-    countries_json = json.dumps(
-        [{'iso3': c.iso3, 'name': c.display_name} for c in countries] +
-        [{'iso3': f'__pk_{c.pk}', 'name': c.display_name, 'pk': c.pk} for c in extra_countries]
-    )
+    countries_json = json.dumps([
+        {'iso3': c.iso3, 'name': c.display_name} for c in countries
+    ])
     categories = (
         Resolution.objects.exclude(category__isnull=True).exclude(category='')
         .values_list('category', flat=True).distinct().order_by('category')
