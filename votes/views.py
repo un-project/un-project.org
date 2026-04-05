@@ -660,6 +660,21 @@ def _compute_similarity(request, country):
     })
 
 
+def country_votes_page(request, iso3):
+    country = get_object_or_404(Country, iso3=iso3)
+    votes_api_url = f'/votes/api/{iso3}/'
+    return render(request, 'votes/country_votes.html', {
+        'country': country,
+        'votes_api_url': votes_api_url,
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Countries', 'url': '/country/'},
+            {'label': country.display_name, 'url': f'/country/{iso3}/'},
+            {'label': 'Voting Analysis', 'url': None},
+        ],
+    })
+
+
 def country_similarity_json(request, iso3):
     """Return voting similarity scores for a country identified by ISO 3166-1 alpha-3."""
     country = get_object_or_404(Country, iso3=iso3)

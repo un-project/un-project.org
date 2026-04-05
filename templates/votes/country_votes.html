@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% block title %}{{ country.display_name }} — Voting Analysis{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dc@4/dist/style/dc.min.css">
+<style>
+.speaker-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 680px) {
+  .speaker-layout { grid-template-columns: 1fr; }
+  .speaker-sidebar { position: static !important; }
+}
+.speaker-sidebar { position: sticky; top: calc(56px + 1rem); }
+.sidebar-box {
+  background: var(--un-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 1rem 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.sidebar-box h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.body-btn-cv {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  margin-bottom: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.body-btn-cv:last-child { margin-bottom: 0; }
+.body-btn-cv.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); }
+.cv-cat-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-cat-btn:hover { background: var(--un-light); border-color: var(--border); }
+.cv-cat-btn.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); }
+#cv-cat-list { max-height: 220px; overflow-y: auto; }
+#cv-year-clear {
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--un-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+#cv-cat-clear {
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--un-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.chart-row { display:flex; gap:1.25rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1.25rem; }
+.chart-box { background:var(--un-light); border:1px solid var(--border); border-radius:6px; padding:0.9rem 1.1rem 0.6rem; }
+.chart-box h3 { margin:0 0 0.5rem; font-size:0.78rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
+.pos-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:0.75rem; font-weight:700; color:#fff; text-transform:uppercase; }
+.pos-yes     { background:#27ae60; }
+.pos-no      { background:#e74c3c; }
+.pos-abstain { background:#f39c12; }
+.pos-absent      { background:#95a7b5; }
+.pos-non_voting  { background:#c8d6de; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+  {% if country.iso3 %}
+  <img src="/static/flags/{{ country.iso3 }}.svg" alt="{{ country.display_name }}"
+       style="height:32px; border:1px solid var(--border); border-radius:2px;">
+  {% endif %}
+  <h1 style="margin:0;">{{ country.display_name }} — Voting Analysis</h1>
+</div>
+<p class="meta" style="margin-bottom:1.25rem;">
+  <a href="/country/{{ country.iso3 }}/">← Country page</a>
+  &ensp;·&ensp;
+  <a href="/votes/compare/?a={{ country.iso3 }}">Compare with another country ↗</a>
+  &ensp;·&ensp;
+  <a href="/votes/map/#{{ country.iso3 }}">Similarity map ↗</a>
+</p>
+
+<div class="speaker-layout">
+
+  <aside class="speaker-sidebar">
+    <div class="sidebar-box">
+      <h3>Body</h3>
+      <button class="body-btn-cv active" data-body="">GA + SC</button>
+      <button class="body-btn-cv" data-body="GA">GA only</button>
+      <button class="body-btn-cv" data-body="SC">SC only</button>
+    </div>
+    <div class="sidebar-box">
+      <h3>
+        Year
+        <button id="cv-year-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="cv-year-brush-chart"></div>
+      <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0 0; text-align:center;">Drag to filter</p>
+    </div>
+    <div class="sidebar-box">
+      <h3>
+        Category
+        <button id="cv-cat-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="cv-cat-list"></div>
+    </div>
+  </aside>
+
+  <main>
+    <div id="cv-loading" class="meta">Loading voting data…</div>
+    <div id="cv-inner" style="display:none;">
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3>Vote position</h3>
+          <div id="position-chart"></div>
+        </div>
+        <div class="chart-box">
+          <h3>Majority alignment</h3>
+          <div id="toward-majority-chart"></div>
+        </div>
+      </div>
+      <div class="chart-box" style="margin-top:1.25rem; margin-bottom:1.25rem;">
+        <h3>Majority alignment by year <small style="font-size:0.72rem; font-weight:400; text-transform:none;">(filtered by sidebar)</small></h3>
+        <div id="toward-majority-year-chart"></div>
+      </div>
+      <div class="chart-box" style="margin-top:1.25rem; margin-bottom:1.25rem;">
+        <h3>Voting trend by year</h3>
+        <div id="session-trend-chart"></div>
+      </div>
+      <div style="display:flex; gap:1.25rem; flex-wrap:wrap; margin-bottom:1.25rem;" class="chart-row">
+        <div class="chart-box" style="flex:1; min-width:260px;">
+          <h3>Most similar countries</h3>
+          <div id="similarity-high-chart"></div>
+        </div>
+        <div class="chart-box" style="flex:1; min-width:260px;">
+          <h3>Least similar countries</h3>
+          <div id="similarity-low-chart"></div>
+        </div>
+      </div>
+      <p id="no-votes-msg" class="meta" style="display:none;">No recorded votes found.</p>
+      <div id="data-count" style="margin-top:1rem;"></div>
+      <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
+        <h3>Vote records</h3>
+        <table id="data-table">
+          <thead>
+            <tr>
+              <th>Year</th><th>Resolution</th><th>Title</th><th>Category</th><th>Position</th><th>Tally (Y/N/A)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="table-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; font-size:0.85rem; color:var(--muted);"></div>
+      </div>
+    </div>
+  </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/crossfilter2@1.5/crossfilter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dc@4/dist/dc.min.js"></script>
+<script src="/static/js/votes_charts.js"></script>
+<script>
+(function () {
+  var loading   = document.getElementById('cv-loading');
+  var inner     = document.getElementById('cv-inner');
+  var cvState   = { body: '', yearFrom: null, yearTo: null, category: null };
+
+  /* ── Sidebar: body buttons ─────────────────────────────────────── */
+  document.querySelectorAll('.body-btn-cv').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.body-btn-cv').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      cvState.body     = btn.dataset.body;
+      cvState.yearFrom = null;
+      cvState.yearTo   = null;
+      cvState.category = null;
+      document.getElementById('cv-year-clear').style.display = 'none';
+      document.getElementById('cv-cat-clear').style.display  = 'none';
+      if (window._initVotingTab) window._initVotingTab(cvState.body);
+    });
+  });
+
+  /* ── Sidebar: year brush ───────────────────────────────────────── */
+  var _cvBrushG, _cvBrush;
+
+  function buildYearBrush(votes) {
+    var agg = {};
+    votes.forEach(function (v) { if (v.year) agg[v.year] = (agg[v.year] || 0) + 1; });
+    var data = Object.keys(agg).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (yr) { return { year: yr, count: agg[yr] }; });
+
+    var container = document.getElementById('cv-year-brush-chart');
+    if (!container || !data.length) return;
+    container.innerHTML = '';
+
+    var margin = { top: 6, right: 4, bottom: 18, left: 4 };
+    var W  = container.clientWidth || 180;
+    var H  = 110;
+    var iW = W - margin.left - margin.right;
+    var iH = H - margin.top  - margin.bottom;
+
+    var years    = data.map(function (d) { return d.year; });
+    var maxCount = d3.max(data, function (d) { return d.count; });
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.1);
+    var y = d3.scaleLinear().domain([0, maxCount]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    var bars = g.selectAll('.bar').data(data).enter()
+      .append('rect').attr('class', 'bar')
+      .attr('x',      function (d) { return x(d.year); })
+      .attr('y',      function (d) { return y(d.count); })
+      .attr('width',  x.bandwidth())
+      .attr('height', function (d) { return iH - y(d.count); })
+      .attr('fill', '#4d8cc4').attr('rx', 1);
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 5));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g')
+      .attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    var brushG = g.append('g').attr('class', 'brush');
+    var brush  = d3.brushX()
+      .extent([[0, 0], [iW, iH]])
+      .on('end', function (event) {
+        if (!event.selection) {
+          bars.attr('fill', '#4d8cc4');
+          document.getElementById('cv-year-clear').style.display = 'none';
+          cvState.yearFrom = null;
+          cvState.yearTo   = null;
+          VoteCharts.filterYear(null, null);
+          return;
+        }
+        var x0 = event.selection[0], x1 = event.selection[1];
+        var sel = years.filter(function (yr) {
+          var cx = x(yr) + x.bandwidth() / 2;
+          return cx >= x0 && cx <= x1;
+        });
+        if (!sel.length) return;
+        cvState.yearFrom = d3.min(sel);
+        cvState.yearTo   = d3.max(sel);
+        bars.attr('fill', function (d) {
+          return d.year >= cvState.yearFrom && d.year <= cvState.yearTo ? '#1b4f87' : '#c8d6de';
+        });
+        document.getElementById('cv-year-clear').style.display = '';
+        VoteCharts.filterYear(cvState.yearFrom, cvState.yearTo);
+      });
+
+    brushG.call(brush);
+    _cvBrushG = brushG;
+    _cvBrush  = brush;
+  }
+
+  document.getElementById('cv-year-clear').addEventListener('click', function () {
+    if (_cvBrushG && _cvBrush) _cvBrushG.call(_cvBrush.move, null);
+  });
+
+  /* ── Sidebar: category list ────────────────────────────────────── */
+  function buildCategoryList(votes) {
+    var counts = {};
+    votes.forEach(function (v) {
+      var cat = v.category;
+      if (cat && cat !== 'Uncategorized') counts[cat] = (counts[cat] || 0) + 1;
+    });
+    var cats = Object.keys(counts).sort();
+    var listEl = document.getElementById('cv-cat-list');
+    if (!listEl || !cats.length) return;
+
+    listEl.innerHTML = cats.map(function (cat) {
+      return '<button class="cv-cat-btn" data-cat="' + cat.replace(/"/g, '&quot;') + '">'
+        + cat + ' <span style="color:var(--muted);font-size:0.72rem;">(' + counts[cat] + ')</span>'
+        + '</button>';
+    }).join('');
+
+    listEl.querySelectorAll('.cv-cat-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var isActive = btn.classList.contains('active');
+        listEl.querySelectorAll('.cv-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+        if (isActive) {
+          cvState.category = null;
+          document.getElementById('cv-cat-clear').style.display = 'none';
+          VoteCharts.filterCategory(null);
+        } else {
+          btn.classList.add('active');
+          cvState.category = btn.dataset.cat;
+          document.getElementById('cv-cat-clear').style.display = '';
+          VoteCharts.filterCategory(cvState.category);
+        }
+      });
+    });
+  }
+
+  document.getElementById('cv-cat-clear').addEventListener('click', function () {
+    var listEl = document.getElementById('cv-cat-list');
+    if (listEl) listEl.querySelectorAll('.cv-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+    cvState.category = null;
+    document.getElementById('cv-cat-clear').style.display = 'none';
+    VoteCharts.filterCategory(null);
+  });
+
+  /* ── Fetch + init ──────────────────────────────────────────────── */
+  window._initVotingTab = function (bodyFilter) {
+    var apiUrl = '{{ votes_api_url }}';
+    if (bodyFilter) apiUrl += '?body=' + bodyFilter;
+
+    loading.style.display = 'block';
+    inner.style.display   = 'none';
+
+    fetch(apiUrl)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        loading.style.display = 'none';
+        if (!data.votes || data.votes.length === 0) {
+          inner.style.display = 'block';
+          document.getElementById('no-votes-msg').style.display = 'block';
+          return;
+        }
+        inner.style.display = 'block';
+
+        cvState.yearFrom = null; cvState.yearTo = null; cvState.category = null;
+        document.getElementById('cv-year-clear').style.display = 'none';
+        document.getElementById('cv-cat-clear').style.display  = 'none';
+
+        try {
+          VoteCharts.init('#cv-inner', data.votes, '{{ country.iso3 }}', cvState.body);
+        } catch (e) {
+          console.error('VoteCharts.init error:', e);
+        }
+        buildYearBrush(data.votes);
+        buildCategoryList(data.votes);
+      })
+      .catch(function () { loading.style.display = 'none'; });
+  };
+
+  window._initVotingTab('');
+}());
+</script>
+{% endblock %}
