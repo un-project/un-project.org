@@ -2,6 +2,7 @@ import json
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
+from django.db import connection
 from django.db.models import Min, Max, Count, Q, F
 from .models import Country
 from .constants import HISTORICAL_ISO3, HISTORICAL_INFO
@@ -62,6 +63,24 @@ def _render_country_detail(request, country):
         {'label': country.display_name, 'url': None},
     ]
 
+    # Ideal point time series (Bailey–Strezhnev–Voeten IRT model)
+    ideal_points_json = '[]'
+    if country.iso3:
+        with connection.cursor() as cur:
+            cur.execute(
+                'SELECT year, ideal_point, se FROM country_ideal_points '
+                'WHERE iso3=%s ORDER BY year',
+                [country.iso3],
+            )
+            ideal_points_json = json.dumps([
+                {
+                    'year':  row[0],
+                    'point': round(float(row[1]), 4),
+                    'se':    round(float(row[2]), 4) if row[2] is not None else None,
+                }
+                for row in cur.fetchall()
+            ])
+
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
     has_sc_reps = (
@@ -85,6 +104,7 @@ def _render_country_detail(request, country):
         'speeches_by_year':     speeches_by_year,
         'reps_by_year':         reps_by_year,
         'crumbs':               crumbs,
+        'ideal_points_json':    ideal_points_json,
         'wc_url':               wc_url,
         'votes_api_url':        votes_api_url,
         'has_sc_reps':          has_sc_reps,

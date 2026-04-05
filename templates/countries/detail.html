@@ -290,6 +290,17 @@
         <div id="table-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; font-size:0.85rem; color:var(--muted);"></div>
       </div>
     </div>
+
+    {% if ideal_points_json != '[]' %}
+    <div class="chart-box" style="margin-top:1.25rem; margin-bottom:0.5rem;">
+      <h3>Voting alignment over time
+        <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+          ideal point estimate — 0 = aligned with USA, negative = opposed
+        </small>
+      </h3>
+      <div id="ideal-point-chart"></div>
+    </div>
+    {% endif %}
   </main>
 
 </div>
@@ -612,6 +623,124 @@
   };
 }());
 </script>
+
+{% if ideal_points_json != '[]' %}
+<script>
+/* ── Ideal point chart ─────────────────────────────────────────────── */
+(function () {
+  var RAW = {{ ideal_points_json|safe }};
+  if (!RAW.length) return;
+
+  /* Render once when the voting tab first opens */
+  var rendered = false;
+  var origInit = window._initVotingTab;
+  window._initVotingTab = function () {
+    if (!rendered) { rendered = true; renderIdealChart(); }
+    if (origInit) origInit.apply(this, arguments);
+  };
+
+  function renderIdealChart() {
+    var container = document.getElementById('ideal-point-chart');
+    if (!container || !window.d3) return;
+
+    var W  = container.clientWidth || 600;
+    var ml = 42, mr = 16, mt = 10, mb = 30;
+    var iW = W - ml - mr, iH = 150;
+
+    var x = d3.scaleLinear()
+      .domain(d3.extent(RAW, function (d) { return d.year; }))
+      .range([0, iW]);
+
+    /* Y: symmetric around 0 so the zero-reference line is obvious */
+    var absMax = d3.max(RAW, function (d) { return Math.abs(d.point); });
+    absMax = Math.ceil(Math.max(absMax, 1) * 1.15);
+    var y = d3.scaleLinear().domain([-absMax, absMax]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg')
+      .attr('width', W).attr('height', iH + mt + mb);
+    var g = svg.append('g').attr('transform', 'translate(' + ml + ',' + mt + ')');
+
+    /* Light background */
+    g.append('rect').attr('width', iW).attr('height', iH)
+      .attr('fill', 'var(--hover-bg, #f8f9fa)').attr('rx', 3);
+
+    /* Zero line — USA reference */
+    g.append('line')
+      .attr('x1', 0).attr('x2', iW).attr('y1', y(0)).attr('y2', y(0))
+      .attr('stroke', 'var(--un-blue, #1a6fa8)').attr('stroke-width', 1)
+      .attr('stroke-dasharray', '4,3').attr('opacity', 0.55);
+
+    g.append('text')
+      .attr('x', iW - 3).attr('y', y(0) - 4)
+      .attr('text-anchor', 'end')
+      .attr('font-size', '0.65rem').attr('fill', 'var(--un-blue, #1a6fa8)').attr('opacity', 0.7)
+      .text('USA');
+
+    /* ±1 SE confidence band (skip rows with large or missing SE) */
+    var bandData = RAW.filter(function (d) { return d.se !== null && d.se < 2; });
+    if (bandData.length > 1) {
+      g.append('path')
+        .datum(bandData)
+        .attr('d', d3.area()
+          .x(function (d) { return x(d.year); })
+          .y0(function (d) { return y(d.point - d.se); })
+          .y1(function (d) { return y(d.point + d.se); })
+          .curve(d3.curveMonotoneX))
+        .attr('fill', 'var(--un-blue, #1a6fa8)').attr('opacity', 0.12);
+    }
+
+    /* Main line */
+    g.append('path')
+      .datum(RAW)
+      .attr('d', d3.line()
+        .x(function (d) { return x(d.year); })
+        .y(function (d) { return y(d.point); })
+        .curve(d3.curveMonotoneX))
+      .attr('fill', 'none')
+      .attr('stroke', 'var(--un-blue, #1a6fa8)')
+      .attr('stroke-width', 1.8);
+
+    /* X axis — decade ticks */
+    var xMin = d3.min(RAW, function (d) { return d.year; });
+    var firstDecade = Math.ceil(xMin / 10) * 10;
+    var decadeTicks = d3.range(firstDecade, 2030, 10);
+    g.append('g').attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(decadeTicks).tickFormat(d3.format('d')).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); })
+      .selectAll('text').style('font-size', '0.7rem').style('fill', 'var(--muted)');
+
+    /* Y axis */
+    g.append('g')
+      .call(d3.axisLeft(y).ticks(5).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); })
+      .selectAll('text').style('font-size', '0.7rem').style('fill', 'var(--muted)');
+
+    /* Hover tooltip */
+    var tip = d3.select(container).style('position', 'relative').append('div')
+      .style('position', 'absolute').style('pointer-events', 'none')
+      .style('background', 'rgba(0,0,0,0.78)').style('color', '#fff')
+      .style('font-size', '0.8rem').style('padding', '0.2rem 0.5rem')
+      .style('border-radius', '4px').style('display', 'none').style('white-space', 'nowrap');
+
+    var yearMap = {};
+    RAW.forEach(function (d) { yearMap[d.year] = d; });
+
+    g.append('rect').attr('width', iW).attr('height', iH)
+      .attr('fill', 'none').attr('pointer-events', 'all')
+      .on('mousemove', function (event) {
+        var year = Math.round(x.invert(d3.pointer(event)[0]));
+        var d = yearMap[year];
+        if (!d) return;
+        var label = year + ': ' + (d.point >= 0 ? '+' : '') + d.point.toFixed(3);
+        tip.style('display', 'block').text(label)
+          .style('left', (ml + x(year) + 8) + 'px')
+          .style('top', (mt + y(d.point) - 24) + 'px');
+      })
+      .on('mouseleave', function () { tip.style('display', 'none'); });
+  }
+}());
+</script>
+{% endif %}
 
 <script>
 /* ── Speeches sidebar ──────────────────────────────────────────────── */

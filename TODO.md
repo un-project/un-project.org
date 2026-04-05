@@ -8,10 +8,9 @@ Tracked tasks and future features for the UN Project web application.
   displayed in the Representatives tab on country pages. Table shows name, role/notes, SC speech
   year range, speaker page link, and UNDL record link. Paginated (30 per page).
 
-- [ ] **Ideal point chart on country pages** — `country_ideal_points` holds 11 608 rows
-  (1946–2025): `(country_id, year, ideal_point, se)`. Add a sparkline or small line chart on
-  the country profile showing how the country's UN voting alignment has shifted over time.
-  Positive = more aligned with USA (Bailey–Strezhnev–Voeten 2PL IRT model).
+- [x] **Ideal point chart on country pages** — line chart with ±1 SE confidence band
+  rendered in the Voting Analysis tab. Keyed by iso3 from `country_ideal_points`
+  (201 countries, 1946–2025). Zero line marks USA reference position.
 
 - [ ] **Resolution full text** — 6 465 SC resolutions already have `full_text` populated via
   CR-UNSC. Display it in a collapsible section on the resolution detail page.
