@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Min, Max
 
 from meetings.models import Document
-from speakers.models import Speaker
+from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
 from votes.models import Resolution, ResolutionCitation
 from countries.models import Country
@@ -781,6 +781,63 @@ def country_representatives(request, iso3):
         'num_pages':       paginator.num_pages,
         'has_next':        page.has_next(),
         'has_prev':        page.has_previous(),
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_sc_reps(request, iso3):
+    """Official SC representatives from the UNDL, with date ranges via speech history."""
+    country = get_object_or_404(Country, iso3=iso3)
+    try:
+        page_num = max(1, int(request.GET.get('page', '1')))
+    except ValueError:
+        page_num = 1
+
+    qs = (
+        SCRepresentative.objects
+        .filter(country=country)
+        .select_related('speaker')
+        .order_by('name')
+    )
+
+    # Derive date ranges from the linked speaker's SC speeches
+    speaker_years = {}
+    speaker_ids = [r.speaker_id for r in qs if r.speaker_id]
+    if speaker_ids:
+        rows = (
+            Speech.objects
+            .filter(speaker_id__in=speaker_ids, document__body='SC',
+                    document__date__year__gt=1900)
+            .values('speaker_id')
+            .annotate(first_year=Min('document__date__year'),
+                      last_year=Max('document__date__year'))
+        )
+        speaker_years = {r['speaker_id']: (r['first_year'], r['last_year']) for r in rows}
+
+    paginator = Paginator(qs, 30)
+    page = paginator.get_page(page_num)
+
+    reps = []
+    for r in page:
+        years = speaker_years.get(r.speaker_id, (None, None)) if r.speaker_id else (None, None)
+        reps.append({
+            'name':        r.name,
+            'salutation':  r.salutation or '',
+            'sc_president': r.sc_president,
+            'notes':       r.notes or '',
+            'undl_link':   r.undl_link or '',
+            'speaker_url': f'/speaker/{r.speaker_id}/' if r.speaker_id else '',
+            'first_year':  years[0],
+            'last_year':   years[1],
+        })
+
+    return JsonResponse({
+        'sc_reps':   reps,
+        'page':      page.number,
+        'total':     paginator.count,
+        'num_pages': paginator.num_pages,
+        'has_next':  page.has_next(),
+        'has_prev':  page.has_previous(),
     })
 
 

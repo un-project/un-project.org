@@ -20,4 +20,5 @@ urlpatterns = [
     path('speakers/<int:pk>/meetings/', views.speaker_meetings, name='speaker_meetings'),
     path('countries/<str:iso3>/speeches/', views.country_speeches, name='country_speeches'),
     path('countries/<str:iso3>/representatives/', views.country_representatives, name='country_representatives'),
+    path('countries/<str:iso3>/sc-reps/', views.country_sc_reps, name='country_sc_reps'),
 ]

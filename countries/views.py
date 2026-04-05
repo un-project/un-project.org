@@ -6,7 +6,7 @@ from django.db.models import Min, Max, Count, Q, F
 from .models import Country
 from .constants import HISTORICAL_ISO3, HISTORICAL_INFO
 from debate.models import GeneralDebateEntry
-from speakers.models import Speaker
+from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
 from votes.models import CountryVote
 
@@ -63,7 +63,11 @@ def _render_country_detail(request, country):
     ]
 
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
-    votes_api_url = f'/votes/api/{country.iso3}/'
+    votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
+    has_sc_reps = (
+        country.iso3 and
+        SCRepresentative.objects.filter(country=country).exists()
+    )
 
     # General Debate entries for this country
     debate_entries = (
@@ -83,6 +87,7 @@ def _render_country_detail(request, country):
         'crumbs':               crumbs,
         'wc_url':               wc_url,
         'votes_api_url':        votes_api_url,
+        'has_sc_reps':          has_sc_reps,
         'debate_entries':       debate_entries,
         'historical_info':      HISTORICAL_INFO.get(country.iso3),
     })

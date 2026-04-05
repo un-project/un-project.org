@@ -350,10 +350,25 @@
   </aside>
 
   <main>
+    {% if has_sc_reps %}
+    <h2 id="representatives" style="margin-top:0; margin-bottom:0.5rem;">SC Representatives</h2>
+    <p class="meta" style="margin:0 0 0.75rem;">
+      Official Security Council representatives on record at the
+      <a href="https://digitallibrary.un.org" target="_blank" rel="noopener">UN Digital Library</a>.
+    </p>
+    <div id="sc-reps-list"><p class="meta">Loading…</p></div>
+    <div id="sc-reps-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; font-size:0.85rem; color:var(--muted);"></div>
+
+    <h2 id="delegates" style="margin-top:2rem;">
+      Delegates (by speeches)
+      <span id="rp-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
+    </h2>
+    {% else %}
     <h2 id="representatives" style="margin-top:0;">
       Representatives
       <span id="rp-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
     </h2>
+    {% endif %}
     <div id="rp-reps-list"><p class="meta">Loading…</p></div>
     <div id="rp-reps-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; font-size:0.85rem; color:var(--muted);"></div>
   </main>
@@ -1003,9 +1018,84 @@
   window._initRepsTab = function () {
     initRepsYearChart(computeRepsYearData(''));
     loadReps(1);
+    {% if has_sc_reps %}loadScReps(1);{% endif %}
   };
 }());
 </script>
+
+{% if has_sc_reps %}
+<script>
+/* ── SC Representatives ────────────────────────────────────────────── */
+(function () {
+  var ISO3 = '{{ country.iso3 }}';
+  var scPage = 1;
+
+  function loadScReps(page) {
+    scPage = page;
+    var list = document.getElementById('sc-reps-list');
+    var nav  = document.getElementById('sc-reps-nav');
+    list.innerHTML = '<p class="meta">Loading…</p>';
+    nav.innerHTML  = '';
+    fetch('/api/countries/' + ISO3 + '/sc-reps/?page=' + page)
+      .then(function (r) { return r.json(); })
+      .then(renderScReps)
+      .catch(function () { list.innerHTML = '<p class="meta">Failed to load.</p>'; });
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function renderScReps(data) {
+    var list = document.getElementById('sc-reps-list');
+    var nav  = document.getElementById('sc-reps-nav');
+    if (!data.sc_reps || !data.sc_reps.length) {
+      list.innerHTML = '<p class="meta">No SC representatives on record.</p>';
+      return;
+    }
+    list.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+      + '<thead><tr style="border-bottom:2px solid var(--border);">'
+      + '<th style="text-align:left;padding:0.35rem 0.5rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);">Name</th>'
+      + '<th style="text-align:left;padding:0.35rem 0.5rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);">Role / Notes</th>'
+      + '<th style="text-align:left;padding:0.35rem 0.5rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);">SC speeches</th>'
+      + '</tr></thead><tbody>'
+      + data.sc_reps.map(function (r) {
+          var nameHtml = r.speaker_url
+            ? '<a href="' + esc(r.speaker_url) + '">' + esc(r.name) + '</a>'
+            : esc(r.name);
+          if (r.undl_link) nameHtml += ' <a href="' + esc(r.undl_link) + '" target="_blank" rel="noopener" title="UNDL record" style="font-size:0.78rem;color:var(--muted);">↗</a>';
+          var role = r.sc_president ? 'SC President' : (r.notes || '');
+          var years = '';
+          if (r.first_year) {
+            years = r.first_year === r.last_year ? String(r.first_year) : r.first_year + '–' + r.last_year;
+          }
+          return '<tr style="border-bottom:1px solid var(--border);">'
+            + '<td style="padding:0.35rem 0.5rem;">' + nameHtml + '</td>'
+            + '<td style="padding:0.35rem 0.5rem;color:var(--muted);font-size:0.83rem;">' + esc(role) + '</td>'
+            + '<td style="padding:0.35rem 0.5rem;color:var(--muted);font-size:0.83rem;">' + esc(years) + '</td>'
+            + '</tr>';
+        }).join('')
+      + '</tbody></table>';
+
+    var total = data.total, page = data.page;
+    var start = (page - 1) * 30 + 1, end = Math.min(page * 30, total);
+    var html = '<span>' + start + '–' + end + ' of ' + total + '</span>';
+    if (data.has_prev) html += ' <a href="#" data-scpage="' + (page - 1) + '">&laquo; Prev</a>';
+    if (data.has_next) html += ' <a href="#" data-scpage="' + (page + 1) + '">Next &raquo;</a>';
+    nav.innerHTML = html;
+  }
+
+  document.getElementById('sc-reps-nav').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-scpage]');
+    if (!el) return;
+    e.preventDefault();
+    loadScReps(parseInt(el.dataset.scpage, 10));
+  });
+
+  window._loadScReps = loadScReps;
+}());
+</script>
+{% endif %}
 
 <script>
 /* ── Tab controller ────────────────────────────────────────────────── */

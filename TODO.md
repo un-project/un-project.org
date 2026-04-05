@@ -4,9 +4,9 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Near-term (data already in DB)
 
-- [ ] **Ambassador / Representative profiles** — `permanent_representatives` (2 821 rows) and
-  `sc_representatives` are populated. The "Representatives" tab header already appears on country
-  pages but renders no content. Render the list with name, salutation, dates, and UNDL link.
+- [x] **Ambassador / Representative profiles** — `sc_representatives` (5 048 rows, 136 countries)
+  displayed in the Representatives tab on country pages. Table shows name, role/notes, SC speech
+  year range, speaker page link, and UNDL record link. Paginated (30 per page).
 
 - [ ] **Ideal point chart on country pages** — `country_ideal_points` holds 11 608 rows
   (1946–2025): `(country_id, year, ideal_point, se)`. Add a sparkline or small line chart on
