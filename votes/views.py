@@ -47,9 +47,10 @@ def voting_map(request):
 
 
 def resolution_list(request):
-    body = request.GET.get('body', '')
-    session = request.GET.get('session', '')
-    year = request.GET.get('year', '')
+    body     = request.GET.get('body', '')
+    session  = request.GET.get('session', '')
+    year     = request.GET.get('year', '')
+    category = request.GET.get('category', '')
 
     qs = Resolution.objects.all()
     if body in ('GA', 'SC'):
@@ -58,6 +59,8 @@ def resolution_list(request):
         qs = qs.filter(session=int(session))
     if year and year.isdigit():
         qs = qs.filter(votes__document__date__year=int(year)).distinct()
+    if category:
+        qs = qs.filter(category=category)
 
     # Base queryset for sidebar (body-filtered only)
     filter_qs = Resolution.objects.all()
@@ -98,16 +101,27 @@ def resolution_list(request):
         for row in session_rows
     ]
 
+    # Category sidebar: counts scoped to body filter only
+    categories = list(
+        filter_qs
+        .exclude(category__isnull=True).exclude(category='')
+        .values('category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
     paginator = Paginator(qs.order_by('-session', 'adopted_symbol', 'draft_symbol'), 50)
     page = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'votes/resolutions.html', {
-        'page': page,
-        'sessions': sessions,
-        'years': years,
-        'current_body': body,
-        'current_session': session,
-        'current_year': year,
+        'page':             page,
+        'sessions':         sessions,
+        'years':            years,
+        'categories':       categories,
+        'current_body':     body,
+        'current_session':  session,
+        'current_year':     year,
+        'current_category': category,
     })
 
 

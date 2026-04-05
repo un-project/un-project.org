@@ -65,7 +65,10 @@
     {% if resolution.category %}
     <tr style="border-bottom:1px solid var(--border);">
       <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">Category</th>
-      <td style="padding:0.45rem 0.75rem;">{{ resolution.category }}</td>
+      <td style="padding:0.45rem 0.75rem;">
+        <a href="/votes/resolutions/?body={{ resolution.body }}&category={{ resolution.category|urlencode }}"
+           style="display:inline-block; padding:0.1rem 0.45rem; border-radius:3px; font-size:0.82rem; font-weight:500; background:var(--un-light); color:var(--un-blue); border:1px solid #c5d8f0; text-decoration:none;">{{ resolution.category }}</a>
+      </td>
     </tr>
     {% endif %}
     {% if resolution.docs_un_url %}

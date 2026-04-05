@@ -25,11 +25,9 @@ Tracked tasks and future features for the UN Project web application.
   page General Debate tab now link to each entry. Shows a placeholder when text is NULL
   (re-run `import_gdebate_corpus.py` with `DATABASE_URL=postgresql://myuser:mypassword@localhost:5433/unproject`).
 
-- [ ] **UNBIS subject taxonomy on resolutions** — the extractor normalises subjects to 18 UNBIS
-  scheme names (`resolutions.subjects` column, not yet added to the DB schema). Once the column
-  exists, display subjects as tags on the resolution detail page and add a subject filter to the
-  resolution list and country vote pages. Also requires migrating the existing `category` field
-  from the old 12-category scheme.
+- [x] **UNBIS subject taxonomy on resolutions** — `resolutions.category` already holds UNBIS scheme
+  names (18 values, 6 109 rows). Category filter added to the resolution list sidebar; category
+  displayed as a linked tag badge on resolution cards and the resolution detail page.
 
 - [ ] **Co-sponsorship list on resolution pages** — depends on extracting co-sponsor lines from
   speeches or importing UNBench draft JSONs. Once a `resolution_sponsors` table exists, show

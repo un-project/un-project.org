@@ -64,6 +64,20 @@
   padding: 0.15rem 0.4rem;
 }
 .clear-link:hover { color: var(--un-blue); }
+.tag-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--un-light);
+  color: var(--un-blue);
+  border: 1px solid #c5d8f0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tag-badge:hover { background: var(--un-blue); color: #fff; border-color: var(--un-blue); }
+.tag-badge.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); font-weight: 600; }
 </style>
 {% endblock %}
 
@@ -106,11 +120,11 @@
         {% with ystr=y|stringformat:"s" %}
         {% if current_year == ystr %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}" class="active">{{ ystr }}</a>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="active">{{ ystr }}</a>
         </li>
         {% else %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}year={{ ystr }}">{{ ystr }}</a>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}year={{ ystr }}">{{ ystr }}</a>
         </li>
         {% endif %}
         {% endwith %}
@@ -119,7 +133,7 @@
         {% endfor %}
       </ul>
       {% if current_year %}
-      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}{% endif %}" class="clear-link">✕ Clear year</a>
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="clear-link">✕ Clear year</a>
       {% endif %}
     </div>
 
@@ -131,14 +145,14 @@
         {% with sstr=s.session|stringformat:"s" %}
         {% if current_session == sstr %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}" class="active">
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="active">
             <span>Session {{ s.session }}</span>
             <span class="filter-sub">{{ s.label }}</span>
           </a>
         </li>
         {% else %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}session={{ s.session }}">
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}session={{ s.session }}">
             <span>Session {{ s.session }}</span>
             <span class="filter-sub">{{ s.label }}</span>
           </a>
@@ -150,12 +164,41 @@
         {% endfor %}
       </ul>
       {% if current_session %}
-      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}{% endif %}" class="clear-link">✕ Clear session</a>
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="clear-link">✕ Clear session</a>
       {% if current_body %}
       <a href="/session/{{ current_body }}/{{ current_session }}/" class="clear-link" style="display:block; margin-top:0.2rem; color:var(--un-blue);">Session page ↗</a>
       {% endif %}
       {% endif %}
     </div>
+
+    <!-- Category filter -->
+    {% if categories %}
+    <div class="filter-section">
+      <h3>Category</h3>
+      <ul class="filter-list">
+        {% for cat in categories %}
+        {% if current_category == cat.category %}
+        <li>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}{% endif %}" class="active">
+            <span>{{ cat.category }}</span>
+            <span class="filter-sub">{{ cat.count }}</span>
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}category={{ cat.category|urlencode }}">
+            <span>{{ cat.category }}</span>
+            <span class="filter-sub">{{ cat.count }}</span>
+          </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% if current_category %}
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}{% endif %}" class="clear-link">✕ Clear category</a>
+      {% endif %}
+    </div>
+    {% endif %}
 
   </aside>
 
@@ -173,7 +216,7 @@
         <a href="{{ resolution.get_absolute_url }}"><strong>{{ resolution }}</strong></a>
         <span class="badge badge-{{ resolution.body|lower }}">{{ resolution.body }}</span>
         {% if resolution.session %}<span class="meta">Session {{ resolution.session }}</span>{% endif %}
-        {% if resolution.category %}<span class="meta">{{ resolution.category }}</span>{% endif %}
+        {% if resolution.category %}<a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}category={{ resolution.category|urlencode }}" class="tag-badge{% if current_category == resolution.category %} active{% endif %}">{{ resolution.category }}</a>{% endif %}
       </div>
       {% if resolution.title %}
       <p class="meta" style="margin:0.3rem 0 0;">{{ resolution.title|truncatechars:140 }}</p>
