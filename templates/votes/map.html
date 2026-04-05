@@ -354,6 +354,7 @@
   var tomSelect    = null;
   var mapFilters   = { body: '', yearFrom: '{{ year_min }}', yearTo: '{{ year_max }}', category: '', currentOnly: false };
   var _lastAllCountries = [];
+  var _fetchController = null;  /* AbortController for in-flight similarity fetch */
 
   /* ── Helpers ────────────────────────────────────────────────────── */
   function flagImg(iso3) {
@@ -496,11 +497,16 @@
         ' <a href="/votes/compare/?a=' + iso3 + '" style="font-size:0.82rem;color:var(--muted);margin-left:0.4rem;">compare ↗</a>';
     }
 
+    /* Cancel any in-flight request for a previous country */
+    if (_fetchController) _fetchController.abort();
+    _fetchController = new AbortController();
+    var signal = _fetchController.signal;
+
     /* Grey-out map while loading */
     simScores = {};
     updateMap();
 
-    fetch(simUrl(iso3))
+    fetch(simUrl(iso3), { signal: signal })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         simScores = {};
@@ -510,7 +516,11 @@
         updateMap();
         renderSimilarity(data.countries || []);
       })
-      .catch(function () { updateMap(); });
+      .catch(function (err) {
+        if (err.name === 'AbortError') return;  /* superseded by newer click */
+        updateMap();
+        renderSimilarity([]);  /* show panel with empty state on error */
+      });
   }
 
   /* ── Similarity lists ───────────────────────────────────────────── */
