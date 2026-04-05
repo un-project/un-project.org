@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python manage.py *)",
+      "Read",
+      "Write",
+      "Edit"
+    ]
+  }
+}
