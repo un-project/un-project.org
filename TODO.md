@@ -62,8 +62,8 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Session overview page** — a single page summarising a GA/SC session: key resolutions,
   most-active countries, top agenda items.
 
-- [ ] **Agenda item → Topic Timeline link** — on agenda item detail pages, add a link to the
-  Topic Timeline pre-filled with the agenda item title.
+- [x] **Agenda item → Topic Timeline link** — "Topic Timeline →" link added to the agenda item
+  detail page subtitle, pre-filled with the item title via `?q={{ title|urlencode }}`.
 
 - [ ] **Related agenda items** — mark agenda items as related (e.g. successor items that were
   renamed across sessions).

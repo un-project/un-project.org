@@ -92,6 +92,7 @@
 <p class="meta" style="margin-bottom:1.75rem;">
   {{ meetings|length }} meeting{{ meetings|length|pluralize }}
   {% if sessions %}· Sessions {{ sessions.0 }}–{{ sessions|last }}{% endif %}
+  &nbsp;·&nbsp; <a href="/search/timeline/?q={{ title|urlencode }}">Topic Timeline →</a>
 </p>
 
 <div class="agenda-detail-grid">
