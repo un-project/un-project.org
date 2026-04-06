@@ -169,7 +169,9 @@
   var currentIdx   = -1;  // which match the user navigated to
 
   // ── Lazy-load setup ───────────────────────────────────────────────────────
-  if (allEntries.length > BATCH) {
+  // Skip lazy-loading entirely when navigating to a specific speech/anchor,
+  // so the browser can perform its native hash scroll without interference.
+  if (allEntries.length > BATCH && !window.location.hash) {
     lazyStart = BATCH;
     var shown = BATCH;
     allEntries.slice(BATCH).forEach(function (el) { el.hidden = true; });
