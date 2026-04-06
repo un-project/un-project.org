@@ -70,9 +70,9 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Resolution & Votes
 
-- [ ] **P5 veto tracking** — SC vetoed draft resolutions are absent from the UNDL CSV but
-  documented in the UN Journal and Security Council Report. Import veto data to complete the
-  SC picture and enable veto-pattern analysis.
+- [x] **P5 veto tracking** — `/votes/vetoes/`: 271 vetoes from DPPA dataset with stacked bar
+  timeline (D3), per-P5 stat cards, filterable table by vetoing country, and links to meeting
+  documents where matched. `Veto` and `VetoCountry` models added to the votes app.
 
 - [ ] **Amendment tracking** — the `amendments` table is reserved; implement models and UI
   when data is ready.

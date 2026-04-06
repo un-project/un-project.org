@@ -17,4 +17,5 @@ urlpatterns = [
     path('bloc/<slug:slug>/', views.bloc_detail, name='bloc_detail'),
     path('ideal-points/', views.ideal_points_timeline, name='ideal_points'),
     path('cohesion/', views.cohesion_heatmap, name='cohesion'),
+    path('vetoes/', views.veto_list, name='veto_list'),
 ]

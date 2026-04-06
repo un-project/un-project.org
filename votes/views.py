@@ -11,7 +11,7 @@ from django.db import connection
 from countries.models import Country
 from countries.constants import HISTORICAL_ISO3
 from .coalitions import COALITIONS, COALITIONS_BY_SLUG
-from .models import CountryVote, Resolution, ResolutionCitation, Vote
+from .models import CountryVote, Resolution, ResolutionCitation, Veto, VetoCountry, Vote
 
 
 def voting_map(request):
@@ -685,6 +685,74 @@ def country_similarity_json_by_pk(request, pk):
     """Return voting similarity scores for a country identified by primary key."""
     country = get_object_or_404(Country, pk=pk)
     return _compute_similarity(request, country)
+
+
+P5 = [
+    {'iso3': 'RUS', 'name': 'Russia',         'color': '#B71C1C'},
+    {'iso3': 'USA', 'name': 'United States',  'color': '#1565C0'},
+    {'iso3': 'GBR', 'name': 'United Kingdom', 'color': '#1A237E'},
+    {'iso3': 'CHN', 'name': 'China',          'color': '#E65100'},
+    {'iso3': 'FRA', 'name': 'France',         'color': '#6A1B9A'},
+]
+P5_ISO3 = [p['iso3'] for p in P5]
+
+
+def veto_list(request):
+    filter_iso3 = request.GET.get('country', '')
+    if filter_iso3 not in P5_ISO3:
+        filter_iso3 = ''
+
+    qs = (
+        Veto.objects
+        .prefetch_related('veto_countries__country')
+        .select_related('document')
+        .order_by('-date')
+    )
+    if filter_iso3:
+        qs = qs.filter(vetoing_countries__iso3=filter_iso3)
+
+    # Per-P5 veto counts
+    p5_counts = {
+        row['country__iso3']: row['n']
+        for row in VetoCountry.objects
+            .filter(country__iso3__in=P5_ISO3)
+            .values('country__iso3')
+            .annotate(n=Count('id'))
+    }
+    p5_data = [
+        {**p, 'count': p5_counts.get(p['iso3'], 0)}
+        for p in P5
+    ]
+
+    # Timeline: vetoes per year per P5 member
+    year_counts = defaultdict(lambda: {iso3: 0 for iso3 in P5_ISO3})
+    for vc in (VetoCountry.objects
+               .filter(country__iso3__in=P5_ISO3)
+               .select_related('veto', 'country')
+               .filter(veto__date__isnull=False)):
+        year_counts[vc.veto.date.year][vc.country.iso3] += 1
+
+    timeline_json = json.dumps([
+        {'year': yr, **counts}
+        for yr, counts in sorted(year_counts.items())
+    ])
+
+    paginator = Paginator(qs, 50)
+    page = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'votes/vetoes.html', {
+        'page':         page,
+        'P5':           p5_data,
+        'P5_json':      json.dumps(P5),
+        'timeline_json': timeline_json,
+        'filter_iso3':  filter_iso3,
+        'total':        Veto.objects.count(),
+        'crumbs': [
+            {'label': 'Home',            'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'SC Vetoes',       'url': None},
+        ],
+    })
 
 
 def cohesion_heatmap(request):

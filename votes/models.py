@@ -101,6 +101,44 @@ class CountryVote(models.Model):
         return f'{self.country} voted {self.vote_position} on {self.vote}'
 
 
+class Veto(models.Model):
+    dppa_id = models.IntegerField(unique=True)
+    draft_symbol = models.TextField(null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
+    meeting_symbol = models.CharField(max_length=30, null=True, blank=True)
+    document = models.ForeignKey(
+        'meetings.Document', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='vetoes'
+    )
+    agenda = models.TextField(null=True, blank=True)
+    short_agenda = models.TextField(null=True, blank=True)
+    n_vetoing_pm = models.IntegerField(null=True, blank=True)
+    dppa_url = models.CharField(max_length=500, null=True, blank=True)
+    vetoing_countries = models.ManyToManyField(
+        'countries.Country', through='VetoCountry', related_name='vetoes'
+    )
+
+    class Meta:
+        managed = False
+        db_table = 'vetoes'
+        ordering = ['-date']
+
+    def __str__(self):
+        return self.draft_symbol or f'Veto #{self.dppa_id}'
+
+
+class VetoCountry(models.Model):
+    veto = models.ForeignKey(Veto, on_delete=models.CASCADE, related_name='veto_countries')
+    country = models.ForeignKey(
+        'countries.Country', on_delete=models.CASCADE, related_name='veto_countries'
+    )
+
+    class Meta:
+        managed = False
+        db_table = 'veto_countries'
+        unique_together = [('veto', 'country')]
+
+
 class ResolutionCitation(models.Model):
     citing = models.ForeignKey(
         Resolution, on_delete=models.CASCADE, related_name='outgoing_citations',

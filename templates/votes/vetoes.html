@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}SC Vetoes{% endblock %}
+
+{% block extra_head %}
+<style>
+.p5-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+.p5-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s;
+}
+.p5-card:hover  { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.p5-card.active { border-color: var(--un-blue); background: var(--un-light); }
+.p5-card .flag  { height: 28px; border-radius: 2px; border: 1px solid var(--border); flex-shrink:0; }
+.p5-card .num   { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.p5-card .lbl   { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+
+.veto-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.veto-table th {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+.veto-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.veto-table tr:hover td { background: var(--hover-bg); }
+.veto-flag { height: 13px; vertical-align: middle; border-radius: 1px; border: 1px solid var(--border); margin-right: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Security Council Vetoes</h1>
+<p class="meta" style="margin-bottom:1.25rem;">
+  {{ total }} vetoed draft resolutions from 1946 to present, sourced from the UN DPPA dataset.
+  A veto occurs when a permanent member (P5) votes "no" on a substantive SC resolution.
+</p>
+
+<!-- ── P5 stat cards ──────────────────────────────────────────────── -->
+<div class="p5-grid">
+  <a href="?{% if filter_iso3 %}{% endif %}" class="p5-card{% if not filter_iso3 %} active{% endif %}">
+    <div>
+      <div class="num">{{ total }}</div>
+      <div class="lbl">All vetoes</div>
+    </div>
+  </a>
+  {% for p in P5 %}
+  <a href="?country={{ p.iso3 }}" class="p5-card{% if filter_iso3 == p.iso3 %} active{% endif %}">
+    <img src="/static/flags/{{ p.iso3 }}.svg" class="flag" alt="{{ p.name }}">
+    <div>
+      <div class="num" style="color:{{ p.color }};">{{ p.count }}</div>
+      <div class="lbl">{{ p.name }}</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- ── Stacked bar timeline ───────────────────────────────────────── -->
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Vetoes per Year</h2>
+  <div id="veto-chart" style="width:100%; overflow-x:auto;"></div>
+</div>
+
+<!-- ── Veto list ──────────────────────────────────────────────────── -->
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+  <h2 class="section-title" style="margin:0;">
+    {% if filter_iso3 %}
+      {% for p in P5 %}{% if p.iso3 == filter_iso3 %}{{ p.name }} vetoes{% endif %}{% endfor %}
+    {% else %}
+      All vetoes
+    {% endif %}
+    <span class="meta" style="font-weight:400;">({{ page.paginator.count }})</span>
+  </h2>
+</div>
+
+<table class="veto-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Draft</th>
+      <th>Topic</th>
+      <th>Vetoed by</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for veto in page %}
+    <tr>
+      <td style="white-space:nowrap; color:var(--muted);">
+        {% if veto.date %}{{ veto.date|date:"N j, Y" }}{% else %}—{% endif %}
+      </td>
+      <td style="white-space:nowrap;">
+        {% if veto.document %}
+          <a href="{{ veto.document.get_absolute_url }}">{{ veto.draft_symbol }}</a>
+        {% elif veto.dppa_url %}
+          <a href="{{ veto.dppa_url }}" target="_blank" rel="noopener">{{ veto.draft_symbol }} ↗</a>
+        {% else %}
+          <span class="meta">{{ veto.draft_symbol|default:"—" }}</span>
+        {% endif %}
+      </td>
+      <td>{{ veto.short_agenda|default:veto.agenda|default:"—"|truncatechars:80 }}</td>
+      <td style="white-space:nowrap;">
+        {% for vc in veto.veto_countries.all %}
+          {% if vc.country.iso3 %}
+          <img src="/static/flags/{{ vc.country.iso3 }}.svg" class="veto-flag" alt="">
+          {% endif %}
+          <a href="?country={{ vc.country.iso3 }}">{{ vc.country.display_name }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" class="meta">No vetoes found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% include "partials/pagination.html" with page_obj=page %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var data = {{ timeline_json|safe }};
+  var p5   = {{ P5_json|safe }};
+  if (!data.length) return;
+
+  var el = document.getElementById('veto-chart');
+  if (!el) return;
+
+  var margin = { top: 10, right: 16, bottom: 28, left: 28 };
+  var W = el.clientWidth || 700;
+  var H = 160;
+  var w = W - margin.left - margin.right;
+  var h = H - margin.top - margin.bottom;
+
+  var years = data.map(function (d) { return d.year; });
+  var allIso3 = p5.map(function (p) { return p.iso3; });
+  var colorMap = {};
+  p5.forEach(function (p) { colorMap[p.iso3] = p.color; });
+
+  var stack = d3.stack().keys(allIso3)(data);
+  var yMax  = d3.max(stack[stack.length - 1], function (d) { return d[1]; });
+
+  var xScale = d3.scaleBand()
+    .domain(years)
+    .range([0, w])
+    .padding(0.05);
+
+  var yScale = d3.scaleLinear()
+    .domain([0, yMax])
+    .range([h, 0])
+    .nice();
+
+  var svg = d3.select(el).append('svg')
+    .attr('width', W).attr('height', H)
+    .attr('viewBox', '0 0 ' + W + ' ' + H)
+    .style('max-width', '100%').style('display', 'block')
+    .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+  // Bars
+  svg.selectAll('.layer').data(stack).enter().append('g')
+    .attr('class', 'layer')
+    .attr('fill', function (d) { return colorMap[d.key] || '#999'; })
+    .selectAll('rect').data(function (d) { return d; }).enter().append('rect')
+      .attr('x', function (d) { return xScale(d.data.year); })
+      .attr('y', function (d) { return yScale(d[1]); })
+      .attr('height', function (d) { return yScale(d[0]) - yScale(d[1]); })
+      .attr('width', xScale.bandwidth());
+
+  // X axis — only decade ticks
+  svg.append('g').attr('transform', 'translate(0,' + h + ')')
+    .call(d3.axisBottom(xScale)
+      .tickValues(years.filter(function (y) { return y % 10 === 0; }))
+      .tickFormat(d3.format('d')))
+    .selectAll('text').style('font-size', '0.7rem');
+
+  // Y axis
+  svg.append('g')
+    .call(d3.axisLeft(yScale).ticks(4))
+    .selectAll('text').style('font-size', '0.7rem');
+
+  // Legend
+  var legDiv = d3.select(el).append('div')
+    .style('display', 'flex').style('gap', '1rem').style('flex-wrap', 'wrap')
+    .style('font-size', '0.78rem').style('margin-top', '0.4rem')
+    .style('padding-left', margin.left + 'px');
+
+  {% for p in P5 %}
+  (function () {
+    var item = legDiv.append('div')
+      .style('display', 'flex').style('align-items', 'center').style('gap', '4px');
+    item.append('span')
+      .style('display', 'inline-block').style('width', '12px').style('height', '12px')
+      .style('background', '{{ p.color }}').style('border-radius', '2px').style('flex-shrink', '0');
+    item.append('span').style('color', 'var(--muted)').text('{{ p.name }} ({{ p.count }})');
+  }());
+  {% endfor %}
+
+}());
+</script>
+{% endblock %}
