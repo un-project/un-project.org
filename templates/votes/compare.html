@@ -358,9 +358,9 @@
   var selectedYear = {{ selected_year|default:"null" }};
   var baseUrl = '?a_type={{ a_type }}&a={{ a_val }}&b_type={{ b_type }}&b={{ b_val }}';
 
-  var margin = { top: 16, right: 24, bottom: 36, left: 44 };
+  var margin = { top: 32, right: 24, bottom: 36, left: 44 };
   var W = el.clientWidth || 700;
-  var H = 200;
+  var H = 216;
   var w = W - margin.left - margin.right;
   var h = H - margin.top - margin.bottom;
 
@@ -471,6 +471,58 @@
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(5).tickFormat(function (d) { return d + '%'; }))
     .selectAll('text').style('font-size', '0.72rem');
+
+  // ── Inflection-point annotations ───────────────────────────────
+  if (data.length >= 5) {
+    var deltas = [];
+    for (var i = 1; i < data.length; i++) {
+      deltas.push({
+        year:  data[i].year,
+        delta: Math.round(data[i].rate - data[i - 1].rate),
+        rate:  data[i].rate,
+      });
+    }
+    // Top candidates by |delta|, requiring at least 10pp swing
+    deltas.sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); });
+    var candidates = deltas.filter(function (d) { return Math.abs(d.delta) >= 10; }).slice(0, 4);
+
+    // Sort by year and drop ones that are too close on the x-axis (< 36px apart)
+    candidates.sort(function (a, b) { return a.year - b.year; });
+    var annotations = [];
+    candidates.forEach(function (ann) {
+      var x = xScale(ann.year);
+      var tooClose = annotations.some(function (prev) {
+        return Math.abs(xScale(prev.year) - x) < 36;
+      });
+      if (!tooClose) annotations.push(ann);
+    });
+
+    annotations.forEach(function (ann) {
+      var x    = xScale(ann.year);
+      var color = ann.delta > 0 ? '#27ae60' : '#e74c3c';
+      var sign  = ann.delta > 0 ? '+' : '';
+
+      // Dashed vertical line
+      svg.append('line')
+        .attr('x1', x).attr('x2', x).attr('y1', 0).attr('y2', h)
+        .attr('stroke', color).attr('stroke-width', 1)
+        .attr('stroke-dasharray', '3,2').attr('opacity', 0.55);
+
+      // Year label
+      svg.append('text')
+        .attr('x', x).attr('y', -16)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '9px').attr('font-weight', '600').attr('fill', color)
+        .text(ann.year);
+
+      // Delta label
+      svg.append('text')
+        .attr('x', x).attr('y', -5)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '9px').attr('fill', color)
+        .text(sign + ann.delta + 'pp');
+    });
+  }
 }());
 {% endif %}
 

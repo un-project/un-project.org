@@ -33,10 +33,10 @@ Tracked tasks and future features for the UN Project web application.
   speeches or importing UNBench draft JSONs. Once a `resolution_sponsors` table exists, show
   the sponsoring countries on the resolution detail page and add co-sponsorship to country profiles.
 
-- [ ] **Alignment time series between two countries** — requires computing a
-  `country_alignment_series (country_id_a, country_id_b, year, agreement_rate)` table in the
-  extractor. Once available, add a chart to the compare page showing how voting agreement between
-  two countries has evolved year by year, with inflection-point annotations.
+- [x] **Alignment time series between two countries** — the compare page already computed
+  year-by-year agreement data. Added inflection-point annotations: top years by absolute
+  year-over-year swing (≥10pp), shown as dashed vertical lines with year + delta labels,
+  green for improvements and red for declines. Spacing filter prevents label overlap.
 
 ## Visualisations
 
