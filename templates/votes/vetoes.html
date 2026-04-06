@@ -109,8 +109,8 @@
       <td style="white-space:nowrap;">
         {% if veto.document %}
           <a href="{{ veto.document.get_absolute_url }}">{{ veto.draft_symbol }}</a>
-        {% elif veto.dppa_url %}
-          <a href="{{ veto.dppa_url }}" target="_blank" rel="noopener">{{ veto.draft_symbol }} ↗</a>
+        {% elif veto.doc_url %}
+          <a href="{{ veto.doc_url }}" target="_blank" rel="noopener">{{ veto.draft_symbol }} ↗</a>
         {% else %}
           <span class="meta">{{ veto.draft_symbol|default:"—" }}</span>
         {% endif %}

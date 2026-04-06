@@ -126,6 +126,12 @@ class Veto(models.Model):
     def __str__(self):
         return self.draft_symbol or f'Veto #{self.dppa_id}'
 
+    @property
+    def doc_url(self):
+        if self.draft_symbol:
+            return f'https://docs.un.org/en/{self.draft_symbol}'
+        return self.dppa_url or None
+
 
 class VetoCountry(models.Model):
     veto = models.ForeignKey(Veto, on_delete=models.CASCADE, related_name='veto_countries')
