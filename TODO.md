@@ -53,7 +53,9 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Country & Speaker pages
 
-- [ ] **Speech of the day** — highlight a randomly selected speech excerpt on the homepage.
+- [x] **Speech of the day** — homepage shows a daily speech excerpt (deterministic seed from
+  date ordinal, speeches ≥500 chars), with speaker, country flag, meeting link, and "Read full
+  speech" link. Changes automatically each day; no caching or extra DB columns needed.
 
 ## Meetings & Agenda
 
