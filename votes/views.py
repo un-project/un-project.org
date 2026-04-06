@@ -687,6 +687,59 @@ def country_similarity_json_by_pk(request, pk):
     return _compute_similarity(request, country)
 
 
+def ideal_points_timeline(request):
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT ip.iso3, ip.year, ip.ideal_point,
+                   COALESCE(c.short_name, c.name) AS label
+            FROM country_ideal_points ip
+            LEFT JOIN countries c ON c.iso3 = ip.iso3
+            WHERE ip.ideal_point IS NOT NULL
+            ORDER BY ip.iso3, ip.year
+        """)
+        rows = cur.fetchall()
+
+    # Group by country
+    country_data = {}
+    for iso3, year, point, label in rows:
+        if iso3 not in country_data:
+            country_data[iso3] = {'iso3': iso3, 'name': label or iso3, 'points': {}}
+        country_data[iso3]['points'][year] = round(float(point), 3)
+
+    # Keep only countries with ≥10 years of data
+    all_years = sorted({year for _, year, _, _ in rows})
+    countries = [
+        c for c in country_data.values()
+        if len(c['points']) >= 10
+    ]
+
+    # Sort by mean ideal point descending (most Western at top)
+    for c in countries:
+        vals = list(c['points'].values())
+        c['mean'] = sum(vals) / len(vals)
+    countries.sort(key=lambda c: c['mean'], reverse=True)
+
+    # Build flat points array (None for missing years)
+    for c in countries:
+        c['series'] = [c['points'].get(y) for y in all_years]
+        del c['points']
+        del c['mean']
+
+    timeline_json = json.dumps({'years': all_years, 'countries': countries})
+
+    return render(request, 'votes/ideal_points.html', {
+        'timeline_json': timeline_json,
+        'year_min': all_years[0] if all_years else 1946,
+        'year_max': all_years[-1] if all_years else 2025,
+        'country_count': len(countries),
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Ideal Point Timeline', 'url': None},
+        ],
+    })
+
+
 def bloc_detail(request, slug):
     bloc = COALITIONS_BY_SLUG.get(slug)
     if not bloc:

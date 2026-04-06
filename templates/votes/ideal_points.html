@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Ideal Point Timeline{% endblock %}
+
+{% block extra_head %}
+<style>
+#ip-chart-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 80vh;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  position: relative;
+}
+#ip-chart { display: block; }
+#ip-tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display: none;
+  z-index: 100;
+  line-height: 1.5;
+}
+.legend-gradient {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.75rem;
+}
+.legend-bar {
+  width: 180px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Ideal Point Timeline</h1>
+<p class="meta" style="margin-bottom:0.25rem;">
+  Voting alignment of {{ country_count }} UN member states from {{ year_min }} to {{ year_max }},
+  estimated from recorded General Assembly votes using a 2-parameter IRT model
+  (Bailey, Strezhnev &amp; Voeten).
+</p>
+<p class="meta" style="margin-bottom:1rem;">
+  <strong style="color:#1a56a0;">Blue</strong> = more aligned with USA/West &nbsp;&middot;&nbsp;
+  <strong style="color:#c0392b;">Red</strong> = more opposing &nbsp;&middot;&nbsp;
+  Grey = no data. Countries sorted by overall alignment (most Western at top).
+  Click a country name to open its profile.
+</p>
+
+<div class="legend-gradient">
+  <span>−3</span>
+  <canvas class="legend-bar" id="legend-canvas" width="180" height="12"></canvas>
+  <span>+3</span>
+</div>
+
+<div id="ip-chart-wrap" style="margin-top:0.75rem;">
+  <svg id="ip-chart"></svg>
+</div>
+<div id="ip-tooltip"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var data = {{ timeline_json|safe }};
+  var years = data.years;
+  var countries = data.countries;
+
+  var CELL_W = 8;
+  var CELL_H = 9;
+  var LABEL_W = 130;
+  var HEADER_H = 40;
+  var DECADE_EVERY = 10;
+
+  var W = LABEL_W + years.length * CELL_W;
+  var H = HEADER_H + countries.length * CELL_H;
+
+  var svg = d3.select('#ip-chart')
+    .attr('width', W).attr('height', H);
+
+  // ── Color scale: red (−3) → white (0) → blue (+3) ──────────────
+  function colorFor(v) {
+    if (v === null || v === undefined) return '#e8e8e8';
+    // clamp to [-3, 3]
+    var t = Math.max(-3, Math.min(3, v));
+    if (t >= 0) {
+      // white → blue
+      var f = t / 3;
+      var r = Math.round(255 * (1 - f * 0.87));
+      var g = Math.round(255 * (1 - f * 0.65));
+      var b = Math.round(255 * (1 - f * 0.13));
+      return 'rgb(' + r + ',' + g + ',' + b + ')';
+    } else {
+      // white → red
+      var f = (-t) / 3;
+      var r = Math.round(255 * (1 - f * 0.25));
+      var g = Math.round(255 * (1 - f * 0.78));
+      var b = Math.round(255 * (1 - f * 0.83));
+      return 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+  }
+
+  // ── Legend canvas ───────────────────────────────────────────────
+  var lc = document.getElementById('legend-canvas');
+  if (lc) {
+    var ctx = lc.getContext('2d');
+    for (var px = 0; px < 180; px++) {
+      var val = -3 + (px / 179) * 6;
+      ctx.fillStyle = colorFor(val);
+      ctx.fillRect(px, 0, 1, 12);
+    }
+  }
+
+  // ── Sticky header: year labels ──────────────────────────────────
+  var headerG = svg.append('g').attr('class', 'header');
+  // White background behind header (sticky illusion via scroll JS)
+  headerG.append('rect')
+    .attr('x', 0).attr('y', 0)
+    .attr('width', W).attr('height', HEADER_H)
+    .attr('fill', '#fff');
+
+  years.forEach(function (yr, xi) {
+    if (yr % DECADE_EVERY === 0) {
+      headerG.append('text')
+        .attr('x', LABEL_W + xi * CELL_W + CELL_W / 2)
+        .attr('y', HEADER_H - 6)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '10px')
+        .attr('fill', '#555')
+        .text(yr);
+      // tick
+      headerG.append('line')
+        .attr('x1', LABEL_W + xi * CELL_W + CELL_W / 2)
+        .attr('x2', LABEL_W + xi * CELL_W + CELL_W / 2)
+        .attr('y1', HEADER_H - 3)
+        .attr('y2', HEADER_H)
+        .attr('stroke', '#aaa').attr('stroke-width', 1);
+    }
+  });
+
+  // ── Rows ────────────────────────────────────────────────────────
+  var tooltip = document.getElementById('ip-tooltip');
+
+  countries.forEach(function (country, yi) {
+    var y0 = HEADER_H + yi * CELL_H;
+    var rowG = svg.append('g');
+
+    // Country name label
+    var labelEl = rowG.append('a')
+      .attr('href', '/country/' + country.iso3 + '/')
+      .append('text')
+        .attr('x', LABEL_W - 4)
+        .attr('y', y0 + CELL_H / 2 + 3.5)
+        .attr('text-anchor', 'end')
+        .attr('font-size', '8px')
+        .attr('fill', 'var(--un-blue)')
+        .style('cursor', 'pointer')
+        .text(country.name.length > 20 ? country.name.slice(0, 19) + '…' : country.name);
+
+    // Cells
+    country.series.forEach(function (val, xi) {
+      rowG.append('rect')
+        .attr('x', LABEL_W + xi * CELL_W)
+        .attr('y', y0)
+        .attr('width', CELL_W - 0.5)
+        .attr('height', CELL_H - 0.5)
+        .attr('fill', colorFor(val))
+        .on('mouseover', function (event) {
+          tooltip.style.display = 'block';
+          tooltip.innerHTML =
+            '<strong>' + country.name + '</strong> — ' + years[xi] + '<br>' +
+            (val !== null
+              ? 'Ideal point: <strong>' + val.toFixed(2) + '</strong>'
+              : '<span style="color:var(--muted)">No data</span>');
+        })
+        .on('mousemove', function (event) {
+          tooltip.style.left = (event.clientX + 14) + 'px';
+          tooltip.style.top  = (event.clientY - 10) + 'px';
+        })
+        .on('mouseout', function () { tooltip.style.display = 'none'; });
+    });
+  });
+
+  // ── Cold War / post-Cold War era lines ──────────────────────────
+  [[1991, 'Post-Cold War'], [2022, 'Post-2022']].forEach(function (era) {
+    var xi = years.indexOf(era[0]);
+    if (xi < 0) return;
+    svg.append('line')
+      .attr('x1', LABEL_W + xi * CELL_W).attr('x2', LABEL_W + xi * CELL_W)
+      .attr('y1', HEADER_H).attr('y2', H)
+      .attr('stroke', '#888').attr('stroke-width', 1)
+      .attr('stroke-dasharray', '3,2');
+    svg.append('text')
+      .attr('x', LABEL_W + xi * CELL_W + 2)
+      .attr('y', HEADER_H + 10)
+      .attr('font-size', '8px').attr('fill', '#888')
+      .text(era[1]);
+  });
+
+}());
+</script>
+{% endblock %}

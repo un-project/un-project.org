@@ -40,9 +40,9 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Visualisations
 
-- [ ] **Ideal point global timeline** — a heatmap or animated chart of all countries' ideal
-  points over time, revealing geopolitical blocs and their evolution (Cold War → post-1991 →
-  post-2022). Depends on the `country_ideal_points` table (already populated).
+- [x] **Ideal point global timeline** — D3 heatmap at `/votes/ideal-points/`: countries × years,
+  red (opposing) → white (neutral) → blue (Western) color scale; sorted by mean ideal point;
+  1991 and 2022 era markers; hover tooltip; linked from the votes index.
 
 - [ ] **Co-sponsorship network** — network graph of countries that co-sponsor resolutions
   together. Requires `resolution_sponsors` table (extractor work).

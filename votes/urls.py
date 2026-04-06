@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/<str:iso3>/similarity/', views.country_similarity_json, name='country_similarity_json'),
     path('api/pk/<int:pk>/similarity/', views.country_similarity_json_by_pk, name='country_similarity_json_by_pk'),
     path('bloc/<slug:slug>/', views.bloc_detail, name='bloc_detail'),
+    path('ideal-points/', views.ideal_points_timeline, name='ideal_points'),
 ]
