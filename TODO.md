@@ -47,8 +47,9 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Co-sponsorship network** — network graph of countries that co-sponsor resolutions
   together. Requires `resolution_sponsors` table (extractor work).
 
-- [ ] **Voting cohesion heatmap** — countries × countries matrix coloured by agreement rate;
-  complement to the compare page.
+- [x] **Voting cohesion heatmap** — D3 SVG at `/votes/cohesion/`: top 60 most active countries,
+  pairwise agreement rates via SQL self-join, sorted by ideal point, grey→green color scale;
+  click any cell to open the compare page for those two countries.
 
 ## Country & Speaker pages
 

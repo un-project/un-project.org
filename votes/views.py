@@ -687,6 +687,105 @@ def country_similarity_json_by_pk(request, pk):
     return _compute_similarity(request, country)
 
 
+def cohesion_heatmap(request):
+    N = 60  # top N countries by votes cast
+
+    with connection.cursor() as cur:
+        cur.execute("""
+            WITH top AS (
+                SELECT cv.country_id, COUNT(*) AS n
+                FROM country_votes cv
+                WHERE cv.vote_position IN ('yes','no','abstain')
+                GROUP BY cv.country_id
+                ORDER BY n DESC
+                LIMIT %s
+            ),
+            pairs AS (
+                SELECT
+                    cv1.country_id AS id_a,
+                    cv2.country_id AS id_b,
+                    COUNT(*)       AS shared,
+                    SUM(CASE WHEN cv1.vote_position = cv2.vote_position THEN 1 ELSE 0 END) AS agree
+                FROM country_votes cv1
+                JOIN country_votes cv2
+                    ON cv1.vote_id = cv2.vote_id
+                    AND cv1.country_id < cv2.country_id
+                WHERE cv1.vote_position IN ('yes','no','abstain')
+                  AND cv2.vote_position IN ('yes','no','abstain')
+                  AND cv1.country_id IN (SELECT country_id FROM top)
+                  AND cv2.country_id IN (SELECT country_id FROM top)
+                GROUP BY cv1.country_id, cv2.country_id
+                HAVING COUNT(*) >= 20
+            )
+            SELECT id_a, id_b, shared, agree,
+                   ROUND(100.0 * agree / shared)::int AS rate
+            FROM pairs
+        """, [N])
+        pair_rows = cur.fetchall()
+
+        # Ideal points: mean per country for ordering
+        cur.execute("""
+            SELECT ip.iso3, AVG(ip.ideal_point) AS mean_ip
+            FROM country_ideal_points ip
+            WHERE ip.ideal_point IS NOT NULL
+            GROUP BY ip.iso3
+        """)
+        ideal_means = {row[0]: float(row[1]) for row in cur.fetchall()}
+
+        # Country metadata for the top N
+        country_ids = set()
+        for id_a, id_b, *_ in pair_rows:
+            country_ids.add(id_a)
+            country_ids.add(id_b)
+
+        if not country_ids:
+            return render(request, 'votes/cohesion.html', {
+                'matrix_json': '{"countries":[],"cells":[]}',
+                'crumbs': [
+                    {'label': 'Home', 'url': '/'},
+                    {'label': 'Voting Analysis', 'url': '/votes/'},
+                    {'label': 'Cohesion Heatmap', 'url': None},
+                ],
+            })
+
+        cur.execute("""
+            SELECT id, COALESCE(short_name, name), iso3
+            FROM countries WHERE id = ANY(%s)
+        """, [list(country_ids)])
+        country_meta = {row[0]: {'name': row[1], 'iso3': row[2] or ''} for row in cur.fetchall()}
+
+    # Sort by ideal point (descending = most Western first), unknowns last
+    def sort_key(cid):
+        iso3 = country_meta[cid]['iso3']
+        ip = ideal_means.get(iso3)
+        return (0 if ip is not None else 1, -(ip or 0))
+
+    sorted_ids = sorted(country_ids, key=sort_key)
+    idx = {cid: i for i, cid in enumerate(sorted_ids)}
+
+    countries_out = [
+        {'idx': idx[cid], 'iso3': country_meta[cid]['iso3'], 'name': country_meta[cid]['name']}
+        for cid in sorted_ids
+    ]
+
+    # Build symmetric cell list (upper triangle only — JS mirrors it)
+    cells = []
+    for id_a, id_b, shared, agree, rate in pair_rows:
+        cells.append({'a': idx[id_a], 'b': idx[id_b], 'rate': rate, 'shared': int(shared)})
+
+    matrix_json = json.dumps({'countries': countries_out, 'cells': cells})
+
+    return render(request, 'votes/cohesion.html', {
+        'matrix_json': matrix_json,
+        'country_count': len(sorted_ids),
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Voting Cohesion Heatmap', 'url': None},
+        ],
+    })
+
+
 def ideal_points_timeline(request):
     with connection.cursor() as cur:
         cur.execute("""

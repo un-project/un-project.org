@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Voting Cohesion Heatmap{% endblock %}
+
+{% block extra_head %}
+<style>
+#cohesion-wrap {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+#cohesion-chart { display: block; }
+#ch-tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display: none;
+  z-index: 100;
+  line-height: 1.5;
+}
+.legend-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Voting Cohesion Heatmap</h1>
+<p class="meta" style="margin-bottom:0.25rem;">
+  Pairwise voting agreement rates between the {{ country_count }} most active UN voters
+  across all recorded General Assembly votes.
+  Countries ordered by voting alignment (most Western at top-left).
+</p>
+<p class="meta" style="margin-bottom:1rem;">
+  <strong style="color:#155724;">Dark green</strong> = high agreement &nbsp;&middot;&nbsp;
+  <strong style="color:#a0a0a0;">Grey</strong> = low agreement &nbsp;&middot;&nbsp;
+  White diagonal = self &nbsp;&middot;&nbsp;
+  Click a cell to compare those two countries.
+  Grey cells = fewer than 20 shared votes.
+</p>
+
+<div class="legend-strip">
+  <span>0%</span>
+  <canvas id="legend-canvas" width="160" height="12"
+          style="border-radius:3px; border:1px solid var(--border);"></canvas>
+  <span>100%</span>
+</div>
+
+<div id="cohesion-wrap" style="margin-top:0.75rem;">
+  <svg id="cohesion-chart"></svg>
+</div>
+<div id="ch-tooltip"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var data = {{ matrix_json|safe }};
+  var countries = data.countries;  // [{idx, iso3, name}, ...]
+  var cells    = data.cells;       // [{a, b, rate, shared}, ...]
+  var N = countries.length;
+  if (!N) return;
+
+  var CELL = 9;
+  var LABEL_LEFT = 128;
+  var LABEL_TOP  = 110;
+  var W = LABEL_LEFT + N * CELL;
+  var H = LABEL_TOP  + N * CELL;
+
+  // ── Color: grey (0%) → yellow-green → dark green (100%) ─────────
+  function colorFor(rate) {
+    if (rate === null) return '#e8e8e8';
+    var t = rate / 100;
+    // 0 → grey (#b0b0b0), 0.5 → yellow-green (#a8c060), 1 → dark green (#155724)
+    var r, g, b;
+    if (t < 0.5) {
+      var s = t * 2;
+      r = Math.round(176 + s * (168 - 176));
+      g = Math.round(176 + s * (192 - 176));
+      b = Math.round(176 + s * (96  - 176));
+    } else {
+      var s = (t - 0.5) * 2;
+      r = Math.round(168 + s * (21  - 168));
+      g = Math.round(192 + s * (87  - 192));
+      b = Math.round(96  + s * (36  - 96));
+    }
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  // ── Legend canvas ────────────────────────────────────────────────
+  var lc = document.getElementById('legend-canvas');
+  if (lc) {
+    var ctx = lc.getContext('2d');
+    for (var px = 0; px < 160; px++) {
+      ctx.fillStyle = colorFor(Math.round(px / 159 * 100));
+      ctx.fillRect(px, 0, 1, 12);
+    }
+  }
+
+  // ── Build symmetric rate lookup ──────────────────────────────────
+  // rates[a][b] = {rate, shared}
+  var rates = {};
+  for (var i = 0; i < N; i++) rates[i] = {};
+  // diagonal
+  for (var i = 0; i < N; i++) rates[i][i] = {rate: 100, shared: null};
+
+  cells.forEach(function (c) {
+    rates[c.a][c.b] = {rate: c.rate, shared: c.shared};
+    rates[c.b][c.a] = {rate: c.rate, shared: c.shared};
+  });
+
+  // ── SVG setup ────────────────────────────────────────────────────
+  var svg = d3.select('#cohesion-chart')
+    .attr('width', W).attr('height', H);
+
+  var tooltip = document.getElementById('ch-tooltip');
+
+  // ── Column (top) labels — rotated ───────────────────────────────
+  countries.forEach(function (c) {
+    var x = LABEL_LEFT + c.idx * CELL + CELL / 2;
+    var label = c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name;
+    svg.append('text')
+      .attr('transform', 'translate(' + x + ',' + (LABEL_TOP - 4) + ') rotate(-65)')
+      .attr('text-anchor', 'start')
+      .attr('font-size', '8px')
+      .attr('fill', '#444')
+      .text(label);
+  });
+
+  // ── Row (left) labels ────────────────────────────────────────────
+  countries.forEach(function (c) {
+    var y = LABEL_TOP + c.idx * CELL + CELL / 2 + 3;
+    var label = c.name.length > 16 ? c.name.slice(0, 15) + '…' : c.name;
+    svg.append('a')
+      .attr('href', '/country/' + c.iso3 + '/')
+      .append('text')
+        .attr('x', LABEL_LEFT - 3)
+        .attr('y', y)
+        .attr('text-anchor', 'end')
+        .attr('font-size', '8px')
+        .attr('fill', 'var(--un-blue)')
+        .style('cursor', 'pointer')
+        .text(label);
+  });
+
+  // ── Cells ────────────────────────────────────────────────────────
+  for (var ai = 0; ai < N; ai++) {
+    for (var bi = 0; bi < N; bi++) {
+      var cell = rates[ai] && rates[ai][bi];
+      var rate   = cell ? cell.rate   : null;
+      var shared = cell ? cell.shared : null;
+      var isDiag = ai === bi;
+
+      var ca = countries[ai];
+      var cb = countries[bi];
+
+      (function (ai, bi, rate, shared, ca, cb, isDiag) {
+        var rect = svg.append('rect')
+          .attr('x', LABEL_LEFT + bi * CELL)
+          .attr('y', LABEL_TOP  + ai * CELL)
+          .attr('width',  CELL - 0.5)
+          .attr('height', CELL - 0.5)
+          .attr('fill', isDiag ? '#fff' : colorFor(rate));
+
+        if (!isDiag) {
+          rect.style('cursor', rate !== null ? 'pointer' : 'default')
+            .on('mouseover', function (event) {
+              tooltip.style.display = 'block';
+              if (rate !== null) {
+                var col = rate >= 70 ? '#155724' : rate >= 40 ? '#856404' : '#721c24';
+                tooltip.innerHTML =
+                  '<strong>' + ca.name + '</strong> &amp; <strong>' + cb.name + '</strong><br>' +
+                  'Agreement: <strong style="color:' + col + ';">' + rate + '%</strong>' +
+                  (shared !== null ? ' <span style="color:var(--muted);">(' + shared + ' shared votes)</span>' : '');
+              } else {
+                tooltip.innerHTML =
+                  '<strong>' + ca.name + '</strong> &amp; <strong>' + cb.name + '</strong><br>' +
+                  '<span style="color:var(--muted);">Fewer than 20 shared votes</span>';
+              }
+            })
+            .on('mousemove', function (event) {
+              tooltip.style.left = (event.clientX + 14) + 'px';
+              tooltip.style.top  = (event.clientY - 10) + 'px';
+            })
+            .on('mouseout', function () { tooltip.style.display = 'none'; })
+            .on('click', function () {
+              if (rate !== null && ca.iso3 && cb.iso3) {
+                window.location = '/votes/compare/?a_type=country&a=' + ca.iso3
+                  + '&b_type=country&b=' + cb.iso3;
+              }
+            });
+        }
+      }(ai, bi, rate, shared, ca, cb, isDiag));
+    }
+  }
+
+  // ── Diagonal white line for clarity ─────────────────────────────
+  svg.append('line')
+    .attr('x1', LABEL_LEFT).attr('y1', LABEL_TOP)
+    .attr('x2', LABEL_LEFT + N * CELL).attr('y2', LABEL_TOP + N * CELL)
+    .attr('stroke', '#ccc').attr('stroke-width', 0.5);
+
+}());
+</script>
+{% endblock %}
