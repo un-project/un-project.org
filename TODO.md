@@ -28,7 +28,7 @@ Tracked tasks and future features for the UN Project web application.
   Add a `ResolutionSponsor` model (`managed=False`, `db_table='resolution_sponsors'`) and show
   the sponsoring countries as a flag-row on the resolution detail page, with a count badge.
 
-- [ ] **Draft resolution text on resolution detail** — `resolutions.draft_text` is now
+- [x] **Draft resolution text on resolution detail** — `resolutions.draft_text` is now
   populated for SC resolutions (UNBench). Show the full draft text as a collapsible section on
   the resolution detail page. Useful for vetoed drafts that never became adopted resolutions.
 

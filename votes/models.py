@@ -20,6 +20,7 @@ class Resolution(models.Model):
     session = models.IntegerField(null=True, blank=True)
     category = models.CharField(max_length=200, null=True, blank=True)
     full_text = models.TextField(null=True, blank=True)
+    draft_text = models.TextField(null=True, blank=True)
     crunsc_id = models.CharField(max_length=30, null=True, blank=True)
     important_vote = models.BooleanField(null=True, blank=True)
     issue_me = models.BooleanField(null=True, blank=True)  # Middle East
