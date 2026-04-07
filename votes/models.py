@@ -1,6 +1,17 @@
 from django.db import models
 
 
+# Voeten issue-code definitions: (field_suffix, short_label, long_label)
+ISSUE_CODES = [
+    ('me', 'Middle East',     'Middle East'),
+    ('nu', 'Nuclear/Arms',    'Nuclear weapons & arms control'),
+    ('co', 'Colonialism',     'Colonialism'),
+    ('hr', 'Human Rights',    'Human rights'),
+    ('ec', 'Economic Dev.',   'Economic development'),
+    ('di', 'Disarmament',     'Disarmament / Cold War'),
+]
+
+
 class Resolution(models.Model):
     draft_symbol = models.CharField(max_length=50)
     adopted_symbol = models.CharField(max_length=50, null=True, blank=True)
@@ -10,6 +21,13 @@ class Resolution(models.Model):
     category = models.CharField(max_length=200, null=True, blank=True)
     full_text = models.TextField(null=True, blank=True)
     crunsc_id = models.CharField(max_length=30, null=True, blank=True)
+    important_vote = models.BooleanField(null=True, blank=True)
+    issue_me = models.BooleanField(null=True, blank=True)  # Middle East
+    issue_nu = models.BooleanField(null=True, blank=True)  # Nuclear / arms control
+    issue_co = models.BooleanField(null=True, blank=True)  # Colonialism
+    issue_hr = models.BooleanField(null=True, blank=True)  # Human rights
+    issue_ec = models.BooleanField(null=True, blank=True)  # Economic development
+    issue_di = models.BooleanField(null=True, blank=True)  # Disarmament / Cold War
 
     class Meta:
         managed = False
@@ -33,6 +51,15 @@ class Resolution(models.Model):
         'GA': 'https://docs.un.org/en/a/res/',
         'SC': 'https://docs.un.org/en/S/RES/',
     }
+
+    @property
+    def issue_labels(self):
+        """Return list of (code, short_label) for all active Voeten issue flags."""
+        return [
+            (code, short)
+            for code, short, _long in ISSUE_CODES
+            if getattr(self, f'issue_{code}')
+        ]
 
     @property
     def docs_un_url(self):

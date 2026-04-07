@@ -71,6 +71,28 @@
       </td>
     </tr>
     {% endif %}
+    {% with issue_labels=resolution.issue_labels %}{% if issue_labels %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted); vertical-align:top;">Voeten Topics</th>
+      <td style="padding:0.45rem 0.75rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+          {% for code, short in issue_labels %}
+          <a href="/votes/resolutions/?body={{ resolution.body }}&issue={{ code }}"
+             style="display:inline-block; padding:0.1rem 0.45rem; border-radius:3px; font-size:0.82rem; font-weight:500; background:#f0f4ff; color:#3a5a9a; border:1px solid #b0c4e8; text-decoration:none;">{{ short }}</a>
+          {% endfor %}
+        </div>
+      </td>
+    </tr>
+    {% endif %}{% endwith %}
+    {% if resolution.important_vote %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">Significance</th>
+      <td style="padding:0.45rem 0.75rem;">
+        <span style="display:inline-flex; align-items:center; gap:0.3rem; padding:0.1rem 0.5rem; border-radius:3px; font-size:0.82rem; font-weight:600; background:#fff8e1; color:#b8860b; border:1px solid #f0d060;">&#9733; Important vote</span>
+        <span style="font-size:0.78rem; color:var(--muted); margin-left:0.5rem;">US State Dept designation</span>
+      </td>
+    </tr>
+    {% endif %}
     {% if resolution.docs_un_url %}
     <tr style="border-bottom:1px solid var(--border);">
       <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">UN Document</th>

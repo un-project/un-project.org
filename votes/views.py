@@ -11,7 +11,13 @@ from django.db import connection
 from countries.models import Country
 from countries.constants import HISTORICAL_ISO3
 from .coalitions import COALITIONS, COALITIONS_BY_SLUG
-from .models import CountryVote, Resolution, ResolutionCitation, Veto, VetoCountry, Vote
+import json as _json
+from .models import CountryVote, ISSUE_CODES, Resolution, ResolutionCitation, Veto, VetoCountry, Vote
+
+ISSUE_CODES_JSON = _json.dumps([
+    {'code': code, 'short': short, 'long': long}
+    for code, short, long in ISSUE_CODES
+])
 
 
 def voting_map(request):
@@ -47,10 +53,13 @@ def voting_map(request):
 
 
 def resolution_list(request):
-    body     = request.GET.get('body', '')
-    session  = request.GET.get('session', '')
-    year     = request.GET.get('year', '')
-    category = request.GET.get('category', '')
+    body           = request.GET.get('body', '')
+    session        = request.GET.get('session', '')
+    year           = request.GET.get('year', '')
+    category       = request.GET.get('category', '')
+    important_only = request.GET.get('important', '') == '1'
+    issue          = request.GET.get('issue', '')
+    valid_issues   = {code for code, _s, _l in ISSUE_CODES}
 
     qs = Resolution.objects.all()
     if body in ('GA', 'SC'):
@@ -61,6 +70,13 @@ def resolution_list(request):
         qs = qs.filter(votes__document__date__year=int(year)).distinct()
     if category:
         qs = qs.filter(category=category)
+    if important_only:
+        qs = qs.filter(important_vote=True)
+    # Voeten issue codes only exist for GA resolutions
+    if body != 'SC' and issue in valid_issues:
+        qs = qs.filter(**{f'issue_{issue}': True})
+    else:
+        issue = ''
 
     # Base queryset for sidebar (body-filtered only)
     filter_qs = Resolution.objects.all()
@@ -110,6 +126,19 @@ def resolution_list(request):
         .order_by('-count')
     )
 
+    important_count = filter_qs.filter(important_vote=True).count()
+
+    # Voeten issue codes only exist for GA; omit sidebar entirely for SC
+    issue_sidebar = [] if body == 'SC' else [
+        {
+            'code':  code,
+            'short': short,
+            'long':  long,
+            'count': filter_qs.filter(**{f'issue_{code}': True}).count(),
+        }
+        for code, short, long in ISSUE_CODES
+    ]
+
     paginator = Paginator(qs.order_by('-session', 'adopted_symbol', 'draft_symbol'), 50)
     page = paginator.get_page(request.GET.get('page'))
 
@@ -118,10 +147,14 @@ def resolution_list(request):
         'sessions':         sessions,
         'years':            years,
         'categories':       categories,
+        'important_count':  important_count,
+        'issue_sidebar':    issue_sidebar,
         'current_body':     body,
         'current_session':  session,
         'current_year':     year,
         'current_category': category,
+        'current_important': important_only,
+        'current_issue':    issue if issue in valid_issues else '',
     })
 
 
@@ -578,6 +611,7 @@ def country_votes_json(request, iso3):
             'date': doc.date.isoformat() if doc.date else '',
             'session': res.session,
             'category': res.category or 'Uncategorized',
+            'issues': [c for c, _s, _l in ISSUE_CODES if getattr(res, f'issue_{c}')],
             'resolution': str(res),
             'title': (res.title or '')[:120],
             'yes_count': v.yes_count,
@@ -666,6 +700,7 @@ def country_votes_page(request, iso3):
     return render(request, 'votes/country_votes.html', {
         'country': country,
         'votes_api_url': votes_api_url,
+        'issue_codes_json': ISSUE_CODES_JSON,
         'crumbs': [
             {'label': 'Home', 'url': '/'},
             {'label': 'Countries', 'url': '/country/'},

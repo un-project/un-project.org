@@ -9,7 +9,8 @@ from .constants import HISTORICAL_ISO3, HISTORICAL_INFO
 from debate.models import GeneralDebateEntry
 from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
-from votes.models import CountryVote
+import json as _json
+from votes.models import CountryVote, ISSUE_CODES
 
 
 def _render_country_detail(request, country):
@@ -81,6 +82,10 @@ def _render_country_detail(request, country):
                 for row in cur.fetchall()
             ])
 
+    issue_codes_json = _json.dumps([
+        {'code': c, 'short': s, 'long': l} for c, s, l in ISSUE_CODES
+    ])
+
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
     has_sc_reps = (
@@ -107,6 +112,7 @@ def _render_country_detail(request, country):
         'ideal_points_json':    ideal_points_json,
         'wc_url':               wc_url,
         'votes_api_url':        votes_api_url,
+        'issue_codes_json':     issue_codes_json,
         'has_sc_reps':          has_sc_reps,
         'debate_entries':       debate_entries,
         'historical_info':      HISTORICAL_INFO.get(country.iso3),

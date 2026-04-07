@@ -78,6 +78,19 @@
 }
 .tag-badge:hover { background: var(--un-blue); color: #fff; border-color: var(--un-blue); }
 .tag-badge.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); font-weight: 600; }
+.important-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #fff8e1;
+  color: #b8860b;
+  border: 1px solid #f0d060;
+  white-space: nowrap;
+}
 </style>
 {% endblock %}
 
@@ -110,6 +123,8 @@
 <div class="meetings-layout">
 
   <!-- ── Sidebar filters ───────────────────────────────────────── -->
+  {# Base params shared by all filter links (everything except the param being toggled) #}
+  {# Pattern: body, year, session, category, important, issue — each followed by & if present #}
   <aside class="meetings-sidebar">
 
     <!-- Year filter -->
@@ -120,11 +135,11 @@
         {% with ystr=y|stringformat:"s" %}
         {% if current_year == ystr %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="active">{{ ystr }}</a>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="active">{{ ystr }}</a>
         </li>
         {% else %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}year={{ ystr }}">{{ ystr }}</a>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}&{% endif %}year={{ ystr }}">{{ ystr }}</a>
         </li>
         {% endif %}
         {% endwith %}
@@ -133,7 +148,7 @@
         {% endfor %}
       </ul>
       {% if current_year %}
-      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="clear-link">✕ Clear year</a>
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="clear-link">✕ Clear year</a>
       {% endif %}
     </div>
 
@@ -145,14 +160,14 @@
         {% with sstr=s.session|stringformat:"s" %}
         {% if current_session == sstr %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="active">
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="active">
             <span>Session {{ s.session }}</span>
             <span class="filter-sub">{{ s.label }}</span>
           </a>
         </li>
         {% else %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}session={{ s.session }}">
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}&{% endif %}session={{ s.session }}">
             <span>Session {{ s.session }}</span>
             <span class="filter-sub">{{ s.label }}</span>
           </a>
@@ -164,29 +179,29 @@
         {% endfor %}
       </ul>
       {% if current_session %}
-      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}{% endif %}" class="clear-link">✕ Clear session</a>
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="clear-link">✕ Clear session</a>
       {% if current_body %}
       <a href="/session/{{ current_body }}/{{ current_session }}/" class="clear-link" style="display:block; margin-top:0.2rem; color:var(--un-blue);">Session page ↗</a>
       {% endif %}
       {% endif %}
     </div>
 
-    <!-- Category filter -->
+    <!-- Category filter (UNBIS) -->
     {% if categories %}
     <div class="filter-section">
-      <h3>Category</h3>
+      <h3>UNBIS Category</h3>
       <ul class="filter-list">
         {% for cat in categories %}
         {% if current_category == cat.category %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}{% endif %}" class="active">
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="active">
             <span>{{ cat.category }}</span>
             <span class="filter-sub">{{ cat.count }}</span>
           </a>
         </li>
         {% else %}
         <li>
-          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}category={{ cat.category|urlencode }}">
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}&{% endif %}category={{ cat.category|urlencode }}">
             <span>{{ cat.category }}</span>
             <span class="filter-sub">{{ cat.count }}</span>
           </a>
@@ -195,8 +210,57 @@
         {% endfor %}
       </ul>
       {% if current_category %}
-      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}{% endif %}" class="clear-link">✕ Clear category</a>
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_important %}important=1&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="clear-link">✕ Clear category</a>
       {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Voeten topic filter -->
+    {% if issue_sidebar %}
+    <div class="filter-section">
+      <h3>Voeten Topic</h3>
+      <ul class="filter-list">
+        {% for ic in issue_sidebar %}
+        {% if current_issue == ic.code %}
+        <li>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1{% endif %}" class="active" title="{{ ic.long }}">
+            <span>{{ ic.short }}</span>
+            <span class="filter-sub">{{ ic.count }}</span>
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1&{% endif %}issue={{ ic.code }}" title="{{ ic.long }}">
+            <span>{{ ic.short }}</span>
+            <span class="filter-sub">{{ ic.count }}</span>
+          </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% if current_issue %}
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category }}&{% endif %}{% if current_important %}important=1{% endif %}" class="clear-link">✕ Clear topic</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Important votes filter -->
+    {% if important_count %}
+    <div class="filter-section">
+      <h3>Significance</h3>
+      {% if current_important %}
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category|urlencode }}&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="filter-list" style="display:flex; align-items:center; justify-content:space-between; padding:0.22rem 0.4rem; border-radius:4px; font-size:0.85rem; background:var(--un-blue); color:#fff; font-weight:600; text-decoration:none;">
+        <span>Important votes</span>
+        <span style="font-size:0.72rem; opacity:0.85;">{{ important_count }}</span>
+      </a>
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category|urlencode }}&{% endif %}{% if current_issue %}issue={{ current_issue }}{% endif %}" class="clear-link">✕ Clear</a>
+      {% else %}
+      <a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}{% if current_year %}year={{ current_year }}&{% endif %}{% if current_session %}session={{ current_session }}&{% endif %}{% if current_category %}category={{ current_category|urlencode }}&{% endif %}{% if current_issue %}issue={{ current_issue }}&{% endif %}important=1" style="display:flex; align-items:center; justify-content:space-between; padding:0.22rem 0.4rem; border-radius:4px; font-size:0.85rem; color:var(--text); text-decoration:none;" onmouseover="this.style.background='var(--un-light)';this.style.color='var(--un-blue)'" onmouseout="this.style.background='';this.style.color='var(--text)'">
+        <span>Important votes</span>
+        <span style="font-size:0.72rem; color:var(--muted);">{{ important_count }}</span>
+      </a>
+      {% endif %}
+      <p style="font-size:0.72rem; color:var(--muted); margin:0.4rem 0.4rem 0; line-height:1.4;">US State Dept "important vote" designation</p>
     </div>
     {% endif %}
 
@@ -217,6 +281,8 @@
         <span class="badge badge-{{ resolution.body|lower }}">{{ resolution.body }}</span>
         {% if resolution.session %}<span class="meta">Session {{ resolution.session }}</span>{% endif %}
         {% if resolution.category %}<a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}category={{ resolution.category|urlencode }}" class="tag-badge{% if current_category == resolution.category %} active{% endif %}">{{ resolution.category }}</a>{% endif %}
+        {% if resolution.important_vote %}<span class="important-badge" title="US State Dept 'important vote'">&#9733; Important</span>{% endif %}
+        {% for code, short in resolution.issue_labels %}<a href="/votes/resolutions/?{% if current_body %}body={{ current_body }}&{% endif %}issue={{ code }}" class="tag-badge issue-badge{% if current_issue == code %} active{% endif %}" style="background:#f0f4ff; color:#3a5a9a; border-color:#b0c4e8;">{{ short }}</a>{% endfor %}
       </div>
       {% if resolution.title %}
       <p class="meta" style="margin:0.3rem 0 0;">{{ resolution.title|truncatechars:140 }}</p>

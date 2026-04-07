@@ -232,10 +232,17 @@
     </div>
     <div class="sidebar-box">
       <h3>
-        Category
+        UNBIS Category
         <button id="cv-cat-clear" style="display:none;">✕ clear</button>
       </h3>
       <div id="cv-cat-list"></div>
+    </div>
+    <div class="sidebar-box" id="cv-issue-box" style="display:none;">
+      <h3>
+        Voeten Topic
+        <button id="cv-issue-clear" style="display:none;">✕ clear</button>
+      </h3>
+      <div id="cv-issue-list"></div>
     </div>
   </aside>
 
@@ -441,7 +448,8 @@
 (function () {
   var loading   = document.getElementById('cv-loading');
   var inner     = document.getElementById('cv-inner');
-  var cvState   = { body: '', yearFrom: null, yearTo: null, category: null };
+  var ISSUE_CODES = {{ issue_codes_json|safe }};
+  var cvState   = { body: '', yearFrom: null, yearTo: null, category: null, issue: null };
 
   /* ── Sidebar: body buttons ─────────────────────────────────────── */
   document.querySelectorAll('.body-btn-cv').forEach(function (btn) {
@@ -452,8 +460,10 @@
       cvState.yearFrom = null;
       cvState.yearTo   = null;
       cvState.category = null;
-      document.getElementById('cv-year-clear').style.display = 'none';
-      document.getElementById('cv-cat-clear').style.display  = 'none';
+      cvState.issue    = null;
+      document.getElementById('cv-year-clear').style.display  = 'none';
+      document.getElementById('cv-cat-clear').style.display   = 'none';
+      document.getElementById('cv-issue-clear').style.display = 'none';
       if (window._initVotingTab) window._initVotingTab(cvState.body);
     });
   });
@@ -583,6 +593,52 @@
     VoteCharts.filterCategory(null);
   });
 
+  /* ── Sidebar: Voeten issue-code list ───────────────────────────── */
+  function buildIssueList(votes, bodyFilter) {
+    var box    = document.getElementById('cv-issue-box');
+    var listEl = document.getElementById('cv-issue-list');
+    if (!box || !listEl) return;
+    if (bodyFilter === 'SC') { box.style.display = 'none'; return; }
+    var counts = {};
+    votes.forEach(function (v) {
+      (v.issues || []).forEach(function (code) {
+        counts[code] = (counts[code] || 0) + 1;
+      });
+    });
+    var present = ISSUE_CODES.filter(function (ic) { return counts[ic.code]; });
+    if (!present.length) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    listEl.innerHTML = present.map(function (ic) {
+      return '<button class="cv-cat-btn" data-issue="' + ic.code + '" title="' + ic.long + '">'
+        + ic.short + ' <span style="color:var(--muted);font-size:0.72rem;">(' + counts[ic.code] + ')</span>'
+        + '</button>';
+    }).join('');
+    listEl.querySelectorAll('.cv-cat-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var isActive = btn.classList.contains('active');
+        listEl.querySelectorAll('.cv-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+        if (isActive) {
+          cvState.issue = null;
+          document.getElementById('cv-issue-clear').style.display = 'none';
+          VoteCharts.filterIssue(null);
+        } else {
+          btn.classList.add('active');
+          cvState.issue = btn.dataset.issue;
+          document.getElementById('cv-issue-clear').style.display = '';
+          VoteCharts.filterIssue(cvState.issue);
+        }
+      });
+    });
+  }
+
+  document.getElementById('cv-issue-clear').addEventListener('click', function () {
+    var listEl = document.getElementById('cv-issue-list');
+    if (listEl) listEl.querySelectorAll('.cv-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+    cvState.issue = null;
+    document.getElementById('cv-issue-clear').style.display = 'none';
+    VoteCharts.filterIssue(null);
+  });
+
   /* ── Fetch + init ──────────────────────────────────────────────── */
   window._initVotingTab = function (bodyFilter) {
     var apiUrl = '{{ votes_api_url }}';
@@ -602,10 +658,11 @@
         }
         inner.style.display = 'block';
 
-        /* Reset sidebar year/cat state and UI on re-fetch */
-        cvState.yearFrom = null; cvState.yearTo = null; cvState.category = null;
-        document.getElementById('cv-year-clear').style.display = 'none';
-        document.getElementById('cv-cat-clear').style.display  = 'none';
+        /* Reset sidebar year/cat/issue state and UI on re-fetch */
+        cvState.yearFrom = null; cvState.yearTo = null; cvState.category = null; cvState.issue = null;
+        document.getElementById('cv-year-clear').style.display  = 'none';
+        document.getElementById('cv-cat-clear').style.display   = 'none';
+        document.getElementById('cv-issue-clear').style.display = 'none';
 
         try {
           VoteCharts.init('#cv-inner', data.votes, '{{ country.iso3 }}', cvState.body);
@@ -614,6 +671,7 @@
         }
         buildYearBrush(data.votes);
         buildCategoryList(data.votes);
+        buildIssueList(data.votes, bodyFilter);
       })
       .catch(function () { loading.style.display = 'none'; });
   };

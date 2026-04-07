@@ -7,11 +7,13 @@
 
     /* Module-level refs for external filtering and re-rendering */
     var _catDim      = null;
+    var _issueDim    = null;
     var _dateDim     = null;
     var _tableDim    = null;
     var _majDim      = null;
     var _majFilter   = null;
     var _catFilter   = null;
+    var _issueFilter = null;
     var _ndx         = null;
     var _containerSel = null;
     var _iso3        = null;
@@ -26,11 +28,13 @@
         });
         _charts    = [];
         _catDim    = null;
+        _issueDim  = null;
         _dateDim   = null;
         _tableDim  = null;
         _majDim    = null;
         _majFilter = null;
         _catFilter = null;
+        _issueFilter = null;
         _ndx       = null;
         _body      = null;
         _yearFrom  = null;
@@ -344,10 +348,12 @@
             var dateDim      = ndx.dimension(parseDate);
             var chartDateDim = ndx.dimension(parseDate);
             var catDim       = ndx.dimension(function (d) { return d.category || 'Uncategorized'; });
+            var issueDim     = ndx.dimension(function (d) { return d.issues || []; }, true);
             var tableDim     = ndx.dimension(function (d) { return d.year || 0; });
             var majDim       = ndx.dimension(function (d) { return d.toward_majority; });
 
             _catDim   = catDim;
+            _issueDim = issueDim;
             _dateDim  = dateDim;
             _tableDim = tableDim;
             _majDim   = majDim;
@@ -539,14 +545,30 @@
             redrawExtras(true);
         },
 
+        filterIssue: function (code) {
+            if (!_issueDim) return;
+            _issueFilter = code || null;
+            if (code) {
+                _issueDim.filterFunction(function (issues) {
+                    return issues.indexOf(code) >= 0;
+                });
+            } else {
+                _issueDim.filterAll();
+            }
+            dc.redrawAll(GROUP);
+            redrawExtras(true);
+        },
+
         resetAll: function () {
-            _yearFrom  = null;
-            _yearTo    = null;
-            _majFilter = null;
-            _catFilter = null;
-            if (_catDim)  _catDim.filterAll();
-            if (_dateDim) _dateDim.filterAll();
-            if (_majDim)  _majDim.filterAll();
+            _yearFrom    = null;
+            _yearTo      = null;
+            _majFilter   = null;
+            _catFilter   = null;
+            _issueFilter = null;
+            if (_catDim)   _catDim.filterAll();
+            if (_issueDim) _issueDim.filterAll();
+            if (_dateDim)  _dateDim.filterAll();
+            if (_majDim)   _majDim.filterAll();
             dc.filterAll(GROUP);
             dc.renderAll(GROUP);
             redrawExtras(true);

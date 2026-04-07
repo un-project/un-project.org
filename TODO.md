@@ -7,6 +7,21 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate
   them from the data and display on the speaker page.
 
+- [x] **Voeten `important_vote` filter** — the `resolutions` table now has an `important_vote`
+  boolean (US State Dept classification). Add it as a checkbox filter on the resolution list
+  page and as a toggle on the country voting analysis page. Add the field to the `Resolution`
+  model in `votes/models.py`.
+
+- [x] **Voeten issue-code tags** — the `resolutions` table has six boolean columns:
+  `issue_me` (Middle East), `issue_nu` (Nuclear/arms), `issue_co` (Colonialism),
+  `issue_hr` (Human rights), `issue_ec` (Economic), `issue_di` (Disarmament/Cold War).
+  Surface them as filter tags on the resolution list (alongside the UNBIS category), on
+  resolution detail pages, and as a breakdown axis on the country voting and compare pages.
+
+- [ ] **Issue-code breakdown on compare page** — show the two-country voting agreement
+  disaggregated by Voeten issue code (ME / NU / CO / HR / EC / DI) as a small bar chart
+  or table below the year-trend chart.
+
 ## Awaiting data / extractor work
 
 - [ ] **Co-sponsorship list on resolution pages** — depends on extracting co-sponsor lines from
