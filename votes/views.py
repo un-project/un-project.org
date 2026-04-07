@@ -244,6 +244,10 @@ def resolution_detail(request, slug):
 
     has_citations = outgoing_total > 0 or incoming_total > 0
 
+    sponsors = list(
+        resolution.sponsors.select_related('country').order_by('country_name')
+    )
+
     return render(request, 'votes/resolution.html', {
         'resolution': resolution,
         'votes': votes,
@@ -254,6 +258,7 @@ def resolution_detail(request, slug):
         'related': related,
         'has_citations': has_citations,
         'CITATION_CAP': CITATION_CAP,
+        'sponsors': sponsors,
     })
 
 

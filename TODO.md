@@ -24,7 +24,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Awaiting data / extractor work
 
-- [ ] **Co-sponsors on resolution detail** — `resolution_sponsors` is now populated (UNBench).
+- [x] **Co-sponsors on resolution detail** — `resolution_sponsors` is now populated (UNBench).
   Add a `ResolutionSponsor` model (`managed=False`, `db_table='resolution_sponsors'`) and show
   the sponsoring countries as a flag-row on the resolution detail page, with a count badge.
 

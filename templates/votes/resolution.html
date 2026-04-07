@@ -93,6 +93,29 @@
       </td>
     </tr>
     {% endif %}
+    {% if sponsors %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted); vertical-align:top;">
+        Sponsors
+        <span style="font-size:0.75rem; font-weight:400; color:var(--muted);">({{ sponsors|length }})</span>
+      </th>
+      <td style="padding:0.45rem 0.75rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+          {% for sp in sponsors %}
+          {% if sp.country and sp.country.iso3 %}
+          <a href="{{ sp.country.get_absolute_url }}" title="{{ sp.country.display_name }}"
+             style="display:inline-flex; align-items:center; gap:0.3rem; padding:0.15rem 0.5rem; border-radius:3px; font-size:0.82rem; background:var(--un-light); border:1px solid var(--border); text-decoration:none; color:var(--text);">
+            <img src="/static/flags/{{ sp.country.iso3 }}.svg" alt="" style="height:12px; border-radius:1px;">
+            {{ sp.country.short_name|default:sp.country.name }}
+          </a>
+          {% else %}
+          <span style="display:inline-block; padding:0.15rem 0.5rem; border-radius:3px; font-size:0.82rem; background:var(--un-light); border:1px solid var(--border); color:var(--muted);">{{ sp.country_name }}</span>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </td>
+    </tr>
+    {% endif %}
     {% if resolution.docs_un_url %}
     <tr style="border-bottom:1px solid var(--border);">
       <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted);">UN Document</th>
