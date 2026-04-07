@@ -24,12 +24,33 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Awaiting data / extractor work
 
-- [ ] **Co-sponsorship list on resolution pages** — depends on extracting co-sponsor lines from
-  speeches or importing UNBench draft JSONs. Once a `resolution_sponsors` table exists, show
-  the sponsoring countries on the resolution detail page and add co-sponsorship to country profiles.
+- [ ] **Co-sponsors on resolution detail** — `resolution_sponsors` is now populated (UNBench).
+  Add a `ResolutionSponsor` model (`managed=False`, `db_table='resolution_sponsors'`) and show
+  the sponsoring countries as a flag-row on the resolution detail page, with a count badge.
 
-- [ ] **Co-sponsorship network** — network graph of countries that co-sponsor resolutions
-  together. Requires `resolution_sponsors` table (extractor work).
+- [ ] **Draft resolution text on resolution detail** — `resolutions.draft_text` is now
+  populated for SC resolutions (UNBench). Show the full draft text as a collapsible section on
+  the resolution detail page. Useful for vetoed drafts that never became adopted resolutions.
+
+- [ ] **Veto tracker → resolution stub links** — stub `resolutions` rows are now created for
+  rejected/vetoed SC drafts. Link from the veto tracker table to the resolution stub page so
+  readers can read the draft text of vetoed proposals.
+
+- [ ] **Co-sponsorship count on country pages** — add a "Sponsored" stat box and a list of
+  co-sponsored resolutions (with pagination) to the country detail page, drawn from
+  `resolution_sponsors`.
+
+- [ ] **Co-sponsorship network** — network graph of countries that co-sponsor SC resolutions
+  together. Data available in `resolution_sponsors`; render as a force-directed D3 graph or
+  a sortable co-sponsorship matrix.
+
+- [ ] **Sponsorship filter on resolution list** — allow filtering the SC resolution list by
+  sponsor country via `?sponsor=<iso3>`, using a sidebar section parallel to the UNBIS Category
+  filter.
+
+- [ ] **Draft text search** — include `resolutions.draft_text` in the unified `search_index`
+  materialized view so draft resolution texts are searchable from the main search bar.
+  Requires updating the `refresh_search_index` migration/command and reindexing.
 
 - [ ] **Amendment tracking** — the `amendments` table is reserved; implement models and UI
   when data is ready.
@@ -46,7 +67,7 @@ Tracked tasks and future features for the UN Project web application.
 
 - [ ] **Full data pipeline** — automate ingestion of new UN meeting PDFs into the database.
 
-- [ ] **Flag unattributed speeches** — identify and surface speeches where the speaker has
+- [x] **Flag unattributed speeches** — identify and surface speeches where the speaker has
   no linked country.
 
 - [ ] **Detect duplicate speeches** — flag speeches that appear to be duplicates within the

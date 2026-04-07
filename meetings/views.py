@@ -123,6 +123,11 @@ def meeting_detail(request, slug):
             seen_items.add(item_id)
         final_transcript.append(entry)
 
+    unattributed_count = sum(
+        1 for s in speeches
+        if s.speaker.country_id is None and not s.speaker.organization
+    )
+
     body_label = document.body_display
     crumbs = [
         {'label': 'Home', 'url': f'/?body={document.body}'},
@@ -134,6 +139,7 @@ def meeting_detail(request, slug):
         'document': document,
         'items': items,
         'transcript': final_transcript,
+        'unattributed_count': unattributed_count,
         'crumbs': crumbs,
     })
 

@@ -23,6 +23,12 @@
   &mdash; <a href="/session/{{ document.body }}/{{ document.session }}/">Session {{ document.session }}</a>, Meeting {{ document.meeting_number }}
   {% if document.location %}&mdash; {{ document.location }}{% endif %}
   &mdash; <a href="{{ document.docs_un_url }}" target="_blank" rel="noopener">UN Document ↗</a>
+  {% if unattributed_count %}
+  &mdash; <span title="{{ unattributed_count }} speech{{ unattributed_count|pluralize }} with no country or organisation attribution" style="display:inline-flex; align-items:center; gap:0.25rem; color:#b8860b; font-size:0.82rem; cursor:default;">
+    <span style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0 0.35rem; font-weight:600; font-size:0.75rem;">&#9432;</span>
+    {{ unattributed_count }} unattributed speech{{ unattributed_count|pluralize }}
+  </span>
+  {% endif %}
 </div>
 
 <div id="transcript-search-bar" class="transcript-search-floating">
@@ -84,6 +90,9 @@
           {% endif %}
           {% if s.on_behalf_of %}
           <span class="meta" style="font-size:0.82rem;">on behalf of {{ s.on_behalf_of }}</span>
+          {% endif %}
+          {% if not s.speaker.country and not s.speaker.organization %}
+          <span title="No country or organisation linked to this speaker" style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0.05rem 0.35rem; font-size:0.72rem; font-weight:600; color:#b8860b; white-space:nowrap;">unattributed</span>
           {% endif %}
           {% if s.language %}<span class="meta" style="font-size:0.78rem;">[{{ s.language }}]</span>{% endif %}
           <a href="#speech-{{ s.pk }}" class="meta" style="font-size:0.78rem;margin-left:auto;">#{{ s.pk }}</a>
