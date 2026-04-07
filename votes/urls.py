@@ -18,4 +18,6 @@ urlpatterns = [
     path('ideal-points/', views.ideal_points_timeline, name='ideal_points'),
     path('cohesion/', views.cohesion_heatmap, name='cohesion'),
     path('vetoes/', views.veto_list, name='veto_list'),
+    path('cosponsor-network/', views.cosponsor_network, name='cosponsor_network'),
+    path('api/cosponsor-network/', views.cosponsor_network_json, name='cosponsor_network_json'),
 ]

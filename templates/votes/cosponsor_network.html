@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}SC Co-sponsorship Network{% endblock %}
+
+{% block extra_head %}
+<style>
+#network-wrap {
+  position: relative;
+  width: 100%;
+  background: var(--un-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+#network-svg { display: block; width: 100%; cursor: grab; }
+#network-svg:active { cursor: grabbing; }
+
+.node circle { stroke: #fff; stroke-width: 1.5px; cursor: pointer; }
+.node text {
+  font-size: 11px;
+  fill: #333;
+  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.link { stroke: #9db8d2; stroke-linecap: round; }
+
+#net-tooltip {
+  position: absolute;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  display: none;
+  max-width: 240px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  line-height: 1.45;
+}
+
+.net-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+.net-controls label { color: var(--muted); }
+.net-controls select, .net-controls input[type=range] { font-size: 0.85rem; }
+#net-loading { text-align: center; padding: 2rem; color: var(--muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>SC Co-sponsorship Network</h1>
+<p class="meta" style="margin-bottom:1.25rem;">
+  Countries that co-sponsored Security Council draft resolutions together,
+  drawn from the <a href="https://github.com/yilunliao/unbench" target="_blank" rel="noopener">UNBench dataset</a> (Liang et al.).
+  Node size = total resolutions sponsored. Edge thickness = shared co-sponsorships.
+  Click a node to open the country page.
+</p>
+
+<form class="net-controls" method="get" id="net-form">
+  <label>Top <select name="top" id="sel-top">
+    {% for n in top_choices %}<option value="{{ n }}"{% if n == top_n %} selected{% endif %}>{{ n }}</option>{% endfor %}
+  </select> countries</label>
+  <label>Min shared:
+    <select name="min_edge" id="sel-min">
+      {% for m in min_edge_choices %}<option value="{{ m }}"{% if m == min_edge %} selected{% endif %}>{{ m }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit" style="font-size:0.85rem;">Apply</button>
+</form>
+
+<div id="network-wrap" style="height:620px;">
+  <svg id="network-svg"></svg>
+  <div id="net-tooltip"></div>
+  <div id="net-loading">Loading…</div>
+</div>
+<p class="meta" style="margin-top:0.5rem; font-size:0.78rem;">Scroll to zoom · drag to pan · click a node to open the country page</p>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var API_URL = '{{ api_url|escapejs }}';
+
+  var wrap    = document.getElementById('network-wrap');
+  var svg     = d3.select('#network-svg');
+  var tooltip = document.getElementById('net-tooltip');
+  var loading = document.getElementById('net-loading');
+
+  /* ── colour scale by sponsorship count ─────────────────────────── */
+  var COLOR = d3.scaleSequential()
+    .interpolator(d3.interpolateBlues)
+    .domain([0, 1]);  /* normalised below */
+
+  /* ── main render ────────────────────────────────────────────────── */
+  fetch(API_URL)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      loading.style.display = 'none';
+      if (!data.nodes || !data.nodes.length) {
+        loading.textContent = 'No data.';
+        loading.style.display = '';
+        return;
+      }
+      render(data.nodes, data.edges);
+    })
+    .catch(function () {
+      loading.textContent = 'Failed to load network data.';
+      loading.style.display = '';
+    });
+
+  function render(nodes, edges) {
+    var W = wrap.clientWidth  || 800;
+    var H = wrap.clientHeight || 620;
+
+    svg.attr('viewBox', '0 0 ' + W + ' ' + H)
+       .attr('width', W).attr('height', H);
+
+    /* node size: sqrt-scaled on sponsorship count */
+    var maxCount = d3.max(nodes, function (d) { return d.count; });
+    var rScale = d3.scaleSqrt().domain([0, maxCount]).range([4, 22]);
+
+    /* colour: normalised count → blue scale */
+    var colorScale = d3.scaleSequential(d3.interpolateBlues)
+      .domain([0, maxCount]);
+
+    /* edge width */
+    var maxW = d3.max(edges, function (d) { return d.weight; }) || 1;
+    var wScale = d3.scaleLinear().domain([0, maxW]).range([0.5, 6]);
+
+    /* build lookup by id */
+    var nodeById = {};
+    nodes.forEach(function (n) { nodeById[n.id] = n; });
+
+    /* resolve source/target to objects */
+    var links = edges.map(function (e) {
+      return { source: nodeById[e.source], target: nodeById[e.target], weight: e.weight };
+    }).filter(function (e) { return e.source && e.target; });
+
+    /* zoom + pan */
+    var g = svg.append('g');
+    svg.call(
+      d3.zoom()
+        .scaleExtent([0.2, 5])
+        .on('zoom', function (event) { g.attr('transform', event.transform); })
+    );
+
+    /* force simulation */
+    var sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).distance(function (d) {
+        return 60 + (maxW - d.weight) * 0.5;
+      }).strength(0.4))
+      .force('charge', d3.forceManyBody().strength(-120))
+      .force('center', d3.forceCenter(W / 2, H / 2))
+      .force('collide', d3.forceCollide().radius(function (d) { return rScale(d.count) + 3; }));
+
+    /* draw edges */
+    var link = g.append('g').selectAll('line')
+      .data(links).join('line')
+      .attr('class', 'link')
+      .attr('stroke-width', function (d) { return wScale(d.weight); })
+      .attr('stroke-opacity', 0.45);
+
+    /* draw nodes */
+    var node = g.append('g').selectAll('g')
+      .data(nodes).join('g')
+      .attr('class', 'node')
+      .call(
+        d3.drag()
+          .on('start', function (event, d) {
+            if (!event.active) sim.alphaTarget(0.3).restart();
+            d.fx = d.x; d.fy = d.y;
+          })
+          .on('drag', function (event, d) { d.fx = event.x; d.fy = event.y; })
+          .on('end', function (event, d) {
+            if (!event.active) sim.alphaTarget(0);
+            d.fx = null; d.fy = null;
+          })
+      );
+
+    node.append('circle')
+      .attr('r', function (d) { return rScale(d.count); })
+      .attr('fill', function (d) { return colorScale(d.count); });
+
+    /* label only the largest nodes */
+    var labelThreshold = d3.quantile(nodes.map(function (d) { return d.count; }).sort(d3.ascending), 0.65);
+    node.filter(function (d) { return d.count >= labelThreshold; })
+      .append('text')
+      .text(function (d) {
+        /* shorten long country names */
+        var name = d.name;
+        if (name.length > 16) name = name.replace(/\b(of|the|and|Great|Republic|Kingdom|Democratic|United)\b/g, '').replace(/\s+/g, ' ').trim();
+        return name.length > 18 ? name.slice(0, 16) + '…' : name;
+      })
+      .attr('dy', function (d) { return rScale(d.count) + 10; });
+
+    /* tooltip + click */
+    node
+      .on('mouseover', function (event, d) {
+        var edgeCount = links.filter(function (l) {
+          return l.source === d || l.target === d;
+        }).length;
+        tooltip.innerHTML = '<strong>' + d.name + '</strong><br>'
+          + d.count + ' sponsored &nbsp;·&nbsp; ' + edgeCount + ' co-sponsors';
+        tooltip.style.display = 'block';
+      })
+      .on('mousemove', function (event) {
+        var rect = wrap.getBoundingClientRect();
+        tooltip.style.left = (event.clientX - rect.left + 12) + 'px';
+        tooltip.style.top  = (event.clientY - rect.top  - 10) + 'px';
+      })
+      .on('mouseleave', function () { tooltip.style.display = 'none'; })
+      .on('click', function (event, d) {
+        if (d.iso3) window.location.href = '/country/' + d.iso3 + '/';
+      });
+
+    /* tick */
+    sim.on('tick', function () {
+      link
+        .attr('x1', function (d) { return d.source.x; })
+        .attr('y1', function (d) { return d.source.y; })
+        .attr('x2', function (d) { return d.target.x; })
+        .attr('y2', function (d) { return d.target.y; });
+      node.attr('transform', function (d) {
+        return 'translate(' + d.x + ',' + d.y + ')';
+      });
+    });
+  }
+}());
+</script>
+{% endblock %}

@@ -12,7 +12,7 @@ from countries.models import Country
 from countries.constants import HISTORICAL_ISO3
 from .coalitions import COALITIONS, COALITIONS_BY_SLUG
 import json as _json
-from .models import CountryVote, ISSUE_CODES, Resolution, ResolutionCitation, Veto, VetoCountry, Vote
+from .models import CountryVote, ISSUE_CODES, Resolution, ResolutionCitation, ResolutionSponsor, Veto, VetoCountry, Vote
 
 ISSUE_CODES_JSON = _json.dumps([
     {'code': code, 'short': short, 'long': long}
@@ -1180,5 +1180,75 @@ def bloc_detail(request, slug):
             {'label': 'Home', 'url': '/'},
             {'label': 'Voting Analysis', 'url': '/votes/'},
             {'label': bloc['name'], 'url': None},
+        ],
+    })
+
+
+def cosponsor_network_json(request):
+    """Return co-sponsorship network as nodes + edges JSON for D3 force graph."""
+    TOP_N    = int(request.GET.get('top', 50))
+    MIN_EDGE = int(request.GET.get('min_edge', 5))
+    TOP_N    = min(max(TOP_N, 10), 100)
+    MIN_EDGE = min(max(MIN_EDGE, 1), 50)
+
+    with connection.cursor() as cur:
+        # Top N countries by number of co-sponsored resolutions
+        cur.execute("""
+            SELECT rs.country_id, c.name, c.iso3, COUNT(*) AS total
+            FROM resolution_sponsors rs
+            JOIN countries c ON c.id = rs.country_id
+            WHERE rs.country_id IS NOT NULL
+            GROUP BY rs.country_id, c.name, c.iso3
+            ORDER BY total DESC
+            LIMIT %s
+        """, [TOP_N])
+        node_rows = cur.fetchall()
+
+    top_ids = {row[0] for row in node_rows}
+    nodes = [
+        {'id': row[0], 'name': row[1], 'iso3': row[2] or '', 'count': row[3]}
+        for row in node_rows
+    ]
+
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT a.country_id, b.country_id, COUNT(*) AS weight
+            FROM resolution_sponsors a
+            JOIN resolution_sponsors b
+              ON a.resolution_id = b.resolution_id
+             AND a.country_id < b.country_id
+            WHERE a.country_id = ANY(%s)
+              AND b.country_id = ANY(%s)
+            GROUP BY a.country_id, b.country_id
+            HAVING COUNT(*) >= %s
+            ORDER BY weight DESC
+        """, [list(top_ids), list(top_ids), MIN_EDGE])
+        edge_rows = cur.fetchall()
+
+    edges = [
+        {'source': row[0], 'target': row[1], 'weight': row[2]}
+        for row in edge_rows
+    ]
+
+    return JsonResponse({'nodes': nodes, 'edges': edges})
+
+
+def cosponsor_network(request):
+    top_n    = int(request.GET.get('top', 50))
+    min_edge = int(request.GET.get('min_edge', 5))
+    top_n    = min(max(top_n, 10), 100)
+    min_edge = min(max(min_edge, 1), 50)
+
+    api_url = f'/votes/api/cosponsor-network/?top={top_n}&min_edge={min_edge}'
+    return render(request, 'votes/cosponsor_network.html', {
+        'api_url':          api_url,
+        'top_n':            top_n,
+        'min_edge':         min_edge,
+        'top_choices':      [10, 20, 30, 40, 50, 60, 75, 100],
+        'min_edge_choices': [1, 3, 5, 10, 15, 20, 30],
+        'crumbs': [
+            {'label': 'Home',            'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Co-sponsorship Network', 'url': None},
         ],
     })

@@ -40,7 +40,7 @@ Tracked tasks and future features for the UN Project web application.
   co-sponsored resolutions (with pagination) to the country detail page, drawn from
   `resolution_sponsors`.
 
-- [ ] **Co-sponsorship network** — network graph of countries that co-sponsor SC resolutions
+- [x] **Co-sponsorship network** — network graph of countries that co-sponsor SC resolutions
   together. Data available in `resolution_sponsors`; render as a force-directed D3 graph or
   a sortable co-sponsorship matrix.
 
