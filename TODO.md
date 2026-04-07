@@ -44,7 +44,7 @@ Tracked tasks and future features for the UN Project web application.
   together. Data available in `resolution_sponsors`; render as a force-directed D3 graph or
   a sortable co-sponsorship matrix.
 
-- [ ] **Sponsorship filter on resolution list** — allow filtering the SC resolution list by
+- [x] **Sponsorship filter on resolution list** — allow filtering the SC resolution list by
   sponsor country via `?sponsor=<iso3>`, using a sidebar section parallel to the UNBIS Category
   filter.
 

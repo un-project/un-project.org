@@ -59,6 +59,7 @@ def resolution_list(request):
     category       = request.GET.get('category', '')
     important_only = request.GET.get('important', '') == '1'
     issue          = request.GET.get('issue', '')
+    sponsor        = request.GET.get('sponsor', '')
     valid_issues   = {code for code, _s, _l in ISSUE_CODES}
 
     qs = Resolution.objects.all()
@@ -77,6 +78,11 @@ def resolution_list(request):
         qs = qs.filter(**{f'issue_{issue}': True})
     else:
         issue = ''
+    # Sponsor filter: SC-only data from UNBench
+    if body == 'SC' and sponsor:
+        qs = qs.filter(sponsors__country__iso3=sponsor).distinct()
+    else:
+        sponsor = ''
 
     # Base queryset for sidebar (body-filtered only)
     filter_qs = Resolution.objects.all()
@@ -139,6 +145,17 @@ def resolution_list(request):
         for code, short, long in ISSUE_CODES
     ]
 
+    # Sponsor sidebar: SC-only (UNBench data); top 30 by sponsorship count
+    sponsor_sidebar = []
+    if body == 'SC':
+        sponsor_sidebar = list(
+            ResolutionSponsor.objects
+            .filter(resolution__body='SC', country__isnull=False)
+            .values('country__iso3', 'country__short_name', 'country__name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:30]
+        )
+
     paginator = Paginator(qs.order_by('-session', 'adopted_symbol', 'draft_symbol'), 50)
     page = paginator.get_page(request.GET.get('page'))
 
@@ -149,12 +166,14 @@ def resolution_list(request):
         'categories':       categories,
         'important_count':  important_count,
         'issue_sidebar':    issue_sidebar,
+        'sponsor_sidebar':  sponsor_sidebar,
         'current_body':     body,
         'current_session':  session,
         'current_year':     year,
         'current_category': category,
         'current_important': important_only,
         'current_issue':    issue if issue in valid_issues else '',
+        'current_sponsor':  sponsor,
     })
 
 
