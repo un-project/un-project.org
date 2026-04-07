@@ -200,6 +200,12 @@
     <div class="num">{{ vote_stats.abstain }}</div>
     <div class="label">Abstentions</div>
   </div>
+  {% if sponsored_count %}
+  <div class="stat-box">
+    <div class="num">{{ sponsored_count }}</div>
+    <div class="label">SC Sponsored</div>
+  </div>
+  {% endif %}
 </div>
 
 <nav class="tab-nav">
@@ -207,6 +213,7 @@
   <a href="#speeches" class="tab-link" data-tab="speeches">Speeches</a>
   <a href="#representatives" class="tab-link" data-tab="representatives">Representatives</a>
   {% if debate_entries %}<a href="#debate" class="tab-link" data-tab="debate">General Debate</a>{% endif %}
+  {% if sponsored_count %}<a href="#sponsored" class="tab-link" data-tab="sponsored">SC Co-sponsored ({{ sponsored_count }})</a>{% endif %}
   {% if country.iso3 %}<a href="/votes/compare/?a={{ country.iso3 }}" style="color:var(--un-blue); font-size:0.88rem; margin-left:auto;">Compare votes ↗</a>{% endif %}
 </nav>
 
@@ -435,6 +442,55 @@
   </tbody>
 </table>
 </div><!-- /tab-debate -->
+{% endif %}
+
+{% if sponsored_count %}
+{% load query_tags %}
+<div id="tab-sponsored" class="tab-panel">
+<h2 id="sponsored" style="margin-top:0;">SC Co-sponsored Resolutions</h2>
+<p class="meta" style="margin-bottom:1rem;">
+  {{ sponsored_count }} Security Council draft resolution{{ sponsored_count|pluralize }} co-sponsored by {{ country.display_name }}.
+  Data from the <a href="https://github.com/yilunliao/unbench" target="_blank" rel="noopener">UNBench dataset</a> (Liang et al.).
+</p>
+<table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:1rem;">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border);">
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Draft</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Adopted as</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; width:50%;">Title</th>
+      <th style="padding:0.4rem 0.6rem; text-align:left; color:var(--muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em;">Session</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sp in sponsored_page %}
+    {% with r=sp.resolution %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.4rem 0.6rem; white-space:nowrap;">
+        <a href="{{ r.get_absolute_url }}">{{ r.draft_symbol }}</a>
+      </td>
+      <td style="padding:0.4rem 0.6rem; white-space:nowrap; color:var(--muted);">
+        {% if r.adopted_symbol %}{{ r.adopted_symbol }}{% else %}<span title="Draft was not adopted">—</span>{% endif %}
+      </td>
+      <td style="padding:0.4rem 0.6rem;">{{ r.title|default:""|truncatechars:90 }}</td>
+      <td style="padding:0.4rem 0.6rem; color:var(--muted);">{{ r.session|default:"—" }}</td>
+    </tr>
+    {% endwith %}
+    {% endfor %}
+  </tbody>
+</table>
+{% if sponsored_page.has_other_pages %}
+<div class="pagination">
+  {% if sponsored_page.has_previous %}<a href="{% url_with_param "sp_page" sponsored_page.previous_page_number %}">&laquo; Prev</a>{% endif %}
+  {% for num in sponsored_page.paginator.page_range %}
+    {% if sponsored_page.number == num %}<span class="current">{{ num }}</span>
+    {% elif num > sponsored_page.number|add:"-3" and num < sponsored_page.number|add:"3" %}<a href="{% url_with_param "sp_page" num %}">{{ num }}</a>
+    {% elif num == 1 or num == sponsored_page.paginator.num_pages %}<a href="{% url_with_param "sp_page" num %}">{{ num }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if sponsored_page.has_next %}<a href="{% url_with_param "sp_page" sponsored_page.next_page_number %}">Next &raquo;</a>{% endif %}
+</div>
+{% endif %}
+</div><!-- /tab-sponsored -->
 {% endif %}
 
 {% endblock %}
@@ -1289,6 +1345,7 @@
     'speeches',
     'representatives',
     {% if debate_entries %}'debate',{% endif %}
+    {% if sponsored_count %}'sponsored',{% endif %}
   ];
   var initialized = {};
 

@@ -70,6 +70,24 @@ class Resolution(models.Model):
         return prefix + self.adopted_symbol
 
 
+class ResolutionSponsor(models.Model):
+    resolution = models.ForeignKey(
+        Resolution, on_delete=models.CASCADE, related_name='sponsors'
+    )
+    country = models.ForeignKey(
+        'countries.Country', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sponsored_resolutions'
+    )
+    country_name = models.TextField()
+
+    class Meta:
+        managed = False
+        db_table = 'resolution_sponsors'
+
+    def __str__(self):
+        return f'{self.country_name} → {self.resolution}'
+
+
 class Vote(models.Model):
     VOTE_TYPE_CHOICES = [
         ('consensus', 'Consensus'),

@@ -10,7 +10,7 @@ from debate.models import GeneralDebateEntry
 from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
 import json as _json
-from votes.models import CountryVote, ISSUE_CODES
+from votes.models import CountryVote, ISSUE_CODES, ResolutionSponsor
 
 
 def _render_country_detail(request, country):
@@ -86,6 +86,17 @@ def _render_country_detail(request, country):
         {'code': c, 'short': s, 'long': l} for c, s, l in ISSUE_CODES
     ])
 
+    # Co-sponsored SC resolutions (UNBench dataset)
+    sponsored_qs = (
+        ResolutionSponsor.objects
+        .filter(country=country)
+        .select_related('resolution')
+        .order_by('-resolution__session', 'resolution__draft_symbol')
+    )
+    sponsored_paginator = Paginator(sponsored_qs, 25)
+    sponsored_page = sponsored_paginator.get_page(request.GET.get('sp_page'))
+    sponsored_count = sponsored_paginator.count
+
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
     has_sc_reps = (
@@ -113,6 +124,8 @@ def _render_country_detail(request, country):
         'wc_url':               wc_url,
         'votes_api_url':        votes_api_url,
         'issue_codes_json':     issue_codes_json,
+        'sponsored_page':       sponsored_page,
+        'sponsored_count':      sponsored_count,
         'has_sc_reps':          has_sc_reps,
         'debate_entries':       debate_entries,
         'historical_info':      HISTORICAL_INFO.get(country.iso3),

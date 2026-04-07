@@ -36,7 +36,7 @@ Tracked tasks and future features for the UN Project web application.
   rejected/vetoed SC drafts. Link from the veto tracker table to the resolution stub page so
   readers can read the draft text of vetoed proposals.
 
-- [ ] **Co-sponsorship count on country pages** — add a "Sponsored" stat box and a list of
+- [x] **Co-sponsorship count on country pages** — add a "Sponsored" stat box and a list of
   co-sponsored resolutions (with pagination) to the country detail page, drawn from
   `resolution_sponsors`.
 
