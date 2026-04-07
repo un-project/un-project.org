@@ -235,6 +235,35 @@
   </p>
 </div>
 
+<!-- ── Breakdown by Voeten topic ──────────────────────────────── -->
+{% if comparison.by_issue %}
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Breakdown by Voeten Topic</h2>
+  <p class="meta" style="margin-bottom:0.75rem;">Agreement rate per issue area (Voeten dataset, GA resolutions only). Dashed line shows overall agreement rate.</p>
+  <div style="display:flex; flex-direction:column; gap:0.55rem; max-width:540px;">
+    {% for ic in comparison.by_issue %}
+    <div style="display:grid; grid-template-columns:110px 1fr 54px 60px; align-items:center; gap:0.5rem; font-size:0.85rem;">
+      <span title="{{ ic.long }}" style="color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ ic.short }}</span>
+      <div style="position:relative; height:12px; background:#e8edf2; border-radius:3px; overflow:visible;">
+        <div style="height:100%; width:{{ ic.rate }}%; background:{% if ic.rate >= 70 %}#27ae60{% elif ic.rate >= 40 %}#f39c12{% else %}#e74c3c{% endif %}; border-radius:3px; min-width:2px;"></div>
+        <div style="position:absolute; top:-3px; bottom:-3px; left:{{ comparison.agreement_rate }}%; width:1px; background:#444; opacity:0.5;"></div>
+      </div>
+      <span class="{% if ic.rate >= 70 %}rate-high{% elif ic.rate >= 40 %}rate-mid{% else %}rate-low{% endif %}" style="text-align:right; font-weight:600;">{{ ic.rate }}%</span>
+      <span class="meta" style="font-size:0.75rem;">{{ ic.agree }}/{{ ic.total }}</span>
+    </div>
+    {% endfor %}
+    <div style="display:grid; grid-template-columns:110px 1fr 54px 60px; align-items:center; gap:0.5rem; font-size:0.82rem; border-top:1px solid var(--border); padding-top:0.4rem; margin-top:0.1rem;">
+      <span style="color:var(--muted); font-style:italic;">Overall</span>
+      <div style="position:relative; height:12px; background:#e8edf2; border-radius:3px;">
+        <div style="height:100%; width:{{ comparison.agreement_rate }}%; background:#888; border-radius:3px; min-width:2px;"></div>
+      </div>
+      <span style="text-align:right; font-weight:600; color:var(--muted);">{{ comparison.agreement_rate }}%</span>
+      <span class="meta" style="font-size:0.75rem;">{{ comparison.agree_count }}/{{ comparison.total }}</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- ── Year-filtered votes ─────────────────────────────────────── -->
 {% if comparison.year_votes is not None %}
 <div id="year-votes" style="margin-bottom:2rem;">

@@ -431,6 +431,23 @@ def country_compare(request):
         agreed_contested.sort(key=lambda x: -(x['vote'].no_count or 0))
         agreed_contested = agreed_contested[:8]
 
+        # Agreement breakdown by Voeten issue code
+        by_issue = []
+        for code, short, long in ISSUE_CODES:
+            field = f'issue_{code}'
+            ids = [vid for vid in shared_ids if vid in vote_map and getattr(vote_map[vid].resolution, field)]
+            if len(ids) < 2:
+                continue
+            n_agree = sum(1 for vid in ids if votes_a[vid] == votes_b[vid])
+            by_issue.append({
+                'code':  code,
+                'short': short,
+                'long':  long,
+                'total': len(ids),
+                'agree': n_agree,
+                'rate':  round(100 * n_agree / len(ids)),
+            })
+
         # Restructure matrix as a list of rows for template rendering
         matrix_rows = [
             {
@@ -452,6 +469,7 @@ def country_compare(request):
             'matrix_positions': POSITIONS,
             'by_session': by_session,
             'by_session_json': json.dumps(by_session),
+            'by_issue': by_issue,
             'divergent': divergent,
             'agreed_contested': agreed_contested,
             'year_votes': year_votes,

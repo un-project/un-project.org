@@ -18,7 +18,7 @@ Tracked tasks and future features for the UN Project web application.
   Surface them as filter tags on the resolution list (alongside the UNBIS category), on
   resolution detail pages, and as a breakdown axis on the country voting and compare pages.
 
-- [ ] **Issue-code breakdown on compare page** — show the two-country voting agreement
+- [x] **Issue-code breakdown on compare page** — show the two-country voting agreement
   disaggregated by Voeten issue code (ME / NU / CO / HR / EC / DI) as a small bar chart
   or table below the year-trend chart.
 
