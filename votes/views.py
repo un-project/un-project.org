@@ -793,13 +793,21 @@ def veto_list(request):
     paginator = Paginator(qs, 50)
     page = paginator.get_page(request.GET.get('page'))
 
+    # Map draft_symbol → resolution slug for vetoes on this page that have a stub
+    page_symbols = {v.draft_symbol for v in page if v.draft_symbol}
+    resolution_slugs = {
+        r.draft_symbol: r.slug
+        for r in Resolution.objects.filter(draft_symbol__in=page_symbols)
+    }
+
     return render(request, 'votes/vetoes.html', {
-        'page':         page,
-        'P5':           p5_data,
-        'P5_json':      json.dumps(P5),
-        'timeline_json': timeline_json,
-        'filter_iso3':  filter_iso3,
-        'total':        Veto.objects.count(),
+        'page':             page,
+        'P5':               p5_data,
+        'P5_json':          json.dumps(P5),
+        'timeline_json':    timeline_json,
+        'filter_iso3':      filter_iso3,
+        'total':            Veto.objects.count(),
+        'resolution_slugs': resolution_slugs,
         'crumbs': [
             {'label': 'Home',            'url': '/'},
             {'label': 'Voting Analysis', 'url': '/votes/'},

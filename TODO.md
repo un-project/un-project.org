@@ -32,7 +32,7 @@ Tracked tasks and future features for the UN Project web application.
   populated for SC resolutions (UNBench). Show the full draft text as a collapsible section on
   the resolution detail page. Useful for vetoed drafts that never became adopted resolutions.
 
-- [ ] **Veto tracker → resolution stub links** — stub `resolutions` rows are now created for
+- [x] **Veto tracker → resolution stub links** — stub `resolutions` rows are now created for
   rejected/vetoed SC drafts. Link from the veto tracker table to the resolution stub page so
   readers can read the draft text of vetoed proposals.
 

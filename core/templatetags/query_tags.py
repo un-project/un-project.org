@@ -14,6 +14,12 @@ def url_with_page(context, page_num):
     return f'?{params.urlencode()}'
 
 
+@register.filter
+def get_item(mapping, key):
+    """Look up a dict value by a variable key: {{ mydict|get_item:variable }}."""
+    return mapping.get(key)
+
+
 @register.simple_tag(takes_context=True)
 def url_with_param(context, param, value):
     """Return the current query string with the named param set to value."""

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load query_tags %}
 {% block title %}SC Vetoes{% endblock %}
 
 {% block extra_head %}
@@ -114,6 +115,11 @@
         {% else %}
           <span class="meta">{{ veto.draft_symbol|default:"—" }}</span>
         {% endif %}
+        {% with res_slug=resolution_slugs|get_item:veto.draft_symbol %}
+        {% if res_slug %}
+          <a href="/votes/resolution/{{ res_slug }}/" class="meta" style="font-size:0.78rem; margin-left:0.35rem; white-space:nowrap;">draft text →</a>
+        {% endif %}
+        {% endwith %}
       </td>
       <td>{{ veto.short_agenda|default:veto.agenda|default:"—"|truncatechars:80 }}</td>
       <td style="white-space:nowrap;">
