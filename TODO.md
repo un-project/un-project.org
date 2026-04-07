@@ -48,7 +48,7 @@ Tracked tasks and future features for the UN Project web application.
   sponsor country via `?sponsor=<iso3>`, using a sidebar section parallel to the UNBIS Category
   filter.
 
-- [ ] **Draft text search** — include `resolutions.draft_text` in the unified `search_index`
+- [x] **Draft text search** — include `resolutions.draft_text` in the unified `search_index`
   materialized view so draft resolution texts are searchable from the main search bar.
   Requires updating the `refresh_search_index` migration/command and reindexing.
 
