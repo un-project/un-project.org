@@ -11,6 +11,7 @@ urlpatterns = [
     path('resolution/<str:slug>/', views.resolution_detail, name='resolution_detail'),
     path('resolution/<str:slug>/citations/', views.citation_network, name='citation_network'),
     path('country/<str:iso3>/', views.country_votes_page, name='country_votes'),
+    path('api/cosponsor-network/', views.cosponsor_network_json, name='cosponsor_network_json'),
     path('api/<str:iso3>/', views.country_votes_json, name='country_votes_json'),
     path('api/<str:iso3>/similarity/', views.country_similarity_json, name='country_similarity_json'),
     path('api/pk/<int:pk>/similarity/', views.country_similarity_json_by_pk, name='country_similarity_json_by_pk'),
@@ -19,5 +20,4 @@ urlpatterns = [
     path('cohesion/', views.cohesion_heatmap, name='cohesion'),
     path('vetoes/', views.veto_list, name='veto_list'),
     path('cosponsor-network/', views.cosponsor_network, name='cosponsor_network'),
-    path('api/cosponsor-network/', views.cosponsor_network_json, name='cosponsor_network_json'),
 ]
