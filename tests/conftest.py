@@ -2,7 +2,15 @@ import os
 import re
 
 import pytest
+from django.core.cache import cache
 from django.db import connection
+
+
+@pytest.fixture(autouse=True)
+def clear_rate_limit_cache():
+    """Clear the cache before each test so rate limiting doesn't accumulate."""
+    cache.clear()
+    yield
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_FILE = os.path.join(BASE_DIR, 'docker', 'init', '01_schema.sql')
@@ -84,6 +92,37 @@ CREATE TABLE IF NOT EXISTS public.country_ideal_points (
     ideal_point DOUBLE PRECISION NOT NULL,
     se          DOUBLE PRECISION,
     UNIQUE (iso3, year)
+);
+
+CREATE TABLE IF NOT EXISTS public.country_alignment_series (
+    id             SERIAL PRIMARY KEY,
+    country_id_a   INTEGER NOT NULL REFERENCES public.countries(id) ON DELETE CASCADE,
+    country_id_b   INTEGER NOT NULL REFERENCES public.countries(id) ON DELETE CASCADE,
+    year           INTEGER NOT NULL,
+    agreement_rate DOUBLE PRECISION NOT NULL,
+    n_votes        INTEGER NOT NULL,
+    UNIQUE (country_id_a, country_id_b, year),
+    CHECK (country_id_a < country_id_b)
+);
+
+CREATE TABLE IF NOT EXISTS public.vetoes (
+    id              SERIAL PRIMARY KEY,
+    dppa_id         INTEGER UNIQUE NOT NULL,
+    draft_symbol    TEXT,
+    date            DATE,
+    meeting_symbol  VARCHAR(30),
+    document_id     INTEGER REFERENCES public.documents(id) ON DELETE SET NULL,
+    agenda          TEXT,
+    short_agenda    TEXT,
+    n_vetoing_pm    INTEGER,
+    dppa_url        VARCHAR(500)
+);
+
+CREATE TABLE IF NOT EXISTS public.veto_countries (
+    id         SERIAL PRIMARY KEY,
+    veto_id    INTEGER NOT NULL REFERENCES public.vetoes(id) ON DELETE CASCADE,
+    country_id INTEGER NOT NULL REFERENCES public.countries(id) ON DELETE CASCADE,
+    UNIQUE (veto_id, country_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.speech_search_index (

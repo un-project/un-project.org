@@ -6,7 +6,7 @@ from countries.models import Country
 from meetings.models import Document
 from speakers.models import Speaker
 from speeches.models import Speech
-from votes.models import Resolution
+from votes.models import Resolution, ResolutionSponsor, Veto
 
 
 @pytest.fixture
@@ -287,3 +287,303 @@ def test_api_root_endpoint_has_required_keys(client):
         assert 'url' in ep
         assert 'description' in ep
         assert 'parameters' in ep
+
+
+# ── Country list/detail ────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_country_list_returns_200(client, country):
+    assert client.get('/api/countries/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_country_list_shape(client, country):
+    data = client.get('/api/countries/').json()
+    assert 'count' in data
+    assert 'results' in data
+
+
+@pytest.mark.django_db
+def test_country_list_result_fields(client, country):
+    result = client.get('/api/countries/').json()['results'][0]
+    assert result['iso3'] == 'TST'
+    assert result['name'] == 'Testland'
+    assert 'flag_url' in result
+    assert 'url' in result
+
+
+@pytest.mark.django_db
+def test_country_list_q_filter(client, country):
+    Country.objects.create(name='Otherland', iso3='OTH', iso2='OT')
+    data = client.get('/api/countries/?q=Test').json()
+    names = [r['name'] for r in data['results']]
+    assert 'Testland' in names
+    assert 'Otherland' not in names
+
+
+@pytest.mark.django_db
+def test_country_detail_returns_200(client, country):
+    assert client.get(f'/api/countries/{country.iso3}/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_country_detail_fields(client, country):
+    data = client.get(f'/api/countries/{country.iso3}/').json()
+    assert data['iso3'] == 'TST'
+    assert data['name'] == 'Testland'
+
+
+@pytest.mark.django_db
+def test_country_detail_404(client):
+    assert client.get('/api/countries/ZZZ/').status_code == 404
+
+
+# ── Ideal points ───────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_country_ideal_points_returns_200(client, country):
+    assert client.get(f'/api/countries/{country.iso3}/ideal-points/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_country_ideal_points_shape(client, country):
+    data = client.get(f'/api/countries/{country.iso3}/ideal-points/').json()
+    assert 'iso3' in data
+    assert 'data' in data
+    assert isinstance(data['data'], list)
+
+
+@pytest.mark.django_db
+def test_country_ideal_points_404(client):
+    assert client.get('/api/countries/ZZZ/ideal-points/').status_code == 404
+
+
+# ── Alignment ─────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_country_alignment_requires_params(client, country):
+    assert client.get(f'/api/countries/{country.iso3}/alignment/').status_code == 400
+
+
+@pytest.mark.django_db
+def test_country_alignment_by_year(client, country):
+    data = client.get(f'/api/countries/{country.iso3}/alignment/?year=2020').json()
+    assert 'data' in data
+    assert data['year'] == 2020
+
+
+@pytest.mark.django_db
+def test_country_alignment_by_partner(client, country):
+    partner = Country.objects.create(name='Partnerland', iso3='PTN', iso2='PT')
+    data = client.get(f'/api/countries/{country.iso3}/alignment/?partner={partner.iso3}').json()
+    assert 'data' in data
+    assert data['partner'] == 'PTN'
+
+
+@pytest.mark.django_db
+def test_country_alignment_404(client):
+    assert client.get('/api/countries/ZZZ/alignment/?year=2020').status_code == 404
+
+
+# ── Vetoes ─────────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def veto(db, country):
+    v = Veto.objects.create(dppa_id=42, draft_symbol='S/2020/100', date='2020-01-15')
+    v.vetoing_countries.add(country)
+    return v
+
+
+@pytest.mark.django_db
+def test_veto_list_returns_200(client):
+    assert client.get('/api/vetoes/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_veto_list_shape(client, veto):
+    data = client.get('/api/vetoes/').json()
+    assert 'count' in data
+    assert 'results' in data
+
+
+@pytest.mark.django_db
+def test_veto_list_result_fields(client, veto):
+    result = client.get('/api/vetoes/').json()['results'][0]
+    assert result['dppa_id'] == 42
+    assert result['draft_symbol'] == 'S/2020/100'
+    assert result['date'] == '2020-01-15'
+    assert len(result['vetoing_countries']) == 1
+    assert result['vetoing_countries'][0]['iso3'] == 'TST'
+
+
+@pytest.mark.django_db
+def test_veto_list_country_filter(client, veto):
+    other = Country.objects.create(name='Otherland', iso3='OTH', iso2='OT')
+    data = client.get(f'/api/vetoes/?country=OTH').json()
+    assert data['count'] == 0
+
+
+@pytest.mark.django_db
+def test_veto_list_year_filter(client, veto):
+    data = client.get('/api/vetoes/?year=2020').json()
+    assert data['count'] == 1
+    data2 = client.get('/api/vetoes/?year=2019').json()
+    assert data2['count'] == 0
+
+
+# ── Resolution sponsors ────────────────────────────────────────────────────────
+
+@pytest.fixture
+def ga_resolution_with_sponsor(db, country):
+    res = Resolution.objects.create(
+        draft_symbol='A/C.1/79/L.5', adopted_symbol='79/55',
+        body='GA', session=79, title='Sponsored resolution',
+    )
+    ResolutionSponsor.objects.create(resolution=res, country=country, country_name='Testland')
+    return res
+
+
+@pytest.mark.django_db
+def test_resolution_sponsors_returns_200(client, ga_resolution_with_sponsor):
+    assert client.get(f'/api/resolutions/{ga_resolution_with_sponsor.slug}/sponsors/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_resolution_sponsors_fields(client, ga_resolution_with_sponsor):
+    data = client.get(f'/api/resolutions/{ga_resolution_with_sponsor.slug}/sponsors/').json()
+    assert 'sponsors' in data
+    assert len(data['sponsors']) == 1
+    assert data['sponsors'][0]['iso3'] == 'TST'
+    assert data['sponsors'][0]['country_name'] == 'Testland'
+
+
+@pytest.mark.django_db
+def test_resolution_sponsors_404(client):
+    assert client.get('/api/resolutions/nonexistent/sponsors/').status_code == 404
+
+
+# ── Extended resolution list filters ──────────────────────────────────────────
+
+@pytest.fixture
+def important_sc_resolution(db):
+    return Resolution.objects.create(
+        draft_symbol='S/2021/200', adopted_symbol='2599(2021)',
+        body='SC', session=76, title='Important SC resolution',
+        important_vote=True, issue_me=True,
+    )
+
+
+@pytest.mark.django_db
+def test_resolution_list_important_vote_filter(client, ga_resolution, important_sc_resolution):
+    data = client.get('/api/resolutions/?important_vote=true').json()
+    symbols = [r['adopted_symbol'] for r in data['results']]
+    assert '2599(2021)' in symbols
+    assert '78/100' not in symbols
+
+
+@pytest.mark.django_db
+def test_resolution_list_issue_filter(client, ga_resolution, important_sc_resolution):
+    data = client.get('/api/resolutions/?issue=me').json()
+    symbols = [r['adopted_symbol'] for r in data['results']]
+    assert '2599(2021)' in symbols
+    assert '78/100' not in symbols
+
+
+@pytest.mark.django_db
+def test_resolution_list_includes_important_vote_field(client, important_sc_resolution):
+    result = client.get('/api/resolutions/').json()['results'][0]
+    assert 'important_vote' in result
+    assert result['important_vote'] is True
+
+
+@pytest.mark.django_db
+def test_resolution_list_includes_issue_codes(client, important_sc_resolution):
+    result = client.get('/api/resolutions/').json()['results'][0]
+    assert 'issue_codes' in result
+    assert 'me' in result['issue_codes']
+
+
+# ── Extended resolution detail fields ─────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_resolution_detail_includes_sponsors(client, ga_resolution_with_sponsor):
+    data = client.get(f'/api/resolutions/{ga_resolution_with_sponsor.slug}/').json()
+    assert 'sponsors' in data
+    assert len(data['sponsors']) == 1
+    assert data['sponsors'][0]['iso3'] == 'TST'
+
+
+@pytest.mark.django_db
+def test_resolution_detail_includes_extended_fields(client, important_sc_resolution):
+    data = client.get(f'/api/resolutions/{important_sc_resolution.slug}/').json()
+    assert 'important_vote' in data
+    assert 'issue_codes' in data
+    assert 'draft_text' in data
+    assert 'sponsors' in data
+
+
+# ── Extended meeting detail: unattributed/duplicate flags ─────────────────────
+
+@pytest.mark.django_db
+def test_meeting_detail_unattributed_flag(client, ga_doc):
+    speaker = Speaker.objects.create(name='Unknown')
+    Speech.objects.create(
+        document=ga_doc, speaker=speaker,
+        text='Some speech.',
+        position_in_document=1, position_in_item=1,
+    )
+    speech = client.get(f'/api/meetings/{ga_doc.slug}/').json()['speeches'][0]
+    assert speech['unattributed'] is True
+    assert 'duplicate' in speech
+
+
+@pytest.mark.django_db
+def test_meeting_detail_attributed_flag_false(client, ga_doc):
+    country = Country.objects.create(name='Testland2', iso3='TS2', iso2='T2')
+    speaker = Speaker.objects.create(name='Rep2', country=country)
+    Speech.objects.create(
+        document=ga_doc, speaker=speaker,
+        text='A speech by a country rep.',
+        position_in_document=1, position_in_item=1,
+    )
+    speech = client.get(f'/api/meetings/{ga_doc.slug}/').json()['speeches'][0]
+    assert speech['unattributed'] is False
+
+
+@pytest.mark.django_db
+def test_meeting_detail_duplicate_flag(client, ga_doc):
+    country = Country.objects.create(name='Testland3', iso3='TS3', iso2='T3')
+    speaker = Speaker.objects.create(name='Rep3', country=country)
+    identical_text = 'This is an important statement about peace.'
+    Speech.objects.create(
+        document=ga_doc, speaker=speaker, text=identical_text,
+        position_in_document=1, position_in_item=1,
+    )
+    Speech.objects.create(
+        document=ga_doc, speaker=speaker, text=identical_text,
+        position_in_document=2, position_in_item=2,
+    )
+    speeches = client.get(f'/api/meetings/{ga_doc.slug}/').json()['speeches']
+    assert len(speeches) == 2
+    assert speeches[0]['duplicate'] is False
+    assert speeches[1]['duplicate'] is True
+
+
+# ── Search endpoint ────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_search_requires_query(client):
+    assert client.get('/api/search/').status_code == 400
+    assert client.get('/api/search/?q=a').status_code == 400
+
+
+@pytest.mark.django_db
+def test_search_returns_200(client):
+    assert client.get('/api/search/?q=peace').status_code == 200
+
+
+@pytest.mark.django_db
+def test_search_result_shape(client):
+    data = client.get('/api/search/?q=nuclear').json()
+    assert 'count' in data
+    assert 'results' in data

@@ -9,7 +9,7 @@ from django.db.models import Q, Min, Max
 from meetings.models import Document
 from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
-from votes.models import Resolution, ResolutionCitation
+from votes.models import Resolution, ResolutionCitation, ResolutionSponsor, Veto, ISSUE_CODES
 from countries.models import Country
 from un_site.ratelimit import ratelimit
 
@@ -295,11 +295,24 @@ def meeting_detail(request, slug):
     if document is None:
         return JsonResponse({'error': 'Meeting not found'}, status=404)
 
-    speeches = (
+    speeches = list(
         document.speeches
         .select_related('speaker', 'speaker__country')
         .order_by('position_in_document')
     )
+
+    # Detect duplicates (same logic as the meeting detail web view)
+    def _fp(text):
+        return ' '.join(text.lower().split())[:100]
+
+    seen_fps: dict = {}
+    duplicate_ids: set = set()
+    for s in speeches:
+        key = (s.speaker_id, _fp(s.text))
+        if key in seen_fps:
+            duplicate_ids.add(s.pk)
+        else:
+            seen_fps[key] = s.pk
 
     return JsonResponse({
         **_meeting_summary(document),
@@ -312,6 +325,8 @@ def meeting_detail(request, slug):
                 'organization': s.speaker.organization,
                 'language': s.language,
                 'on_behalf_of': s.on_behalf_of,
+                'unattributed': s.speaker.country_id is None and not s.speaker.organization,
+                'duplicate': s.pk in duplicate_ids,
                 'text': s.text,
             }
             for s in speeches
@@ -342,6 +357,8 @@ def _resolution_summary(res):
         'session': res.session,
         'title': res.title,
         'category': res.category,
+        'important_vote': res.important_vote,
+        'issue_codes': [code for code, _short in res.issue_labels],
         'url': res.get_absolute_url(),
         'docs_un_url': res.docs_un_url,
         'votes': vote_data,
@@ -359,6 +376,23 @@ def resolution_list(request):
     session = request.GET.get('session', '')
     if session and session.isdigit():
         qs = qs.filter(session=int(session))
+
+    category = request.GET.get('category', '')
+    if category:
+        qs = qs.filter(category__iexact=category)
+
+    important_vote = request.GET.get('important_vote', '')
+    if important_vote.lower() in ('1', 'true', 'yes'):
+        qs = qs.filter(important_vote=True)
+
+    issue = request.GET.get('issue', '')
+    valid_issue_codes = {code for code, _, _ in ISSUE_CODES}
+    if issue in valid_issue_codes:
+        qs = qs.filter(**{f'issue_{issue}': True})
+
+    sponsor = request.GET.get('sponsor', '')
+    if sponsor:
+        qs = qs.filter(sponsors__country__iso3__iexact=sponsor).distinct()
 
     qs = qs.order_by('-session', 'adopted_symbol', 'draft_symbol')
     return _paginate(request, qs, _resolution_summary)
@@ -396,6 +430,10 @@ def resolution_detail(request, slug):
             'country_votes': country_votes,
         })
 
+    sponsors = list(
+        resolution.sponsors.select_related('country').order_by('country_name')
+    )
+
     return JsonResponse({
         'id': resolution.pk,
         'draft_symbol': resolution.draft_symbol,
@@ -404,7 +442,18 @@ def resolution_detail(request, slug):
         'session': resolution.session,
         'title': resolution.title,
         'category': resolution.category,
+        'important_vote': resolution.important_vote,
+        'issue_codes': [code for code, _short in resolution.issue_labels],
+        'draft_text': resolution.draft_text,
         'docs_un_url': resolution.docs_un_url,
+        'sponsors': [
+            {
+                'country_name': s.country_name,
+                'iso3': s.country.iso3 if s.country else None,
+                'url': s.country.get_absolute_url() if s.country else None,
+            }
+            for s in sponsors
+        ],
         'votes': votes,
     })
 
@@ -875,3 +924,229 @@ def speaker_meetings(request, pk):
         'has_next':  page.has_next(),
         'has_prev':  page.has_previous(),
     })
+
+
+# ── Countries ──────────────────────────────────────────────────────────────────
+
+def _country_summary(c):
+    return {
+        'id': c.pk,
+        'name': c.name,
+        'short_name': c.short_name,
+        'iso2': c.iso2,
+        'iso3': c.iso3,
+        'un_member_since': c.un_member_since.isoformat() if c.un_member_since else None,
+        'flag_url': c.flag_url,
+        'url': c.get_absolute_url(),
+    }
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_list(request):
+    qs = Country.objects.all()
+    q = request.GET.get('q', '')
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(short_name__icontains=q))
+    return _paginate(request, qs, _country_summary)
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_detail(request, iso3):
+    country = get_object_or_404(Country, iso3=iso3)
+    return JsonResponse(_country_summary(country))
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_ideal_points(request, iso3):
+    get_object_or_404(Country, iso3=iso3)
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT year, ideal_point, se FROM country_ideal_points WHERE iso3 = %s ORDER BY year",
+            [iso3],
+        )
+        rows = cursor.fetchall()
+    return JsonResponse({
+        'iso3': iso3,
+        'data': [{'year': row[0], 'ideal_point': row[1], 'se': row[2]} for row in rows],
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def country_alignment(request, iso3):
+    country = get_object_or_404(Country, iso3=iso3)
+    partner = request.GET.get('partner', '')
+    year = request.GET.get('year', '')
+
+    if partner:
+        partner_country = get_object_or_404(Country, iso3=partner)
+        a_id, b_id = sorted([country.pk, partner_country.pk])
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT year, agreement_rate, n_votes
+                   FROM country_alignment_series
+                   WHERE country_id_a = %s AND country_id_b = %s
+                   ORDER BY year""",
+                [a_id, b_id],
+            )
+            rows = cursor.fetchall()
+        return JsonResponse({
+            'country': iso3,
+            'partner': partner,
+            'data': [{'year': r[0], 'agreement_rate': r[1], 'n_votes': r[2]} for r in rows],
+        })
+
+    if year and year.isdigit():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT c.iso3, COALESCE(c.short_name, c.name), cas.agreement_rate, cas.n_votes
+                   FROM country_alignment_series cas
+                   JOIN countries c ON (
+                       CASE WHEN cas.country_id_a = %s THEN cas.country_id_b
+                            ELSE cas.country_id_a END = c.id
+                   )
+                   WHERE (cas.country_id_a = %s OR cas.country_id_b = %s)
+                     AND cas.year = %s
+                     AND cas.n_votes >= 5
+                   ORDER BY cas.agreement_rate DESC
+                   LIMIT 50""",
+                [country.pk, country.pk, country.pk, int(year)],
+            )
+            rows = cursor.fetchall()
+        return JsonResponse({
+            'country': iso3,
+            'year': int(year),
+            'data': [
+                {
+                    'partner': r[0],
+                    'partner_name': r[1],
+                    'agreement_rate': r[2],
+                    'n_votes': r[3],
+                }
+                for r in rows
+            ],
+        })
+
+    return JsonResponse(
+        {'error': 'Provide ?partner=<iso3> or ?year=<year>'},
+        status=400,
+    )
+
+
+# ── Vetoes ─────────────────────────────────────────────────────────────────────
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def veto_list(request):
+    qs = Veto.objects.prefetch_related('vetoing_countries').all()
+
+    country = request.GET.get('country', '')
+    if country:
+        qs = qs.filter(vetoing_countries__iso3__iexact=country)
+
+    year = request.GET.get('year', '')
+    if year and year.isdigit():
+        qs = qs.filter(date__year=int(year))
+
+    def _serialize(v):
+        return {
+            'dppa_id': v.dppa_id,
+            'draft_symbol': v.draft_symbol,
+            'date': v.date.isoformat() if v.date else None,
+            'meeting_symbol': v.meeting_symbol,
+            'agenda': v.agenda,
+            'short_agenda': v.short_agenda,
+            'n_vetoing_pm': v.n_vetoing_pm,
+            'vetoing_countries': [
+                {'name': c.display_name, 'iso3': c.iso3}
+                for c in v.vetoing_countries.all()
+            ],
+            'dppa_url': v.dppa_url,
+        }
+
+    return _paginate(request, qs, _serialize)
+
+
+# ── Resolution sponsors ────────────────────────────────────────────────────────
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def resolution_sponsors(request, slug):
+    resolution = None
+    for r in Resolution.objects.all():
+        if r.slug == slug:
+            resolution = r
+            break
+    if resolution is None:
+        return JsonResponse({'error': 'Resolution not found'}, status=404)
+
+    sponsors = (
+        ResolutionSponsor.objects.filter(resolution=resolution)
+        .select_related('country')
+        .order_by('country_name')
+    )
+    return JsonResponse({
+        'resolution': str(resolution),
+        'sponsors': [
+            {
+                'country_name': s.country_name,
+                'iso3': s.country.iso3 if s.country else None,
+                'url': s.country.get_absolute_url() if s.country else None,
+            }
+            for s in sponsors
+        ],
+    })
+
+
+# ── Search ─────────────────────────────────────────────────────────────────────
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def api_search(request):
+    from django.contrib.postgres.search import SearchQuery, SearchRank
+    from search.models import SearchIndex
+
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'error': 'Query too short (min 2 characters)'}, status=400)
+
+    body = request.GET.get('body', '')
+    item_type = request.GET.get('type', '')
+
+    search_query = SearchQuery(q, config='english', search_type='websearch')
+    rank = SearchRank('search_vector', search_query, cover_density=True)
+    qs = (
+        SearchIndex.objects
+        .filter(search_vector=search_query)
+        .annotate(rank=rank)
+        .order_by('-rank')
+    )
+
+    if body in ('GA', 'SC'):
+        qs = qs.filter(body=body)
+    if item_type in ('speech', 'resolution'):
+        qs = qs.filter(item_type=item_type)
+
+    def _serialize(obj):
+        url = None
+        if obj.item_type == 'speech' and obj.document_slug:
+            url = f'/meeting/{obj.document_slug}/#speech-{obj.item_id}'
+        elif obj.item_type == 'resolution':
+            from votes.models import Resolution as Res
+            try:
+                res = Res.objects.get(pk=obj.item_id)
+                url = res.get_absolute_url()
+            except Res.DoesNotExist:
+                pass
+
+        return {
+            'item_type': obj.item_type,
+            'item_id': obj.item_id,
+            'document_symbol': obj.document_symbol,
+            'date': obj.date.isoformat() if obj.date else None,
+            'body': obj.body,
+            'session': obj.session,
+            'speaker_name': obj.speaker_name,
+            'country_name': obj.country_name,
+            'country_iso3': obj.country_iso3,
+            'excerpt': obj.content[:300] + ('…' if len(obj.content) > 300 else ''),
+            'url': url,
+        }
+
+    return _paginate(request, qs, _serialize)

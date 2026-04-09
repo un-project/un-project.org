@@ -7,50 +7,7 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate
   them from the data and display on the speaker page.
 
-- [x] **Voeten `important_vote` filter** — the `resolutions` table now has an `important_vote`
-  boolean (US State Dept classification). Add it as a checkbox filter on the resolution list
-  page and as a toggle on the country voting analysis page. Add the field to the `Resolution`
-  model in `votes/models.py`.
-
-- [x] **Voeten issue-code tags** — the `resolutions` table has six boolean columns:
-  `issue_me` (Middle East), `issue_nu` (Nuclear/arms), `issue_co` (Colonialism),
-  `issue_hr` (Human rights), `issue_ec` (Economic), `issue_di` (Disarmament/Cold War).
-  Surface them as filter tags on the resolution list (alongside the UNBIS category), on
-  resolution detail pages, and as a breakdown axis on the country voting and compare pages.
-
-- [x] **Issue-code breakdown on compare page** — show the two-country voting agreement
-  disaggregated by Voeten issue code (ME / NU / CO / HR / EC / DI) as a small bar chart
-  or table below the year-trend chart.
-
 ## Awaiting data / extractor work
-
-- [x] **Co-sponsors on resolution detail** — `resolution_sponsors` is now populated (UNBench).
-  Add a `ResolutionSponsor` model (`managed=False`, `db_table='resolution_sponsors'`) and show
-  the sponsoring countries as a flag-row on the resolution detail page, with a count badge.
-
-- [x] **Draft resolution text on resolution detail** — `resolutions.draft_text` is now
-  populated for SC resolutions (UNBench). Show the full draft text as a collapsible section on
-  the resolution detail page. Useful for vetoed drafts that never became adopted resolutions.
-
-- [x] **Veto tracker → resolution stub links** — stub `resolutions` rows are now created for
-  rejected/vetoed SC drafts. Link from the veto tracker table to the resolution stub page so
-  readers can read the draft text of vetoed proposals.
-
-- [x] **Co-sponsorship count on country pages** — add a "Sponsored" stat box and a list of
-  co-sponsored resolutions (with pagination) to the country detail page, drawn from
-  `resolution_sponsors`.
-
-- [x] **Co-sponsorship network** — network graph of countries that co-sponsor SC resolutions
-  together. Data available in `resolution_sponsors`; render as a force-directed D3 graph or
-  a sortable co-sponsorship matrix.
-
-- [x] **Sponsorship filter on resolution list** — allow filtering the SC resolution list by
-  sponsor country via `?sponsor=<iso3>`, using a sidebar section parallel to the UNBIS Category
-  filter.
-
-- [x] **Draft text search** — include `resolutions.draft_text` in the unified `search_index`
-  materialized view so draft resolution texts are searchable from the main search bar.
-  Requires updating the `refresh_search_index` migration/command and reindexing.
 
 - [ ] **Amendment tracking** — the `amendments` table is reserved; implement models and UI
   when data is ready.
@@ -63,15 +20,36 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Related agenda items** — mark agenda items as related (e.g. successor items that were
   renamed across sessions).
 
-## Data & Backend
+## Quick wins (data already in DB)
 
-- [x] **Full data pipeline** — automate ingestion of new UN meeting PDFs into the database.
+- [ ] **Key votes page** — list resolutions with the closest margins (≤ 5 vote difference) or
+  where P5 members split. Purely SQL over existing `country_votes` data. High research value.
 
-- [x] **Flag unattributed speeches** — identify and surface speeches where the speaker has
-  no linked country.
+- [ ] **Country speech frequency chart** — bar chart of speeches per session/year on the
+  country profile page, alongside the existing voting tab. Data already in `speeches`.
 
-- [x] **Detect duplicate speeches** — flag speeches that appear to be duplicates within the
-  same document.
+- [ ] **General Debate word cloud per country** — word cloud of a country's General Debate
+  speeches over the years, drawn from `general_debate_entries`. Makes country pages richer.
+
+- [ ] **Ideal point timeline** — `country_ideal_points` is populated; add a small line chart on
+  the country page showing the country's IRT ideal point moving left/right over decades.
+
+- [ ] **P5 voting breakdown on resolution cards/detail** — show 🇺🇸🇬🇧🇫🇷🇷🇺🇨🇳 vote icons
+  inline on resolution list cards and the detail page. One extra query, high signal.
+
+- [ ] **"This meeting at a glance"** — collapsible summary on meeting detail: N speeches,
+  N countries represented, resolutions adopted, adjournment time from stage directions.
+
+## Medium effort
+
+- [ ] **"Similar countries" on country page** — top-5 most/least aligned countries from the
+  precomputed alignment series, linking to the compare page. Data already computed.
+
+- [ ] **Resolution search filters** — add date range, session, and resolution-only mode to
+  the search page (currently limited to body/country/speaker).
+
+- [ ] **Speaker search / list** — a `/speaker/` list page with name autocomplete so speakers
+  can be found without browsing through country pages.
 
 ## Future / Research
 
