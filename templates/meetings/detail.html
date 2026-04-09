@@ -29,6 +29,12 @@
     {{ unattributed_count }} unattributed speech{{ unattributed_count|pluralize }}
   </span>
   {% endif %}
+  {% if duplicate_count %}
+  &mdash; <span title="{{ duplicate_count }} speech{{ duplicate_count|pluralize }} appear to be duplicate{{ duplicate_count|pluralize }} of an earlier speech in this meeting" style="display:inline-flex; align-items:center; gap:0.25rem; color:#c0392b; font-size:0.82rem; cursor:default;">
+    <span style="background:#fdecea; border:1px solid #f5b7b1; border-radius:3px; padding:0 0.35rem; font-weight:600; font-size:0.75rem;">&#9888;</span>
+    {{ duplicate_count }} duplicate speech{{ duplicate_count|pluralize }}
+  </span>
+  {% endif %}
 </div>
 
 <div id="transcript-search-bar" class="transcript-search-floating">
@@ -93,6 +99,9 @@
           {% endif %}
           {% if not s.speaker.country and not s.speaker.organization %}
           <span title="No country or organisation linked to this speaker" style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0.05rem 0.35rem; font-size:0.72rem; font-weight:600; color:#b8860b; white-space:nowrap;">unattributed</span>
+          {% endif %}
+          {% if s.pk in duplicate_ids %}
+          <span title="This speech appears to be a duplicate of an earlier speech by the same speaker in this meeting" style="background:#fdecea; border:1px solid #f5b7b1; border-radius:3px; padding:0.05rem 0.35rem; font-size:0.72rem; font-weight:600; color:#c0392b; white-space:nowrap;">duplicate</span>
           {% endif %}
           {% if s.language %}<span class="meta" style="font-size:0.78rem;">[{{ s.language }}]</span>{% endif %}
           <a href="#speech-{{ s.pk }}" class="meta" style="font-size:0.78rem;margin-left:auto;">#{{ s.pk }}</a>

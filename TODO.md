@@ -70,7 +70,7 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **Flag unattributed speeches** — identify and surface speeches where the speaker has
   no linked country.
 
-- [ ] **Detect duplicate speeches** — flag speeches that appear to be duplicates within the
+- [x] **Detect duplicate speeches** — flag speeches that appear to be duplicates within the
   same document.
 
 ## Future / Research

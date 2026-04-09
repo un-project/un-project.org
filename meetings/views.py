@@ -128,6 +128,20 @@ def meeting_detail(request, slug):
         if s.speaker.country_id is None and not s.speaker.organization
     )
 
+    # Detect duplicate speeches: same speaker, same normalised opening text.
+    # The later occurrence (higher position) is flagged.
+    def _fp(text):
+        return ' '.join(text.lower().split())[:100]
+
+    seen_fps: dict[tuple, int] = {}
+    duplicate_ids: set[int] = set()
+    for s in sorted(speeches, key=lambda x: x.position_in_document):
+        key = (s.speaker_id, _fp(s.text))
+        if key in seen_fps:
+            duplicate_ids.add(s.pk)
+        else:
+            seen_fps[key] = s.pk
+
     body_label = document.body_display
     crumbs = [
         {'label': 'Home', 'url': f'/?body={document.body}'},
@@ -140,6 +154,8 @@ def meeting_detail(request, slug):
         'items': items,
         'transcript': final_transcript,
         'unattributed_count': unattributed_count,
+        'duplicate_ids': duplicate_ids,
+        'duplicate_count': len(duplicate_ids),
         'crumbs': crumbs,
     })
 
