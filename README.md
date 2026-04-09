@@ -98,6 +98,87 @@ docker compose exec web python manage.py refresh_search_index --full
 
 The index is also refreshed automatically on every container start.
 
+## Deployment
+
+The production server runs the same Docker Compose stack.
+
+### Deploying code changes
+
+SSH into the VPS, then:
+
+```bash
+git pull
+docker compose up --build -d
+```
+
+The `web` container automatically runs `migrate` and `collectstatic` on every startup, so
+migrations are applied with no extra step.
+
+To follow the logs:
+
+```bash
+docker compose logs -f web
+```
+
+If static assets don't update, force a rebuild:
+
+```bash
+docker compose build --no-cache web
+docker compose up -d
+```
+
+### Copying the local database to the VPS
+
+Use this when you want to push a freshly-imported local database to production.
+
+**1. Dump the local database:**
+
+```bash
+docker compose exec -T db pg_dump -U myuser -d unproject --no-owner --no-acl -Fc > /tmp/unproject.dump
+```
+
+**2. Transfer the dump to the VPS:**
+
+```bash
+scp unproject.dump user@vps:/path/to/un-project.org/
+```
+
+**3. On the VPS, restore into the running container:**
+
+```bash
+# Copy the dump into the container
+docker compose cp unproject.dump db:/tmp/unproject.dump
+
+# Stop the web container so no queries run during restore
+docker compose stop web
+
+# Drop and recreate the database
+docker compose exec db psql -U myuser -c "DROP DATABASE IF EXISTS unproject;"
+docker compose exec db psql -U myuser -c "CREATE DATABASE unproject;"
+
+# Restore
+docker compose exec db pg_restore -U myuser -d unproject \
+  --no-owner --no-acl /tmp/unproject.dump
+
+# Restart everything
+docker compose start web
+```
+
+**4. Refresh the search index** (the materialized views are not included in `pg_dump`):
+
+```bash
+docker compose exec web python manage.py refresh_search_index --full
+```
+
+### Schema-only changes (no data migration)
+
+If you only changed `docker/init/01_schema.sql` (new tables, columns, or enum values) and
+the data is already on the VPS, a normal `git pull && docker compose up --build -d` is
+sufficient — Django migrations handle schema changes automatically.
+
+Only use the full dump/restore above when you have new bulk data (speeches, votes, etc.)
+that was imported locally and needs to be promoted to production.
+
 ## Tech Stack
 
 - **Backend:** Django 5.2, PostgreSQL, Django ORM
