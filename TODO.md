@@ -65,7 +65,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Data & Backend
 
-- [ ] **Full data pipeline** — automate ingestion of new UN meeting PDFs into the database.
+- [x] **Full data pipeline** — automate ingestion of new UN meeting PDFs into the database.
 
 - [x] **Flag unattributed speeches** — identify and surface speeches where the speaker has
   no linked country.
