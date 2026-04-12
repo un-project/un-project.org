@@ -141,7 +141,7 @@ def test_resolution_list_result_fields(client, ga_resolution):
     assert result['adopted_symbol'] == '78/100'
     assert result['body'] == 'GA'
     assert result['title'] == 'Test resolution'
-    assert result['docs_un_url'] == 'https://docs.un.org/en/a/res/78/100'
+    assert result['docs_un_url'] == 'https://docs.un.org/en/A/RES/78/100'
 
 
 @pytest.mark.django_db

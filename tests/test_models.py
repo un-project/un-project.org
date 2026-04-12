@@ -72,12 +72,25 @@ def test_search_index_document_slug_none_when_no_symbol():
 def test_resolution_docs_un_url_ga():
     from votes.models import Resolution
     r = Resolution(body='GA', adopted_symbol='78/100')
-    assert r.docs_un_url == 'https://docs.un.org/en/a/res/78/100'
+    assert r.docs_un_url == 'https://docs.un.org/en/A/RES/78/100'
 
 
 def test_resolution_docs_un_url_sc():
     from votes.models import Resolution
     r = Resolution(body='SC', adopted_symbol='2503(2019)')
+    assert r.docs_un_url == 'https://docs.un.org/en/S/RES/2503(2019)'
+
+
+def test_resolution_docs_un_url_ga_already_prefixed():
+    """adopted_symbol stored as full symbol must not double the prefix."""
+    from votes.models import Resolution
+    r = Resolution(body='GA', adopted_symbol='A/RES/77/301')
+    assert r.docs_un_url == 'https://docs.un.org/en/A/RES/77/301'
+
+
+def test_resolution_docs_un_url_sc_already_prefixed():
+    from votes.models import Resolution
+    r = Resolution(body='SC', adopted_symbol='S/RES/2503(2019)')
     assert r.docs_un_url == 'https://docs.un.org/en/S/RES/2503(2019)'
 
 

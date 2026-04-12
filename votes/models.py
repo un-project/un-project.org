@@ -47,12 +47,6 @@ class Resolution(models.Model):
         from django.urls import reverse
         return reverse('votes:resolution_detail', args=[self.slug])
 
-    # URL prefixes as constants to prevent the linter from lowercasing them.
-    _DOCS_PREFIX = {
-        'GA': 'https://docs.un.org/en/a/res/',
-        'SC': 'https://docs.un.org/en/S/RES/',
-    }
-
     @property
     def issue_labels(self):
         """Return list of (code, short_label) for all active Voeten issue flags."""
@@ -64,10 +58,20 @@ class Resolution(models.Model):
 
     @property
     def docs_un_url(self):
-        prefix = self._DOCS_PREFIX.get(self.body)
-        if not self.adopted_symbol or prefix is None:
+        if not self.adopted_symbol:
             return None
-        return prefix + self.adopted_symbol
+        symbol = self.adopted_symbol
+        # Some symbols are stored as full UN symbols (e.g. "A/RES/77/301" or
+        # "S/RES/2503(2019)"); others as bare numeric forms ("77/301" or
+        # "2503(2019)").  Normalise to a full symbol so no prefix is doubled.
+        upper = symbol.upper()
+        if self.body == 'GA' and not upper.startswith('A/RES/'):
+            symbol = f'A/RES/{symbol}'
+        elif self.body == 'SC' and not upper.startswith('S/RES/'):
+            symbol = f'S/RES/{symbol}'
+        elif self.body not in ('GA', 'SC'):
+            return None
+        return f'https://docs.un.org/en/{symbol}'
 
 
 class ResolutionSponsor(models.Model):
