@@ -60,7 +60,10 @@ CREATE TABLE IF NOT EXISTS public.resolution_sponsors (
 );
 
 ALTER TABLE public.documents
-    ADD COLUMN IF NOT EXISTS is_general_debate BOOLEAN NOT NULL DEFAULT FALSE;
+    ADD COLUMN IF NOT EXISTS is_general_debate BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS ocr_quality_score DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS ocr_quality_label VARCHAR(10),
+    ADD COLUMN IF NOT EXISTS ods_used BOOLEAN;
 
 CREATE TABLE IF NOT EXISTS public.resolution_citations (
     id          SERIAL PRIMARY KEY,

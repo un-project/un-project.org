@@ -17,6 +17,9 @@ class Document(models.Model):
     location = models.CharField(max_length=50, null=True, blank=True)
     pdf_path = models.CharField(max_length=500, null=True, blank=True)
     is_general_debate = models.BooleanField(default=False)
+    ocr_quality_score = models.FloatField(null=True, blank=True)
+    ocr_quality_label = models.CharField(max_length=10, null=True, blank=True)
+    ods_used = models.BooleanField(null=True, blank=True)
 
     class Meta:
         managed = False

@@ -23,6 +23,24 @@
   &mdash; <a href="/session/{{ document.body }}/{{ document.session }}/">Session {{ document.session }}</a>, Meeting {{ document.meeting_number }}
   {% if document.location %}&mdash; {{ document.location }}{% endif %}
   &mdash; <a href="{{ document.docs_un_url }}" target="_blank" rel="noopener">UN Document ↗</a>
+  {% if document.ods_used %}
+  &mdash; <span title="Transcript sourced from the UN Official Document System — structured text, high fidelity" style="display:inline-flex; align-items:center; gap:0.25rem; color:#2e7d32; font-size:0.82rem; cursor:default;">
+    <span style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem; letter-spacing:0.03em;">ODS</span>
+  </span>
+  {% elif document.ocr_quality_label == 'good' %}
+  &mdash; <span title="OCR quality: good — score {{ document.ocr_quality_score|floatformat:2 }}" style="display:inline-flex; align-items:center; gap:0.25rem; color:#3a5bc7; font-size:0.82rem; cursor:default;">
+    <span style="background:#f0f4ff; border:1px solid #b3c6f5; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem;">OCR ✓</span>
+  </span>
+  {% elif document.ocr_quality_label == 'poor' %}
+  &mdash; <span title="OCR quality: poor (score {{ document.ocr_quality_score|floatformat:2 }}) — transcript may contain errors" style="display:inline-flex; align-items:center; gap:0.25rem; color:#b8860b; font-size:0.82rem; cursor:default;">
+    <span style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem;">OCR ~</span>
+    poor OCR quality
+  </span>
+  {% elif document.ocr_quality_label == 'unusable' %}
+  &mdash; <span title="OCR quality: unusable (score {{ document.ocr_quality_score|floatformat:2 }}) — transcript likely unreliable" style="display:inline-flex; align-items:center; gap:0.25rem; color:#c0392b; font-size:0.82rem; cursor:default;">
+    <span style="background:#fdecea; border:1px solid #f5b7b1; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem;">⚠ unusable OCR</span>
+  </span>
+  {% endif %}
   {% if unattributed_count %}
   &mdash; <span title="{{ unattributed_count }} speech{{ unattributed_count|pluralize }} with no country or organisation attribution" style="display:inline-flex; align-items:center; gap:0.25rem; color:#b8860b; font-size:0.82rem; cursor:default;">
     <span style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0 0.35rem; font-weight:600; font-size:0.75rem;">&#9432;</span>

@@ -78,6 +78,20 @@
   padding: 0.15rem 0.4rem;
 }
 .clear-link:hover { color: var(--un-blue); }
+
+.ocr-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: default;
+}
+.ocr-badge.ods       { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.ocr-badge.ocr-good  { background: #f0f4ff; color: #3a5bc7; border: 1px solid #b3c6f5; }
+.ocr-badge.ocr-poor  { background: #fff8e1; color: #b8860b; border: 1px solid #f0d060; }
+.ocr-badge.ocr-unusable { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; }
 </style>
 {% endblock %}
 
@@ -193,6 +207,10 @@
         {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
         <span class="meta">Session {{ doc.session }}</span>
         <span class="meta">Meeting {{ doc.meeting_number }}</span>
+        {% if doc.ods_used %}<span class="ocr-badge ods" title="Transcript sourced from the UN Official Document System (structured text — high fidelity)">ODS</span>{% endif %}
+        {% if doc.ocr_quality_label == 'good' %}<span class="ocr-badge ocr-good" title="OCR quality: good (score {{ doc.ocr_quality_score|floatformat:2 }})">OCR ✓</span>
+        {% elif doc.ocr_quality_label == 'poor' %}<span class="ocr-badge ocr-poor" title="OCR quality: poor (score {{ doc.ocr_quality_score|floatformat:2 }}) — transcript may contain errors">OCR ~</span>
+        {% elif doc.ocr_quality_label == 'unusable' %}<span class="ocr-badge ocr-unusable" title="OCR quality: unusable (score {{ doc.ocr_quality_score|floatformat:2 }}) — transcript likely unreliable">OCR ✗</span>{% endif %}
       </div>
     </div>
     {% empty %}
