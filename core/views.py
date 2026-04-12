@@ -1,5 +1,6 @@
 import datetime
 
+from django.db.models.expressions import RawSQL
 from django.db.models.functions import Length
 from django.shortcuts import render
 from django.views.generic import TemplateView
@@ -18,21 +19,22 @@ def homepage(request):
         meetings_qs = meetings_qs.filter(body=body)
         votes_qs = votes_qs.filter(document__body=body)
 
-    # Speech of the day — deterministic: changes daily, stable within a day
+    # Speech of the day — deterministic: changes daily, stable within a day.
+    # Order by md5(id || daily_seed) so the effective order reshuffles each day,
+    # preventing consecutive days from landing on speeches from the same meeting.
     speech_of_day = None
     if not body:
-        speech_qs = (
+        daily_seed = str(datetime.date.today().toordinal())
+        speech_of_day = (
             Speech.objects
             .filter(document__date__year__gt=1900)
             .annotate(tlen=Length('text'))
             .filter(tlen__gte=500)
+            .annotate(daily_rand=RawSQL("md5(speeches.id::text || %s)", (daily_seed,)))
             .select_related('speaker__country', 'document')
-            .order_by('id')
+            .order_by('daily_rand')
+            .first()
         )
-        count = speech_qs.count()
-        if count:
-            offset = datetime.date.today().toordinal() % count
-            speech_of_day = speech_qs[offset]
 
     return render(request, 'core/home.html', {
         'recent_meetings': meetings_qs[:10],

@@ -2,6 +2,10 @@
 
 Tracked tasks and future features for the UN Project web application.
 
+## Issues
+
+- [ ] **Voting similarity map bug** — sometimes, after picking a country, the page displays "Not enough shared votes" even though they exist. Clicking a few times more on the country shows the results. There is also a similar issue on vote country page.
+
 ## Near-term (data already in DB)
 
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate
