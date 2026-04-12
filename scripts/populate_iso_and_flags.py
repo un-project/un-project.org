@@ -154,8 +154,38 @@ OVERRIDES = {
     'Samoa': 'WSM',
     'San Marino': 'SMR',
 
+    # --- Name variants and OCR typos not caught by pycountry exact match ---
+    'United Republic of Cameroon': 'CMR',   # historical name (1961-1984)
+    'the United Kingdom of Great Britain and Northern Ireland': 'GBR',
+    'the Czech Republic': 'CZE',
+    'the Plurinational State of Bolivia': 'BOL',
+    'Comeros': 'COM',           # OCR typo: Comoros
+    'Eauatorial Guinea': 'GNQ', # OCR typo: Equatorial Guinea
+    'Mozambiaue': 'MOZ',        # OCR typo: Mozambique
+    'Czechoslovak ia': 'CSK',   # OCR split: Czechoslovakia
+    'Colonbia': 'COL',          # OCR typo: Colombia
+    'Wxembourg': 'LUX',         # OCR typo: Luxembourg
+    'Viet Ham': 'VNM',          # OCR typo: Viet Nam
+    'Viet Nail': 'VNM',         # OCR typo: Viet Nam
+    'Viet Nan': 'VNM',          # OCR typo: Viet Nam
+    'Viet Narn': 'VNM',         # OCR typo: Viet Nam
+    'Viet Ram': 'VNM',          # OCR typo: Viet Nam
+    'Liber ia': 'LBR',          # OCR split: Liberia
+    'Dj ibouti': 'DJI',         # OCR split: Djibouti
+    'Ben in': 'BEN',            # OCR split: Benin
+    'Za ire': 'ZAR',            # OCR split: Zaire
+    'Tbgo': 'TGO',              # OCR typo: Togo
+    'Lbgo': 'TGO',              # OCR typo: Togo
+    'Iesotho': 'LSO',           # OCR typo: Lesotho
+    'Trinidad and ~bago': 'TTO', # OCR: Trinidad and Tobago
+    'Ma1dives': 'MDV',          # OCR typo: Maldives (1→l)
+    'Alger ia': 'DZA',          # OCR split: Algeria
+    'Ma1i': 'MLI',              # OCR typo: Mali
+    'Ma1ta': 'MLT',             # OCR typo: Malta
+
     # --- Historical / defunct countries (ISO 3166-3) ---
     # These no longer exist but appear in UN documents from 1945 onwards.
+    'United Arab Republic': 'UAR',
     'Yugoslavia': 'YUG',
     'Federal Republic of Yugoslavia': 'YUG',
     'Socialist Federal Republic of Yugoslavia': 'YUG',
