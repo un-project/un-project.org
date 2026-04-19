@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import Http404, JsonResponse
@@ -668,7 +669,6 @@ def country_votes_json(request, iso3):
 
 def _compute_similarity(request, country):
     """Compute voting similarity scores for a country. Returns a JsonResponse."""
-    POS_MAP = {'yes': 1, 'abstain': 2, 'no': 3}
     MIN_SHARED = 10
 
     year_from = request.GET.get('year_from', '')
@@ -676,64 +676,93 @@ def _compute_similarity(request, country):
     body      = request.GET.get('body', '')
     category  = request.GET.get('category', '')
 
-    ref_qs = (
-        CountryVote.objects
-        .filter(country=country, vote__document__date__year__gt=1900)
-        .exclude(vote_position='absent')
+    # Build a cache key so identical requests are served without hitting the DB.
+    cache_key = (
+        f'similarity_{country.pk}_{year_from}_{year_to}_{body}_{category}'
+        f'_{request.GET.get("all", "")}'
     )
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse(cached)
+
+    # Score formula: same=1.0, one-step-apart (yes/abstain or abstain/no)=0.5,
+    # yes vs no=0.0.  Equivalent to 1 - abs(POS_MAP[a]-POS_MAP[b])/2 where
+    # POS_MAP = {yes:1, abstain:2, no:3}.
+    extra_joins = ''
+    filters = [
+        "cv1.country_id = %s",
+        "cv2.country_id != %s",
+        "cv1.vote_position != 'absent'",
+        "cv2.vote_position != 'absent'",
+        "d.date > '1900-01-01'",
+    ]
+    params = [country.pk, country.pk]
+
     if year_from and year_from.isdigit():
-        ref_qs = ref_qs.filter(vote__document__date__year__gte=int(year_from))
+        filters.append("EXTRACT(YEAR FROM d.date) >= %s")
+        params.append(int(year_from))
     if year_to and year_to.isdigit():
-        ref_qs = ref_qs.filter(vote__document__date__year__lte=int(year_to))
+        filters.append("EXTRACT(YEAR FROM d.date) <= %s")
+        params.append(int(year_to))
     if body in ('GA', 'SC'):
-        ref_qs = ref_qs.filter(vote__document__body=body)
+        filters.append("d.body = %s")
+        params.append(body)
     if category:
-        ref_qs = ref_qs.filter(vote__resolution__category=category)
-    a_votes = dict(ref_qs.values_list('vote_id', 'vote_position'))
+        extra_joins = 'JOIN resolutions r ON v.resolution_id = r.id'
+        filters.append("r.category = %s")
+        params.append(category)
 
-    if not a_votes:
-        return JsonResponse({'similar': [], 'dissimilar': [], 'countries': []})
+    where = ' AND '.join(filters)
+    sql = f"""
+        SELECT
+            cv2.country_id,
+            c.name,
+            c.iso3,
+            COUNT(*)::int AS shared,
+            ROUND(AVG(
+                CASE
+                    WHEN cv1.vote_position = cv2.vote_position THEN 1.0
+                    WHEN cv1.vote_position IN ('yes','no')
+                     AND cv2.vote_position IN ('yes','no') THEN 0.0
+                    ELSE 0.5
+                END
+            )::numeric, 3)::float AS score
+        FROM country_votes cv1
+        JOIN country_votes cv2 ON cv1.vote_id = cv2.vote_id
+        JOIN countries c ON cv2.country_id = c.id
+        JOIN votes v ON cv1.vote_id = v.id
+        JOIN documents d ON v.document_id = d.id
+        {extra_joins}
+        WHERE {where}
+        GROUP BY cv2.country_id, c.name, c.iso3
+        HAVING COUNT(*) >= {MIN_SHARED}
+        ORDER BY score DESC
+    """
 
-    other_votes = (
-        CountryVote.objects
-        .filter(vote_id__in=a_votes.keys())
-        .exclude(country=country)
-        .exclude(vote_position='absent')
-        .values('country_id', 'country__name', 'country__iso3', 'vote_id', 'vote_position')
-    )
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
 
-    cdata = defaultdict(lambda: {'name': '', 'iso3': '', 'diffs': []})
-    for row in other_votes:
-        cid = row['country_id']
-        pos_a = POS_MAP.get(a_votes.get(row['vote_id']))
-        pos_b = POS_MAP.get(row['vote_position'])
-        if pos_a is None or pos_b is None:
-            continue
-        cdata[cid]['name'] = row['country__name']
-        cdata[cid]['iso3'] = row['country__iso3'] or ''
-        cdata[cid]['diffs'].append(abs(pos_a - pos_b))
+    if not rows:
+        payload = {'similar': [], 'dissimilar': [], 'countries': []}
+        cache.set(cache_key, payload, 3600)
+        return JsonResponse(payload)
 
-    results = []
-    for d in cdata.values():
-        if len(d['diffs']) < MIN_SHARED:
-            continue
-        mean_diff = sum(d['diffs']) / len(d['diffs'])
-        results.append({
-            'iso3': d['iso3'],
-            'name': d['name'],
-            'score': round(1.0 - mean_diff / 2.0, 3),
-            'shared': len(d['diffs']),
-        })
-
-    results.sort(key=lambda x: x['score'], reverse=True)
+    results = [
+        {'iso3': row[2] or '', 'name': row[1], 'score': float(row[4]), 'shared': row[3]}
+        for row in rows
+    ]
 
     if request.GET.get('all'):
-        return JsonResponse({'countries': results})
+        payload = {'countries': results}
+    else:
+        payload = {
+            'similar': results[:10],
+            'dissimilar': list(reversed(results[-10:])),
+        }
 
-    return JsonResponse({
-        'similar': results[:10],
-        'dissimilar': list(reversed(results[-10:])),
-    })
+    cache.set(cache_key, payload, 3600)
+    return JsonResponse(payload)
 
 
 def country_votes_page(request, iso3):

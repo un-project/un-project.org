@@ -1,5 +1,6 @@
 import datetime
 
+from django.core.cache import cache
 from django.db.models.expressions import RawSQL
 from django.db.models.functions import Length
 from django.shortcuts import render
@@ -7,6 +8,29 @@ from django.views.generic import TemplateView
 from meetings.models import Document
 from speeches.models import Speech
 from votes.models import Vote
+
+
+def _get_speech_of_day():
+    today = datetime.date.today()
+    cache_key = f'speech_of_day_{today.isoformat()}'
+    speech = cache.get(cache_key)
+    if speech is None:
+        daily_seed = str(today.toordinal())
+        speech = (
+            Speech.objects
+            .filter(document__date__year__gt=1900)
+            .annotate(tlen=Length('text'))
+            .filter(tlen__gte=500)
+            .annotate(daily_rand=RawSQL("md5(speeches.id::text || %s)", (daily_seed,)))
+            .select_related('speaker__country', 'document')
+            .order_by('daily_rand')
+            .first()
+        )
+        # Cache until midnight so it stays stable all day.
+        now = datetime.datetime.now()
+        midnight = datetime.datetime.combine(today + datetime.timedelta(days=1), datetime.time.min)
+        cache.set(cache_key, speech, int((midnight - now).total_seconds()))
+    return speech
 
 
 def homepage(request):
@@ -19,22 +43,7 @@ def homepage(request):
         meetings_qs = meetings_qs.filter(body=body)
         votes_qs = votes_qs.filter(document__body=body)
 
-    # Speech of the day — deterministic: changes daily, stable within a day.
-    # Order by md5(id || daily_seed) so the effective order reshuffles each day,
-    # preventing consecutive days from landing on speeches from the same meeting.
-    speech_of_day = None
-    if not body:
-        daily_seed = str(datetime.date.today().toordinal())
-        speech_of_day = (
-            Speech.objects
-            .filter(document__date__year__gt=1900)
-            .annotate(tlen=Length('text'))
-            .filter(tlen__gte=500)
-            .annotate(daily_rand=RawSQL("md5(speeches.id::text || %s)", (daily_seed,)))
-            .select_related('speaker__country', 'document')
-            .order_by('daily_rand')
-            .first()
-        )
+    speech_of_day = _get_speech_of_day() if not body else None
 
     return render(request, 'core/home.html', {
         'recent_meetings': meetings_qs[:10],
