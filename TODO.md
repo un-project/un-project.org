@@ -39,8 +39,8 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Ideal point timeline** — `country_ideal_points` is populated; add a small line chart on
   the country page showing the country's IRT ideal point moving left/right over decades.
 
-- [ ] **P5 voting breakdown on resolution cards/detail** — show 🇺🇸🇬🇧🇫🇷🇷🇺🇨🇳 vote icons
-  inline on resolution list cards and the detail page. One extra query, high signal.
+- [x] **P5 voting breakdown on resolution cards/detail** — flag icons with green/red/amber
+  backgrounds on list cards and a labelled row in the detail metadata table.
 
 - [ ] **"This meeting at a glance"** — collapsible summary on meeting detail: N speeches,
   N countries represented, resolutions adopted, adjournment time from stage directions.

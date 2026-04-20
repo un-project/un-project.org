@@ -325,6 +325,7 @@
     </p>
 
     {% for resolution in page %}
+    {% with p5v=p5_by_resolution|get_item:resolution.pk %}
     <div class="card">
       <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
         <a href="{{ resolution.get_absolute_url }}"><strong>{{ resolution }}</strong></a>
@@ -333,11 +334,24 @@
         {% if resolution.category %}<a href="{% filter_url category=resolution.category issue='' %}" class="tag-badge{% if current_category == resolution.category %} active{% endif %}">{{ resolution.category }}</a>{% endif %}
         {% if resolution.important_vote %}<span class="important-badge" title="US State Dept 'important vote'">&#9733; Important</span>{% endif %}
         {% for code, short in resolution.issue_labels %}<a href="{% filter_url issue=code %}" class="tag-badge issue-badge{% if current_issue == code %} active{% endif %}" style="background:#f0f4ff; color:#3a5a9a; border-color:#b0c4e8;">{{ short }}</a>{% endfor %}
+        {% if p5v %}
+        <span style="display:inline-flex; gap:3px; align-items:center;">
+          {% for p in P5 %}{% with pos=p5v|get_item:p.iso3 %}
+          <span title="{{ p.name }}: {{ pos|default:'—' }}"
+                style="display:inline-block; padding:1px 3px; border-radius:3px;
+                       background:{% if pos == 'yes' %}#e8f5e9{% elif pos == 'no' %}#ffebee{% elif pos == 'abstain' %}#fff8e1{% else %}#f5f5f5{% endif %};
+                       border:1px solid {% if pos == 'yes' %}#a5d6a7{% elif pos == 'no' %}#ffcdd2{% elif pos == 'abstain' %}#ffe082{% else %}#e0e0e0{% endif %};">
+            <img src="/static/flags/{{ p.iso3 }}.svg" alt="{{ p.name }}" style="height:10px; display:block;">
+          </span>
+          {% endwith %}{% endfor %}
+        </span>
+        {% endif %}
       </div>
       {% if resolution.title %}
       <p class="meta" style="margin:0.3rem 0 0;">{{ resolution.title|truncatechars:140 }}</p>
       {% endif %}
     </div>
+    {% endwith %}
     {% empty %}
     <p class="meta">No resolutions match the selected filters.</p>
     {% endfor %}

@@ -169,22 +169,35 @@ def resolution_list(request):
     paginator = Paginator(qs.order_by('-session', '-adopted_symbol', '-draft_symbol'), 50)
     page = paginator.get_page(request.GET.get('page'))
 
+    # P5 votes for the current page — one extra query for up to 50 resolutions
+    page_ids = [r.pk for r in page]
+    p5_rows = (
+        CountryVote.objects
+        .filter(vote__resolution_id__in=page_ids, country__iso3__in=P5_ISO3)
+        .values('vote__resolution_id', 'country__iso3', 'vote_position')
+    )
+    p5_by_resolution = {}
+    for row in p5_rows:
+        p5_by_resolution.setdefault(row['vote__resolution_id'], {})[row['country__iso3']] = row['vote_position']
+
     return render(request, 'votes/resolutions.html', {
-        'page':             page,
-        'sessions':         sessions,
-        'years':            years,
-        'categories':       categories,
-        'important_count':  important_count,
-        'issue_sidebar':    issue_sidebar,
-        'sponsor_sidebar':  sponsor_sidebar,
-        'current_body':     body,
-        'current_session':  session,
-        'current_year':     year,
-        'current_category': category,
-        'current_important': important_only,
-        'current_issue':    issue if issue in valid_issues else '',
-        'current_sponsor':  sponsor,
-        'current_q':        q,
+        'page':               page,
+        'sessions':           sessions,
+        'years':              years,
+        'categories':         categories,
+        'important_count':    important_count,
+        'issue_sidebar':      issue_sidebar,
+        'sponsor_sidebar':    sponsor_sidebar,
+        'current_body':       body,
+        'current_session':    session,
+        'current_year':       year,
+        'current_category':   category,
+        'current_important':  important_only,
+        'current_issue':      issue if issue in valid_issues else '',
+        'current_sponsor':    sponsor,
+        'current_q':          q,
+        'p5_by_resolution':   p5_by_resolution,
+        'P5':                 P5,
     })
 
 
@@ -259,9 +272,18 @@ def resolution_detail(request, slug):
         resolution.sponsors.select_related('country').order_by('country_name')
     )
 
+    # P5 positions — extracted from the already-prefetched country_votes
+    p5_votes = {}
+    for vote in votes:
+        for cv in vote.country_votes.all():
+            if cv.country and cv.country.iso3 in P5_ISO3:
+                p5_votes[cv.country.iso3] = cv.vote_position
+
     return render(request, 'votes/resolution.html', {
         'resolution': resolution,
-        'votes': votes,
+        'votes':      votes,
+        'p5_votes':   p5_votes,
+        'P5':         P5,
         'outgoing': outgoing,
         'outgoing_total': outgoing_total,
         'incoming': incoming,
