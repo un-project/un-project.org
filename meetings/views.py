@@ -10,7 +10,7 @@ from votes.models import Vote, Resolution
 
 
 def meeting_list(request):
-    qs = Document.objects.filter(date__year__gt=1900)
+    qs = Document.objects.exclude(date__year__lte=1900)
 
     body = request.GET.get('body')
     if body in ('GA', 'SC'):
