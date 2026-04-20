@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Speakers{% endblock %}
+
+{% block extra_head %}
+<style>
+.speaker-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 480px;
+}
+.speaker-search input[type="text"] {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.speaker-search button {
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  background: var(--un-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.speaker-search button:hover { background: #1558a0; }
+
+.speaker-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+}
+.speaker-card:last-child { border-bottom: none; }
+.speaker-card:hover { background: var(--un-light); }
+.speaker-card .flag {
+  height: 14px;
+  border-radius: 1px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.speaker-card .name { font-weight: 600; font-size: 0.92rem; flex: 1; }
+.speaker-card .country-name { font-size: 0.8rem; color: var(--muted); }
+.speaker-card .count {
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+</style>
+{% endblock %}
+
+{% load query_tags %}
+{% block content %}
+<h1>Speakers</h1>
+
+<form class="speaker-search" method="get">
+  <input type="text" name="q" value="{{ current_q }}" placeholder="Search by name…" autofocus>
+  <button type="submit">Search</button>
+</form>
+
+<p class="meta" style="margin-bottom:1rem;">
+  {% if current_q %}
+    {{ page.paginator.count }} speaker{{ page.paginator.count|pluralize }} matching &ldquo;{{ current_q }}&rdquo;
+    &mdash; <a href="/speaker/">Clear</a>
+  {% else %}
+    {{ page.paginator.count }} speaker{{ page.paginator.count|pluralize }} with recorded speeches
+  {% endif %}
+</p>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  {% for speaker in page %}
+  <a href="{{ speaker.get_absolute_url }}" class="speaker-card">
+    {% if speaker.country.iso3 %}
+    <img src="/static/flags/{{ speaker.country.iso3 }}.svg" alt="" class="flag">
+    {% endif %}
+    <span class="name">{{ speaker.name }}</span>
+    {% if speaker.country %}
+    <span class="country-name">{{ speaker.country.display_name }}</span>
+    {% endif %}
+    <span class="count">{{ speaker.speech_count }} speech{{ speaker.speech_count|pluralize:"es" }}</span>
+  </a>
+  {% empty %}
+  <p class="meta" style="padding:1rem;">No speakers found.</p>
+  {% endfor %}
+</div>
+
+{% include "partials/pagination.html" with page_obj=page %}
+{% endblock %}

@@ -4,7 +4,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Issues
 
-- [ ] **Voting similarity map bug** — intermittent "Not enough shared votes" even though data
+- [x] **Voting similarity map bug** — intermittent "Not enough shared votes" even though data
   exists; the query was rewritten to SQL + cached so this should be much rarer, but monitor.
 
 ## Near-term (data already in DB)
@@ -53,8 +53,8 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **Resolution search filters** — text search by title/symbol added to the resolution list
   sidebar; the main `/search/` page still lacks a resolution-only mode and date-range filter.
 
-- [ ] **Speaker search / list** — a `/speaker/` list page with name autocomplete so speakers
-  can be found without browsing through country pages.
+- [x] **Speaker search / list** — `/speaker/` list page with name search; default view shows
+  most-active speakers by speech count.
 
 ## Future / Research
 

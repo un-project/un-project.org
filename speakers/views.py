@@ -1,10 +1,39 @@
 import json
 
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Count, F, Min, Max
 from .models import Speaker
 from speeches.models import Speech
 from meetings.models import Document
+
+
+def speaker_list(request):
+    q       = request.GET.get('q', '').strip()
+    country = request.GET.get('country', '').strip()
+
+    qs = Speaker.objects.select_related('country').annotate(
+        speech_count=Count('speeches', distinct=True)
+    )
+
+    if q:
+        qs = qs.filter(name__icontains=q)
+    else:
+        qs = qs.filter(speech_count__gt=0)
+
+    if country:
+        qs = qs.filter(country__iso3=country)
+
+    qs = qs.order_by('name' if q else '-speech_count')
+
+    paginator = Paginator(qs, 50)
+    page = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'speakers/list.html', {
+        'page':            page,
+        'current_q':       q,
+        'current_country': country,
+    })
 
 
 def speaker_detail(request, pk):
