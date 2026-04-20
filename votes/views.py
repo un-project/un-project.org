@@ -623,6 +623,13 @@ def votes_page(request):
     })
 
 
+def _doc_slug(symbol):
+    import re
+    s = symbol.replace('/', '-').replace('.', '-')
+    s = re.sub(r'[^-a-zA-Z0-9_]', '-', s)
+    return re.sub(r'-{2,}', '-', s).strip('-')
+
+
 def country_votes_json(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     session_param = request.GET.get('session', '')
@@ -632,39 +639,57 @@ def country_votes_json(request, iso3):
         session = None
     body_param = request.GET.get('body', '')
     body = body_param if body_param in ('GA', 'SC') else None
-    cvotes = (
+
+    cache_key = f'country_votes_json_{country.pk}_{session}_{body}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse(cached)
+
+    qs = (
         CountryVote.objects
         .filter(country=country, vote__document__date__year__gt=1900)
-        .select_related('vote__resolution', 'vote__document')
         .order_by('-vote__document__date')
     )
     if session:
-        cvotes = cvotes.filter(vote__document__session=session)
+        qs = qs.filter(vote__document__session=session)
     if body:
-        cvotes = cvotes.filter(vote__document__body=body)
+        qs = qs.filter(vote__document__body=body)
+
+    _ISSUE_FIELDS = [c for c, _s, _l in ISSUE_CODES]
     records = []
-    for cv in cvotes:
-        v = cv.vote
-        doc = v.document
-        res = v.resolution
+    for row in qs.values(
+        'pk', 'vote_position',
+        'vote__yes_count', 'vote__no_count', 'vote__abstain_count',
+        'vote__document__date', 'vote__document__symbol',
+        'vote__resolution__session', 'vote__resolution__category',
+        'vote__resolution__title', 'vote__resolution__adopted_symbol',
+        'vote__resolution__draft_symbol',
+        *[f'vote__resolution__issue_{c}' for c in _ISSUE_FIELDS],
+    ):
+        date = row['vote__document__date']
+        res_symbol = row['vote__resolution__adopted_symbol'] or row['vote__resolution__draft_symbol'] or ''
+        doc_symbol = row['vote__document__symbol']
         records.append({
-            'id': cv.pk,
-            'position': cv.vote_position,
-            'year': doc.date.year if doc.date else None,
-            'date': doc.date.isoformat() if doc.date else '',
-            'session': res.session,
-            'category': res.category or 'Uncategorized',
-            'issues': [c for c, _s, _l in ISSUE_CODES if getattr(res, f'issue_{c}')],
-            'resolution': str(res),
-            'title': (res.title or '')[:120],
-            'yes_count': v.yes_count,
-            'no_count': v.no_count,
-            'abstain_count': v.abstain_count,
-            'document': doc.symbol,
-            'document_url': doc.get_absolute_url(),
-            'resolution_url': res.get_absolute_url(),
+            'id': row['pk'],
+            'position': row['vote_position'],
+            'year': date.year if date else None,
+            'date': date.isoformat() if date else '',
+            'session': row['vote__resolution__session'],
+            'category': row['vote__resolution__category'] or 'Uncategorized',
+            'issues': [c for c in _ISSUE_FIELDS if row[f'vote__resolution__issue_{c}']],
+            'resolution': res_symbol,
+            'title': (row['vote__resolution__title'] or '')[:120],
+            'yes_count': row['vote__yes_count'],
+            'no_count': row['vote__no_count'],
+            'abstain_count': row['vote__abstain_count'],
+            'document': doc_symbol,
+            'document_url': f'/meeting/{_doc_slug(doc_symbol)}/',
+            'resolution_url': f'/votes/resolutions/{res_symbol.replace("/", "-").replace(".", "-")}/',
         })
-    return JsonResponse({'country': country.name, 'iso3': iso3, 'votes': records})
+
+    payload = {'country': country.name, 'iso3': iso3, 'votes': records}
+    cache.set(cache_key, payload, 3600)
+    return JsonResponse(payload)
 
 
 def _compute_similarity(request, country):
