@@ -346,6 +346,12 @@
       Speeches
       <span id="sp-filter-summary" class="meta" style="font-size:0.7em; font-weight:400;"></span>
     </h2>
+    <div class="chart-box" style="margin-bottom:1.25rem;">
+      <h3>Speeches per year
+        <span id="sp-freq-legend" style="font-size:0.72rem; font-weight:400; text-transform:none; margin-left:0.5rem;"></span>
+      </h3>
+      <div id="sp-freq-chart"></div>
+    </div>
     {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
     <div id="sp-speeches-list"><p class="meta">Loading…</p></div>
     <div id="sp-speeches-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; font-size:0.85rem; color:var(--muted);"></div>
@@ -407,6 +413,7 @@
   General Debate
   <a href="/debate/" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">browse all sessions ↗</a>
 </h2>
+{% include "partials/wordcloud.html" with wc_url="/api/wordcloud/?source=debate&country_id="|add:country.pk|stringformat:"s" wc_title="Keywords in General Debate Speeches" %}
 <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:1rem;">
   <thead>
     <tr style="border-bottom:2px solid var(--border);">
@@ -943,6 +950,110 @@
     nav.innerHTML = html;
   }
 
+  function drawSpeechFreqChart() {
+    var container = document.getElementById('sp-freq-chart');
+    if (!container || !SPEECHES_BY_YEAR.length) return;
+    container.innerHTML = '';
+
+    var yearSet = {}, gaByYear = {}, scByYear = {};
+    SPEECHES_BY_YEAR.forEach(function (d) {
+      yearSet[d.year] = true;
+      if (d.body === 'GA') gaByYear[d.year] = (gaByYear[d.year] || 0) + d.count;
+      else if (d.body === 'SC') scByYear[d.year] = (scByYear[d.year] || 0) + d.count;
+    });
+    var years = Object.keys(yearSet).map(Number).sort(function (a, b) { return a - b; });
+    if (!years.length) return;
+
+    var data = years.map(function (yr) {
+      return { year: yr, GA: gaByYear[yr] || 0, SC: scByYear[yr] || 0 };
+    });
+
+    var showGA = state.body !== 'SC';
+    var showSC = state.body !== 'GA';
+
+    var W  = container.clientWidth || 600;
+    var H  = 140;
+    var ml = 36, mr = 8, mt = 8, mb = 22;
+    var iW = W - ml - mr, iH = H - mt - mb;
+
+    var maxVal = d3.max(data, function (d) {
+      return (showGA ? d.GA : 0) + (showSC ? d.SC : 0);
+    });
+    if (!maxVal) return;
+
+    var x = d3.scaleBand().domain(years).range([0, iW]).padding(0.12);
+    var y = d3.scaleLinear().domain([0, maxVal]).nice().range([iH, 0]);
+
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', H);
+    var g   = svg.append('g').attr('transform', 'translate(' + ml + ',' + mt + ')');
+
+    g.append('g').call(d3.axisLeft(y).ticks(4).tickSize(-iW).tickFormat(''))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('line').style('stroke', '#eee');
+      });
+
+    var tip = d3.select(container).append('div')
+      .style('position', 'absolute').style('background', 'rgba(0,0,0,0.72)')
+      .style('color', '#fff').style('padding', '3px 8px').style('border-radius', '4px')
+      .style('font-size', '0.75rem').style('pointer-events', 'none').style('display', 'none');
+    d3.select(container).style('position', 'relative');
+
+    data.forEach(function (d) {
+      var base = 0;
+      if (showGA && d.GA) {
+        g.append('rect')
+          .attr('x', x(d.year)).attr('y', y(d.GA)).attr('width', x.bandwidth())
+          .attr('height', iH - y(d.GA)).attr('fill', '#4d8cc4').attr('rx', 1)
+          .on('mousemove', function (ev) {
+            tip.style('display', 'block')
+              .text(d.year + ' GA: ' + d.GA)
+              .style('left', (ml + x(d.year) + x.bandwidth() / 2) + 'px')
+              .style('top', (mt + y(d.GA) - 28) + 'px');
+          })
+          .on('mouseleave', function () { tip.style('display', 'none'); });
+        base = d.GA;
+      }
+      if (showSC && d.SC) {
+        var gaBase = showGA ? d.GA : 0;
+        g.append('rect')
+          .attr('x', x(d.year)).attr('y', y(gaBase + d.SC)).attr('width', x.bandwidth())
+          .attr('height', iH - y(d.SC)).attr('fill', '#e07a3a').attr('rx', 1)
+          .on('mousemove', function (ev) {
+            tip.style('display', 'block')
+              .text(d.year + ' SC: ' + d.SC)
+              .style('left', (ml + x(d.year) + x.bandwidth() / 2) + 'px')
+              .style('top', (mt + y(gaBase + d.SC) - 28) + 'px');
+          })
+          .on('mouseleave', function () { tip.style('display', 'none'); });
+      }
+    });
+
+    var tickStep = Math.max(1, Math.ceil(years.length / 8));
+    var tickYears = years.filter(function (_, i) { return i % tickStep === 0; });
+    g.append('g').attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.68rem').style('fill', '#888');
+        ax.selectAll('line').style('stroke', '#ccc');
+      });
+
+    g.append('g').call(d3.axisLeft(y).ticks(4).tickFormat(d3.format(',d')))
+      .call(function (ax) {
+        ax.select('.domain').remove();
+        ax.selectAll('text').style('font-size', '0.68rem').style('fill', '#888');
+        ax.selectAll('line').remove();
+      });
+
+    var legend = document.getElementById('sp-freq-legend');
+    if (legend) {
+      if (state.body === 'GA') legend.innerHTML = '<span style="color:#4d8cc4;">&#9632; GA</span>';
+      else if (state.body === 'SC') legend.innerHTML = '<span style="color:#e07a3a;">&#9632; SC</span>';
+      else legend.innerHTML = '<span style="color:#4d8cc4;">&#9632; GA</span> &nbsp;<span style="color:#e07a3a;">&#9632; SC</span>';
+    }
+  }
+
   document.querySelectorAll('.body-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.body-btn').forEach(function (b) { b.classList.remove('active'); });
@@ -952,6 +1063,7 @@
       state.yearTo   = null;
       document.getElementById('sp-year-clear').style.display = 'none';
       initYearChart(computeYearData(state.body));
+      drawSpeechFreqChart();
       updateSummary();
       loadSpeeches(1);
       refreshWordCloud();
@@ -1061,6 +1173,7 @@
 
   window._initSpeechesTab = function () {
     initYearChart(computeYearData(''));
+    drawSpeechFreqChart();
     loadSpeeches(1);
   };
 }());

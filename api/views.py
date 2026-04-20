@@ -618,51 +618,11 @@ def wordcloud(request):
     session = request.GET.get('session', '')
     speaker_id = request.GET.get('speaker_id', '')
     country_id = request.GET.get('country_id', '')
+    source = request.GET.get('source', '')
 
     year_from = request.GET.get('year_from', '')
     year_to   = request.GET.get('year_to',   '')
 
-    conditions = ["item_type = 'speech'"]
-    if body in ('GA', 'SC'):
-        conditions.append(f"body = '{body}'")
-    if session and session.isdigit():
-        conditions.append(f"session = {int(session)}")
-    if speaker_id and speaker_id.isdigit():
-        conditions.append(f"speaker_id = {int(speaker_id)}")
-    if country_id and country_id.isdigit():
-        conditions.append(f"country_id = {int(country_id)}")
-    if year_from and year_from.isdigit():
-        conditions.append(f"EXTRACT(YEAR FROM date) >= {int(year_from)}")
-    if year_to and year_to.isdigit():
-        conditions.append(f"EXTRACT(YEAR FROM date) <= {int(year_to)}")
-
-    where = ' AND '.join(conditions)
-    limit = 3000 if (speaker_id or country_id) else 5000
-
-    # Count raw (unstemmed) words directly from speech text using regexp_matches.
-    # ORDER BY id makes the inner LIMIT deterministic across requests.
-    sql = f"""
-        SELECT word, count(*) AS n
-        FROM (
-            SELECT lower(m[1]) AS word
-            FROM   search_index,
-                   LATERAL regexp_matches(content, '[a-zA-Z]{{4,}}', 'g') AS m
-            WHERE  {where}
-            ORDER BY id
-            LIMIT  {limit}
-        ) sub
-        GROUP BY word
-        ORDER BY n DESC
-        LIMIT  80
-    """
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-
-    # Build dynamic exclusions from the country/speaker name so the entity's
-    # own name doesn't dominate its own word cloud.
-    # Exclude the country's own name so it doesn't dominate its word cloud.
     dynamic_stop = set()
     if country_id and country_id.isdigit():
         try:
@@ -670,6 +630,66 @@ def wordcloud(request):
             dynamic_stop.update(w.lower() for w in name.split() if len(w) >= 4)
         except Country.DoesNotExist:
             pass
+
+    if source == 'debate' and country_id and country_id.isdigit():
+        conditions = [f"country_id = {int(country_id)}", "text IS NOT NULL"]
+        if year_from and year_from.isdigit():
+            conditions.append(f"EXTRACT(YEAR FROM meeting_date) >= {int(year_from)}")
+        if year_to and year_to.isdigit():
+            conditions.append(f"EXTRACT(YEAR FROM meeting_date) <= {int(year_to)}")
+        where = ' AND '.join(conditions)
+        sql = f"""
+            SELECT word, count(*) AS n
+            FROM (
+                SELECT lower(m[1]) AS word
+                FROM   general_debate_entries,
+                       LATERAL regexp_matches(text, '[a-zA-Z]{{4,}}', 'g') AS m
+                WHERE  {where}
+                ORDER BY id
+                LIMIT  5000
+            ) sub
+            GROUP BY word
+            ORDER BY n DESC
+            LIMIT  80
+        """
+    else:
+        conditions = ["item_type = 'speech'"]
+        if body in ('GA', 'SC'):
+            conditions.append(f"body = '{body}'")
+        if session and session.isdigit():
+            conditions.append(f"session = {int(session)}")
+        if speaker_id and speaker_id.isdigit():
+            conditions.append(f"speaker_id = {int(speaker_id)}")
+        if country_id and country_id.isdigit():
+            conditions.append(f"country_id = {int(country_id)}")
+        if year_from and year_from.isdigit():
+            conditions.append(f"EXTRACT(YEAR FROM date) >= {int(year_from)}")
+        if year_to and year_to.isdigit():
+            conditions.append(f"EXTRACT(YEAR FROM date) <= {int(year_to)}")
+
+        where = ' AND '.join(conditions)
+        limit = 3000 if (speaker_id or country_id) else 5000
+
+        # Count raw (unstemmed) words directly from speech text using regexp_matches.
+        # ORDER BY id makes the inner LIMIT deterministic across requests.
+        sql = f"""
+            SELECT word, count(*) AS n
+            FROM (
+                SELECT lower(m[1]) AS word
+                FROM   search_index,
+                       LATERAL regexp_matches(content, '[a-zA-Z]{{4,}}', 'g') AS m
+                WHERE  {where}
+                ORDER BY id
+                LIMIT  {limit}
+            ) sub
+            GROUP BY word
+            ORDER BY n DESC
+            LIMIT  80
+        """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        rows = cursor.fetchall()
 
     words = [
         {'word': word, 'count': n}

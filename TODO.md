@@ -30,10 +30,10 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Key votes page** — list resolutions with the closest margins (≤ 5 vote difference) or
   where P5 members split. Purely SQL over existing `country_votes` data. High research value.
 
-- [ ] **Country speech frequency chart** — bar chart of speeches per session/year on the
+- [x] **Country speech frequency chart** — bar chart of speeches per session/year on the
   country profile page, alongside the existing voting tab. Data already in `speeches`.
 
-- [ ] **General Debate word cloud per country** — word cloud of a country's General Debate
+- [x] **General Debate word cloud per country** — word cloud of a country's General Debate
   speeches over the years, drawn from `general_debate_entries`. Makes country pages richer.
 
 - [ ] **Ideal point timeline** — `country_ideal_points` is populated; add a small line chart on
