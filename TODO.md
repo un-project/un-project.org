@@ -68,9 +68,10 @@ Tracked tasks and future features for the UN Project web application.
   `explanation_of_vote` (requires extractor work). Surface them as a dedicated section on the
   resolution detail page — the most policy-relevant content around any vote.
 
-- [ ] **Data-driven bloc detection** — apply clustering to the pairwise voting-agreement matrix
-  per year to recover blocs automatically, replacing the hardcoded `coalitions.py` list. Store
-  in a `voting_blocs (country_id, year, bloc)` table with rolling 5-year windows.
+- [x] **Data-driven bloc detection** — apply clustering to the pairwise voting-agreement matrix
+  per year to recover blocs automatically. Stored in `voting_blocs (country_id, year, bloc_index,
+  window_start, window_end)` with rolling 5-year windows. Named blocs preserved; detected blocs
+  shown as a separate section on the votes page. Run `manage.py compute_voting_blocs` to populate.
 
 - [ ] **Vote prediction model** — predict a country's vote given its ideal point, resolution
   category, and sponsoring region. Useful for flagging anomalous votes.

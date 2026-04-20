@@ -9,7 +9,8 @@ from django.db.models import Q, Min, Max
 from meetings.models import Document
 from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
-from votes.models import Resolution, ResolutionCitation, ResolutionSponsor, Veto, ISSUE_CODES
+from votes.models import Resolution, ResolutionCitation, ResolutionSponsor, Veto, VotingBloc, ISSUE_CODES
+from votes.coalitions import COALITIONS
 from countries.models import Country
 from un_site.ratelimit import ratelimit
 
@@ -1170,3 +1171,85 @@ def api_search(request):
         }
 
     return _paginate(request, qs, _serialize)
+
+
+def voting_blocs(request):
+    """
+    Return detected voting blocs for a given year.
+
+    GET /api/voting-blocs/           → {"years": [2022, 2021, ...]}
+    GET /api/voting-blocs/?year=2022 → {"year": 2022, "window": "2020–2024",
+                                        "blocs": [{index, countries, top_match}]}
+    """
+    year_param = request.GET.get('year', '').strip()
+
+    with connection.cursor() as cur:
+        if not year_param:
+            cur.execute(
+                "SELECT DISTINCT year FROM voting_blocs ORDER BY year DESC"
+            )
+            years = [r[0] for r in cur.fetchall()]
+            return JsonResponse({'years': years})
+
+        if not year_param.isdigit():
+            return JsonResponse({'error': 'invalid year'}, status=400)
+        year = int(year_param)
+
+        cur.execute("""
+            SELECT vb.bloc_index, vb.window_start, vb.window_end,
+                   c.id, c.iso3, c.name, c.short_name
+            FROM   voting_blocs vb
+            JOIN   countries c ON c.id = vb.country_id
+            WHERE  vb.year = %s
+            ORDER  BY vb.bloc_index, c.name
+        """, [year])
+        rows = cur.fetchall()
+
+    if not rows:
+        return JsonResponse({'year': year, 'window': None, 'blocs': []})
+
+    window_start = rows[0][1]
+    window_end   = rows[0][2]
+
+    # Group by bloc_index
+    blocs_raw = {}
+    for bloc_idx, _ws, _we, cid, iso3, name, short_name in rows:
+        blocs_raw.setdefault(bloc_idx, []).append({
+            'iso3': iso3 or '',
+            'name': short_name or name,
+        })
+
+    # Annotate each bloc with best-matching named coalition (by overlap fraction)
+    coalition_sets = {c['slug']: (c['name'], set(c['iso3'])) for c in COALITIONS}
+
+    blocs = []
+    for idx in sorted(blocs_raw):
+        members = blocs_raw[idx]
+        member_iso3 = {m['iso3'] for m in members if m['iso3']}
+
+        best_name, best_pct = None, 0
+        for _slug, (cname, cset) in coalition_sets.items():
+            if not cset:
+                continue
+            # Fraction of this bloc's members that belong to the coalition
+            overlap = len(member_iso3 & cset) / len(member_iso3) if member_iso3 else 0
+            if overlap > best_pct:
+                best_pct, best_name = overlap, cname
+
+        blocs.append({
+            'index':     idx,
+            'size':      len(members),
+            'countries': members,
+            'top_match': {
+                'name': best_name,
+                'pct':  round(best_pct * 100),
+            } if best_name and best_pct >= 0.3 else None,
+        })
+
+    resp = JsonResponse({
+        'year':   year,
+        'window': f'{window_start}–{window_end}',
+        'blocs':  blocs,
+    })
+    resp['Cache-Control'] = 'public, max-age=3600'
+    return resp

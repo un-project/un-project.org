@@ -99,6 +99,7 @@ def _render_country_detail(request, country):
     sponsored_count = sponsored_paginator.count
 
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
+    debate_wc_url = f'/api/wordcloud/?source=debate&country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
     has_sc_reps = (
         country.iso3 and
@@ -129,6 +130,7 @@ def _render_country_detail(request, country):
         'sponsored_count':      sponsored_count,
         'has_sc_reps':          has_sc_reps,
         'debate_entries':       debate_entries,
+        'debate_wc_url':        debate_wc_url,
         'historical_info':      HISTORICAL_INFO.get(country.iso3),
     })
 

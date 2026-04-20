@@ -668,6 +668,55 @@ def votes_page(request):
     })
 
 
+def voting_blocs_page(request):
+    ctx = cache.get('votes_page_ctx')
+    coalition_blocs = ctx['coalition_blocs'] if ctx else None
+
+    if coalition_blocs is None:
+        countries_by_iso3 = {
+            c.iso3: c
+            for c in Country.objects.filter(iso3__isnull=False).exclude(iso3='')
+        }
+        all_bloc_iso3s = {iso3 for bloc in COALITIONS for iso3 in bloc['iso3']}
+        iso3_pos = defaultdict(lambda: defaultdict(int))
+        for row in (
+            CountryVote.objects
+            .filter(country__iso3__in=all_bloc_iso3s)
+            .exclude(vote_position='absent')
+            .values('country__iso3', 'vote_position')
+            .annotate(n=Count('id'))
+        ):
+            iso3_pos[row['country__iso3']][row['vote_position']] += row['n']
+
+        coalition_blocs = []
+        for bloc in COALITIONS:
+            pc = defaultdict(int)
+            for iso3 in bloc['iso3']:
+                for pos, n in iso3_pos[iso3].items():
+                    pc[pos] += n
+            total = sum(pc.values())
+            members = [countries_by_iso3[iso3] for iso3 in bloc['iso3'] if iso3 in countries_by_iso3]
+            coalition_blocs.append({
+                'name': bloc['name'],
+                'slug': bloc.get('slug', ''),
+                'label': bloc['label'],
+                'members': members,
+                'members_extra': max(0, len(members) - 8),
+                'yes_pct':     round(100 * pc.get('yes',     0) / total) if total else 0,
+                'no_pct':      round(100 * pc.get('no',      0) / total) if total else 0,
+                'abstain_pct': round(100 * pc.get('abstain', 0) / total) if total else 0,
+            })
+
+    return render(request, 'votes/blocs.html', {
+        'coalition_blocs': coalition_blocs,
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Voting Blocs'},
+        ],
+    })
+
+
 def _doc_slug(symbol):
     import re
     s = symbol.replace('/', '-').replace('.', '-')

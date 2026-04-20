@@ -195,6 +195,24 @@ class VetoCountry(models.Model):
         unique_together = [('veto', 'country')]
 
 
+class VotingBloc(models.Model):
+    country = models.ForeignKey(
+        'countries.Country', on_delete=models.CASCADE, related_name='detected_blocs'
+    )
+    year = models.IntegerField()
+    bloc_index = models.IntegerField()
+    window_start = models.IntegerField()
+    window_end = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'voting_blocs'
+        unique_together = [('country', 'year')]
+
+    def __str__(self):
+        return f'Bloc {self.bloc_index} ({self.year}): {self.country}'
+
+
 class ResolutionCitation(models.Model):
     citing = models.ForeignKey(
         Resolution, on_delete=models.CASCADE, related_name='outgoing_citations',

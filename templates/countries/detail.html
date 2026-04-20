@@ -413,7 +413,7 @@
   General Debate
   <a href="/debate/" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">browse all sessions ↗</a>
 </h2>
-{% include "partials/wordcloud.html" with wc_url="/api/wordcloud/?source=debate&country_id="|add:country.pk|stringformat:"s" wc_title="Keywords in General Debate Speeches" %}
+{% include "partials/wordcloud.html" with wc_url=debate_wc_url wc_title="Keywords in General Debate Speeches" %}
 <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:1rem;">
   <thead>
     <tr style="border-bottom:2px solid var(--border);">

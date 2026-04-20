@@ -35,6 +35,79 @@
   </div>
 </div>
 
+<!-- ── Visualisations & Tools ───────────────────────────────────── -->
+<div style="margin-bottom:2rem;">
+  <h2 class="section-title">Visualisations &amp; Tools</h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;">
+    <a href="/votes/blocs/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">Voting Blocs</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Named political groups and data-driven clusters recovered from the pairwise voting record.</div>
+    </a>
+    <a href="/votes/map/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">Voting Similarity Map</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Interactive world map coloured by voting alignment to any reference country.</div>
+    </a>
+    <a href="/votes/compare/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">Compare Two Countries</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Side-by-side voting agreement with year-by-year trend and position matrix.</div>
+    </a>
+    <a href="/votes/ideal-points/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">Ideal Point Timeline</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Heatmap of all countries' voting alignment 1946–today, showing geopolitical blocs and their evolution.</div>
+    </a>
+    <a href="/votes/resolutions/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">Browse Resolutions</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Filter GA and SC resolutions by year, session, and UNBIS subject category.</div>
+    </a>
+    <a href="/votes/cohesion/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">Voting Cohesion Heatmap</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Countries × countries agreement rate matrix for the 60 most active voters.</div>
+    </a>
+    <a href="/votes/vetoes/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">SC Veto Tracker</div>
+      <div style="font-size:0.82rem; color:var(--muted);">All 271 Security Council vetoes since 1946, by country and topic.</div>
+    </a>
+    <a href="/votes/cosponsor-network/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="font-weight:700; margin-bottom:0.3rem;">SC Co-sponsorship Network</div>
+      <div style="font-size:0.82rem; color:var(--muted);">Force-directed graph of countries that co-sponsored SC draft resolutions together.</div>
+    </a>
+  </div>
+</div>
+
+<!-- ── Countries voting No most often ─────────────────────────── -->
+<div style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Countries Voting "No" Most Often</h2>
+  <p class="meta" style="margin-bottom:0.75rem;">Countries that most frequently cast dissenting votes against adopted resolutions.</p>
+  <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
+    {% for row in top_no_voters %}
+    {% with iso=row.country__iso3 name=row.country__short_name|default:row.country__name count=row.count %}
+    <a href="/country/{{ iso }}/" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
+      <img src="/static/flags/{{ iso }}.svg" alt="" style="height:14px; border-radius:1px; flex-shrink:0;">
+      <span style="font-weight:600;">{{ name }}</span>
+      <span style="color:#e74c3c; font-weight:700; font-size:0.82rem;">{{ count }}×</span>
+    </a>
+    {% endwith %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── Countries voting Yes on non-adopted resolutions ────────── -->
+<div style="margin-bottom:2.5rem;">
+  <h2 class="section-title">Countries Voting "Yes" on Non-Adopted Resolutions</h2>
+  <p class="meta" style="margin-bottom:0.75rem;">Countries most frequently casting yes votes on resolutions that were ultimately rejected.</p>
+  <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
+    {% for row in top_yes_on_rejected %}
+    {% with iso=row.country__iso3 name=row.country__short_name|default:row.country__name count=row.count %}
+    <a href="/country/{{ iso }}/" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
+      {% if iso %}<img src="/static/flags/{{ iso }}.svg" alt="" style="height:14px; border-radius:1px; flex-shrink:0;">{% endif %}
+      <span style="font-weight:600;">{{ name }}</span>
+      <span style="color:#27ae60; font-weight:700; font-size:0.82rem;">{{ count }}×</span>
+    </a>
+    {% endwith %}
+    {% endfor %}
+  </div>
+</div>
+
 <!-- ── Two-column: recent + contested ─────────────────────────── -->
 <div class="two-col" style="margin-bottom:2rem;">
 
@@ -99,109 +172,6 @@
     </table>
   </div>
 
-</div>
-
-<!-- ── Countries voting No most often ─────────────────────────── -->
-<div style="margin-bottom:2.5rem;">
-  <h2 class="section-title">Countries Voting "No" Most Often</h2>
-  <p class="meta" style="margin-bottom:0.75rem;">Countries that most frequently cast dissenting votes against adopted resolutions.</p>
-  <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
-    {% for row in top_no_voters %}
-    {% with iso=row.country__iso3 name=row.country__short_name|default:row.country__name count=row.count %}
-    <a href="/country/{{ iso }}/" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
-      <img src="/static/flags/{{ iso }}.svg" alt="" style="height:14px; border-radius:1px; flex-shrink:0;">
-      <span style="font-weight:600;">{{ name }}</span>
-      <span style="color:#e74c3c; font-weight:700; font-size:0.82rem;">{{ count }}×</span>
-    </a>
-    {% endwith %}
-    {% endfor %}
-  </div>
-</div>
-
-<!-- ── Countries voting Yes on non-adopted resolutions ────────── -->
-<div style="margin-bottom:2.5rem;">
-  <h2 class="section-title">Countries Voting "Yes" on Non-Adopted Resolutions</h2>
-  <p class="meta" style="margin-bottom:0.75rem;">Countries most frequently casting yes votes on resolutions that were ultimately rejected.</p>
-  <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
-    {% for row in top_yes_on_rejected %}
-    {% with iso=row.country__iso3 name=row.country__short_name|default:row.country__name count=row.count %}
-    <a href="/country/{{ iso }}/" style="display:flex; align-items:center; gap:0.45rem; padding:0.45rem 0.8rem; border:1px solid var(--border); border-radius:6px; font-size:0.88rem; color:var(--text); text-decoration:none; background:#fff;">
-      {% if iso %}<img src="/static/flags/{{ iso }}.svg" alt="" style="height:14px; border-radius:1px; flex-shrink:0;">{% endif %}
-      <span style="font-weight:600;">{{ name }}</span>
-      <span style="color:#27ae60; font-weight:700; font-size:0.82rem;">{{ count }}×</span>
-    </a>
-    {% endwith %}
-    {% endfor %}
-  </div>
-</div>
-
-<!-- ── Voting Blocs ─────────────────────────────────────────────── -->
-<div style="margin-bottom:2.5rem;">
-  <h2 class="section-title">Voting Blocs</h2>
-  <p class="meta" style="margin-bottom:1rem;">Aggregate voting position across all recorded UN resolutions, by major political group.</p>
-  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
-    {% for bloc in coalition_blocs %}
-    <a href="/votes/bloc/{{ bloc.slug }}/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff; transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; font-size:1rem; margin-bottom:0.15rem;">{{ bloc.name }}</div>
-      <div style="font-size:0.78rem; color:var(--muted); margin-bottom:0.7rem;">{{ bloc.label }}</div>
-      <div style="display:flex; flex-wrap:wrap; gap:3px; margin-bottom:0.75rem; align-items:center;">
-        {% for member in bloc.members|slice:":8" %}
-        <img src="/static/flags/{{ member.iso3 }}.svg" alt="{{ member.display_name }}" title="{{ member.display_name }}"
-             style="height:15px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; display:block;">
-        {% endfor %}
-        {% if bloc.members_extra %}
-        <span class="bloc-extra" style="display:none">{% for member in bloc.members|slice:"8:" %}<img src="/static/flags/{{ member.iso3 }}.svg" alt="{{ member.display_name }}" title="{{ member.display_name }}" style="height:15px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; display:block;">{% endfor %}</span>
-        <span style="font-size:0.72rem; color:var(--un-blue);">+{{ bloc.members_extra }} more</span>
-        {% endif %}
-      </div>
-      <div style="height:9px; border-radius:3px; overflow:hidden; display:flex; margin-bottom:0.5rem; background:#f0f0f0;">
-        <div style="width:{{ bloc.yes_pct }}%;     background:#27ae60;" title="{{ bloc.yes_pct }}% Yes"></div>
-        <div style="width:{{ bloc.abstain_pct }}%; background:#f39c12;" title="{{ bloc.abstain_pct }}% Abstain"></div>
-        <div style="width:{{ bloc.no_pct }}%;      background:#e74c3c;" title="{{ bloc.no_pct }}% No"></div>
-      </div>
-      <div style="display:flex; gap:0.9rem; font-size:0.8rem;">
-        <span style="color:#27ae60; font-weight:600;">{{ bloc.yes_pct }}% Yes</span>
-        <span style="color:#f39c12; font-weight:600;">{{ bloc.abstain_pct }}% Abstain</span>
-        <span style="color:#e74c3c; font-weight:600;">{{ bloc.no_pct }}% No</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-
-<!-- ── Visualisations & Tools ───────────────────────────────────── -->
-<div style="margin-bottom:2rem;">
-  <h2 class="section-title">Visualisations &amp; Tools</h2>
-  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;">
-    <a href="/votes/map/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">Voting Similarity Map</div>
-      <div style="font-size:0.82rem; color:var(--muted);">Interactive world map coloured by voting alignment to any reference country.</div>
-    </a>
-    <a href="/votes/compare/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">Compare Two Countries</div>
-      <div style="font-size:0.82rem; color:var(--muted);">Side-by-side voting agreement with year-by-year trend and position matrix.</div>
-    </a>
-    <a href="/votes/ideal-points/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">Ideal Point Timeline</div>
-      <div style="font-size:0.82rem; color:var(--muted);">Heatmap of all countries' voting alignment 1946–today, showing geopolitical blocs and their evolution.</div>
-    </a>
-    <a href="/votes/resolutions/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">Browse Resolutions</div>
-      <div style="font-size:0.82rem; color:var(--muted);">Filter GA and SC resolutions by year, session, and UNBIS subject category.</div>
-    </a>
-    <a href="/votes/cohesion/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">Voting Cohesion Heatmap</div>
-      <div style="font-size:0.82rem; color:var(--muted);">Countries × countries agreement rate matrix for the 60 most active voters.</div>
-    </a>
-    <a href="/votes/vetoes/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">SC Veto Tracker</div>
-      <div style="font-size:0.82rem; color:var(--muted);">All 271 Security Council vetoes since 1946, by country and topic.</div>
-    </a>
-    <a href="/votes/cosponsor-network/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
-      <div style="font-weight:700; margin-bottom:0.3rem;">SC Co-sponsorship Network</div>
-      <div style="font-size:0.82rem; color:var(--muted);">Force-directed graph of countries that co-sponsored SC draft resolutions together.</div>
-    </a>
-  </div>
 </div>
 
 {% endblock %}

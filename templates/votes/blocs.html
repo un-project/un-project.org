@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Voting Blocs{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Voting Blocs</h1>
+<p class="meta" style="margin-bottom:2rem;">
+  Named political groups and data-driven clusters recovered from the UN voting record.
+</p>
+
+<!-- ── Named Blocs ─────────────────────────────────────────────── -->
+<h2 class="section-title" style="margin-bottom:0.75rem;">Named Political Groups</h2>
+<p class="meta" style="margin-bottom:1rem;">Aggregate voting position across all recorded UN resolutions, by major political group.</p>
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem; margin-bottom:2.5rem;">
+  {% for bloc in coalition_blocs %}
+  <a href="/votes/bloc/{{ bloc.slug }}/" style="display:block; text-decoration:none; color:inherit; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; background:#fff; transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+    <div style="font-weight:700; font-size:1rem; margin-bottom:0.15rem;">{{ bloc.name }}</div>
+    <div style="font-size:0.78rem; color:var(--muted); margin-bottom:0.7rem;">{{ bloc.label }}</div>
+    <div style="display:flex; flex-wrap:wrap; gap:3px; margin-bottom:0.75rem; align-items:center;">
+      {% for member in bloc.members|slice:":8" %}
+      <img src="/static/flags/{{ member.iso3 }}.svg" alt="{{ member.display_name }}" title="{{ member.display_name }}"
+           style="height:15px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; display:block;">
+      {% endfor %}
+      {% if bloc.members_extra %}
+      <span class="bloc-extra" style="display:none">{% for member in bloc.members|slice:"8:" %}<img src="/static/flags/{{ member.iso3 }}.svg" alt="{{ member.display_name }}" title="{{ member.display_name }}" style="height:15px; width:22px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; display:block;">{% endfor %}</span>
+      <span style="font-size:0.72rem; color:var(--un-blue);">+{{ bloc.members_extra }} more</span>
+      {% endif %}
+    </div>
+    <div style="height:9px; border-radius:3px; overflow:hidden; display:flex; margin-bottom:0.5rem; background:#f0f0f0;">
+      <div style="width:{{ bloc.yes_pct }}%;     background:#27ae60;" title="{{ bloc.yes_pct }}% Yes"></div>
+      <div style="width:{{ bloc.abstain_pct }}%; background:#f39c12;" title="{{ bloc.abstain_pct }}% Abstain"></div>
+      <div style="width:{{ bloc.no_pct }}%;      background:#e74c3c;" title="{{ bloc.no_pct }}% No"></div>
+    </div>
+    <div style="display:flex; gap:0.9rem; font-size:0.8rem;">
+      <span style="color:#27ae60; font-weight:600;">{{ bloc.yes_pct }}% Yes</span>
+      <span style="color:#f39c12; font-weight:600;">{{ bloc.abstain_pct }}% Abstain</span>
+      <span style="color:#e74c3c; font-weight:600;">{{ bloc.no_pct }}% No</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- ── Detected Blocs ──────────────────────────────────────────── -->
+<div id="detected-blocs-section">
+  <h2 class="section-title" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+    Data-Driven Clusters
+    <span style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.88rem; font-weight:400;">
+      <button id="detected-blocs-prev" style="background:none; border:1px solid var(--border); border-radius:3px; padding:0.1rem 0.45rem; cursor:pointer; font-size:0.85rem; line-height:1.4; color:var(--text);" title="Previous year">&#8592;</button>
+      <select id="detected-blocs-year" style="font-size:0.88rem; font-weight:600; padding:0.1rem 0.3rem; border:1px solid var(--border); border-radius:3px; color:var(--text); background:#fff; cursor:pointer;"></select>
+      <button id="detected-blocs-next" style="background:none; border:1px solid var(--border); border-radius:3px; padding:0.1rem 0.45rem; cursor:pointer; font-size:0.85rem; line-height:1.4; color:var(--text);" title="Next year">&#8594;</button>
+    </span>
+    <span style="font-size:0.78rem; font-weight:400; color:var(--muted);" id="detected-blocs-window"></span>
+  </h2>
+  <p class="meta" style="margin-bottom:1rem;">
+    Voting blocs recovered automatically from the pairwise agreement matrix (5-year rolling window,
+    countries with &ge;75% agreement on shared votes placed in the same cluster).
+    Labels show the closest matching named group.
+    Populate with <code>manage.py compute_voting_blocs</code>.
+  </p>
+  <div id="detected-blocs-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem; margin-bottom:2rem;">
+    <p class="meta">Loading…</p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var yearSel   = document.getElementById('detected-blocs-year');
+  var prevBtn   = document.getElementById('detected-blocs-prev');
+  var nextBtn   = document.getElementById('detected-blocs-next');
+  var grid      = document.getElementById('detected-blocs-grid');
+  var windowLbl = document.getElementById('detected-blocs-window');
+  var section   = document.getElementById('detected-blocs-section');
+
+  var years = [];   // sorted descending (newest first)
+  var curIdx = 0;
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function updateControls() {
+    prevBtn.disabled = curIdx >= years.length - 1;
+    nextBtn.disabled = curIdx <= 0;
+    prevBtn.style.opacity = prevBtn.disabled ? '0.3' : '';
+    nextBtn.style.opacity = nextBtn.disabled ? '0.3' : '';
+    yearSel.value = years[curIdx];
+  }
+
+  function renderBlocs(data) {
+    if (!data.blocs || !data.blocs.length) {
+      grid.innerHTML = '<p class="meta">No detected blocs for this year. Run <code>manage.py compute_voting_blocs</code> to populate.</p>';
+      return;
+    }
+    windowLbl.textContent = data.window ? '(' + data.window + ')' : '';
+    grid.innerHTML = data.blocs.map(function (bloc) {
+      var flags = bloc.countries.slice(0, 10).map(function (c) {
+        return c.iso3
+          ? '<img src="/static/flags/' + esc(c.iso3) + '.svg" alt="" title="' + esc(c.name) + '" style="height:15px;width:22px;object-fit:cover;border-radius:1px;border:1px solid #e0e0e0;">'
+          : '';
+      }).join('');
+      var extra = bloc.countries.length > 10
+        ? '<span style="font-size:0.72rem;color:var(--un-blue);margin-left:2px;">+' + (bloc.countries.length - 10) + ' more</span>'
+        : '';
+      var badge = bloc.top_match
+        ? '<span style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem;display:block;">Closest match: <strong>' + esc(bloc.top_match.name) + '</strong> (' + bloc.top_match.pct + '% overlap)</span>'
+        : '';
+      return '<div style="border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;background:#fff;">'
+        + '<div style="font-weight:700;font-size:1rem;margin-bottom:0.15rem;">Cluster ' + (bloc.index + 1)
+        + ' <span style="font-size:0.78rem;font-weight:400;color:var(--muted);">(' + bloc.size + ' countries)</span></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:3px;margin:0.6rem 0 0.3rem;align-items:center;">' + flags + extra + '</div>'
+        + badge
+        + '</div>';
+    }).join('');
+  }
+
+  function loadIdx(idx) {
+    curIdx = idx;
+    updateControls();
+    grid.innerHTML = '<p class="meta">Loading…</p>';
+    windowLbl.textContent = '';
+    fetch('/api/voting-blocs/?year=' + years[curIdx])
+      .then(function (r) { return r.json(); })
+      .then(renderBlocs)
+      .catch(function () { grid.innerHTML = '<p class="meta">Failed to load.</p>'; });
+  }
+
+  prevBtn.addEventListener('click', function () { if (curIdx < years.length - 1) loadIdx(curIdx + 1); });
+  nextBtn.addEventListener('click', function () { if (curIdx > 0) loadIdx(curIdx - 1); });
+  yearSel.addEventListener('change', function () {
+    var idx = years.indexOf(parseInt(this.value, 10));
+    if (idx !== -1) loadIdx(idx);
+  });
+
+  fetch('/api/voting-blocs/')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.years || !data.years.length) {
+        grid.innerHTML = '<p class="meta">No data yet. Run <code>manage.py compute_voting_blocs</code> to populate.</p>';
+        document.querySelector('#detected-blocs-section h2').style.display = 'none';
+        return;
+      }
+      years = data.years;
+      data.years.forEach(function (yr) {
+        var opt = document.createElement('option');
+        opt.value = yr;
+        opt.textContent = yr;
+        yearSel.appendChild(opt);
+      });
+      loadIdx(0);
+    })
+    .catch(function () { grid.innerHTML = '<p class="meta">Failed to load.</p>'; });
+}());
+</script>
+{% endblock %}

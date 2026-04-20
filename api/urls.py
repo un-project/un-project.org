@@ -33,4 +33,6 @@ urlpatterns = [
     path('resolutions/<str:slug>/sponsors/', views.resolution_sponsors, name='resolution_sponsors'),
     # Vetoes
     path('vetoes/', views.veto_list, name='veto_list'),
+    # Voting blocs
+    path('voting-blocs/', views.voting_blocs, name='voting_blocs'),
 ]
