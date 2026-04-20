@@ -126,6 +126,29 @@
   <!-- ── Sidebar filters ───────────────────────────────────────── -->
   <aside class="meetings-sidebar">
 
+    <!-- Text search -->
+    <div class="filter-section">
+      <h3>Search</h3>
+      <form method="get" style="display:flex; gap:0.3rem;">
+        {% if current_body %}<input type="hidden" name="body" value="{{ current_body }}">{% endif %}
+        {% if current_session %}<input type="hidden" name="session" value="{{ current_session }}">{% endif %}
+        {% if current_year %}<input type="hidden" name="year" value="{{ current_year }}">{% endif %}
+        {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+        {% if current_important %}<input type="hidden" name="important" value="1">{% endif %}
+        {% if current_issue %}<input type="hidden" name="issue" value="{{ current_issue }}">{% endif %}
+        {% if current_sponsor %}<input type="hidden" name="sponsor" value="{{ current_sponsor }}">{% endif %}
+        <input type="text" name="q" value="{{ current_q }}" placeholder="Title or symbol…"
+               style="flex:1; min-width:0; font-size:0.82rem; padding:0.25rem 0.4rem;
+                      border:1px solid var(--border); border-radius:4px;">
+        <button type="submit" style="font-size:0.8rem; padding:0.25rem 0.5rem;
+                border:1px solid var(--border); border-radius:4px; background:var(--un-light);
+                color:var(--un-blue); cursor:pointer; white-space:nowrap;">Go</button>
+      </form>
+      {% if current_q %}
+      <a href="{% filter_url q='' %}" class="clear-link">✕ Clear search</a>
+      {% endif %}
+    </div>
+
     <!-- Year filter -->
     <div class="filter-section">
       <h3>Year</h3>
@@ -296,6 +319,7 @@
   <div>
     <p class="meta" style="margin-bottom:0.75rem;">
       {{ page.paginator.count }} resolution{{ page.paginator.count|pluralize }} found
+      {% if current_q %} matching &ldquo;{{ current_q }}&rdquo;{% endif %}
       {% if current_year %} in {{ current_year }}{% endif %}
       {% if current_session %} — Session {{ current_session }}{% endif %}
     </p>

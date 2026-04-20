@@ -61,6 +61,7 @@ def resolution_list(request):
     important_only = request.GET.get('important', '') == '1'
     issue          = request.GET.get('issue', '')
     sponsor        = request.GET.get('sponsor', '')
+    q              = request.GET.get('q', '').strip()
     valid_issues   = {code for code, _s, _l in ISSUE_CODES}
 
     qs = Resolution.objects.all()
@@ -84,6 +85,14 @@ def resolution_list(request):
         qs = qs.filter(sponsors__country__iso3=sponsor).distinct()
     else:
         sponsor = ''
+    # Text search across title and symbol
+    if q:
+        from django.db.models import Q as DQ
+        qs = qs.filter(
+            DQ(title__icontains=q) |
+            DQ(adopted_symbol__icontains=q) |
+            DQ(draft_symbol__icontains=q)
+        ).distinct()
 
     # Base queryset for sidebar (body-filtered only)
     filter_qs = Resolution.objects.all()
@@ -175,6 +184,7 @@ def resolution_list(request):
         'current_important': important_only,
         'current_issue':    issue if issue in valid_issues else '',
         'current_sponsor':  sponsor,
+        'current_q':        q,
     })
 
 
