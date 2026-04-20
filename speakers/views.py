@@ -26,6 +26,16 @@ def speaker_list(request):
 
     qs = qs.order_by('name' if q else '-speech_count')
 
+    # Countries sidebar: distinct countries that have speakers with speeches,
+    # ordered by speaker count descending.
+    country_list = list(
+        Speaker.objects
+        .filter(speeches__isnull=False, country__iso3__isnull=False)
+        .values('country__iso3', 'country__name', 'country__short_name')
+        .annotate(count=Count('id', distinct=True))
+        .order_by('-count')
+    )
+
     paginator = Paginator(qs, 50)
     page = paginator.get_page(request.GET.get('page'))
 
@@ -33,6 +43,7 @@ def speaker_list(request):
         'page':            page,
         'current_q':       q,
         'current_country': country,
+        'country_list':    country_list,
     })
 
 

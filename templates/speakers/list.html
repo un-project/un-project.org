@@ -3,22 +3,81 @@
 
 {% block extra_head %}
 <style>
+.speakers-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .speakers-layout { grid-template-columns: 1fr; }
+  .speakers-sidebar { display: flex; gap: 2rem; flex-wrap: wrap; }
+}
+.speakers-sidebar { position: sticky; top: 1rem; }
+
+.filter-section { margin-bottom: 1.5rem; }
+.filter-section h3 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.filter-list {
+  list-style: none; margin: 0; padding: 0;
+  max-height: 320px; overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+.filter-list::-webkit-scrollbar { width: 5px; }
+.filter-list::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
+.filter-list::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+.filter-list li { margin: 0; }
+.filter-list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.filter-list a:hover { background: var(--un-light); color: var(--un-blue); }
+.filter-list a.active { background: var(--un-blue); color: #fff; font-weight: 600; }
+.filter-list a.active:hover { background: #1558a0; }
+.filter-list .filter-sub { font-size: 0.72rem; opacity: 0.7; white-space: nowrap; }
+.filter-list a.active .filter-sub { opacity: 0.85; }
+.clear-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.15rem 0.4rem;
+}
+.clear-link:hover { color: var(--un-blue); }
+
 .speaker-search {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  max-width: 480px;
+  margin-bottom: 1rem;
 }
 .speaker-search input[type="text"] {
   flex: 1;
-  padding: 0.45rem 0.75rem;
-  font-size: 0.9rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.88rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 .speaker-search button {
-  padding: 0.45rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.88rem;
   background: var(--un-blue);
   color: #fff;
   border: none;
@@ -38,19 +97,10 @@
 }
 .speaker-card:last-child { border-bottom: none; }
 .speaker-card:hover { background: var(--un-light); }
-.speaker-card .flag {
-  height: 14px;
-  border-radius: 1px;
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
+.speaker-card .flag { height: 14px; border-radius: 1px; border: 1px solid var(--border); flex-shrink: 0; }
 .speaker-card .name { font-weight: 600; font-size: 0.92rem; flex: 1; }
 .speaker-card .country-name { font-size: 0.8rem; color: var(--muted); }
-.speaker-card .count {
-  font-size: 0.78rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
+.speaker-card .count { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
 </style>
 {% endblock %}
 
@@ -58,36 +108,88 @@
 {% block content %}
 <h1>Speakers</h1>
 
-<form class="speaker-search" method="get">
-  <input type="text" name="q" value="{{ current_q }}" placeholder="Search by name…" autofocus>
-  <button type="submit">Search</button>
-</form>
+<div class="speakers-layout">
 
-<p class="meta" style="margin-bottom:1rem;">
-  {% if current_q %}
-    {{ page.paginator.count }} speaker{{ page.paginator.count|pluralize }} matching &ldquo;{{ current_q }}&rdquo;
-    &mdash; <a href="/speaker/">Clear</a>
-  {% else %}
-    {{ page.paginator.count }} speaker{{ page.paginator.count|pluralize }} with recorded speeches
-  {% endif %}
-</p>
+  <!-- ── Sidebar ───────────────────────────────────────────────── -->
+  <aside class="speakers-sidebar">
+    <div class="filter-section">
+      <h3>Country</h3>
+      <ul class="filter-list">
+        {% for c in country_list %}
+        <li>
+          {% with iso=c.country__iso3 name=c.country__short_name|default:c.country__name %}
+          {% if current_country == iso %}
+          <a href="{% url_with_param 'country' '' %}{% if current_q %}&q={{ current_q }}{% endif %}" class="active">
+            <span style="display:flex; align-items:center; gap:0.35rem; overflow:hidden; min-width:0;">
+              <img src="/static/flags/{{ iso }}.svg" alt="" style="height:12px; border-radius:1px; flex-shrink:0;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ name }}</span>
+            </span>
+            <span class="filter-sub">{{ c.count }}</span>
+          </a>
+          {% else %}
+          <a href="{% url_with_param 'country' iso %}{% if current_q %}&q={{ current_q }}{% endif %}">
+            <span style="display:flex; align-items:center; gap:0.35rem; overflow:hidden; min-width:0;">
+              <img src="/static/flags/{{ iso }}.svg" alt="" style="height:12px; border-radius:1px; flex-shrink:0;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ name }}</span>
+            </span>
+            <span class="filter-sub">{{ c.count }}</span>
+          </a>
+          {% endif %}
+          {% endwith %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% if current_country %}
+      <a href="{% url_with_param 'country' '' %}{% if current_q %}&q={{ current_q }}{% endif %}" class="clear-link">✕ Clear country</a>
+      {% endif %}
+    </div>
+  </aside>
 
-<div class="card" style="padding:0; overflow:hidden;">
-  {% for speaker in page %}
-  <a href="{{ speaker.get_absolute_url }}" class="speaker-card">
-    {% if speaker.country.iso3 %}
-    <img src="/static/flags/{{ speaker.country.iso3 }}.svg" alt="" class="flag">
-    {% endif %}
-    <span class="name">{{ speaker.name }}</span>
-    {% if speaker.country %}
-    <span class="country-name">{{ speaker.country.display_name }}</span>
-    {% endif %}
-    <span class="count">{{ speaker.speech_count }} speech{{ speaker.speech_count|pluralize:"es" }}</span>
-  </a>
-  {% empty %}
-  <p class="meta" style="padding:1rem;">No speakers found.</p>
-  {% endfor %}
+  <!-- ── Main content ──────────────────────────────────────────── -->
+  <div>
+    <form class="speaker-search" method="get">
+      {% if current_country %}<input type="hidden" name="country" value="{{ current_country }}">{% endif %}
+      <input type="text" name="q" value="{{ current_q }}" placeholder="Search by name…">
+      <button type="submit">Search</button>
+    </form>
+
+    <p class="meta" style="margin-bottom:0.75rem;">
+      {{ page.paginator.count }} speaker{{ page.paginator.count|pluralize }}
+      {% if current_country %} from this country{% endif %}
+      {% if current_q %} matching &ldquo;{{ current_q }}&rdquo;{% endif %}
+      {% if current_q or current_country %}
+      &mdash; <a href="/speaker/">Clear all</a>
+      {% endif %}
+    </p>
+
+    <div class="card" style="padding:0; overflow:hidden;">
+      {% for speaker in page %}
+      <a href="{{ speaker.get_absolute_url }}" class="speaker-card">
+        {% if speaker.country.iso3 %}
+        <img src="/static/flags/{{ speaker.country.iso3 }}.svg" alt="" class="flag">
+        {% endif %}
+        <span class="name">{{ speaker.name }}</span>
+        {% if speaker.country and not current_country %}
+        <span class="country-name">{{ speaker.country.display_name }}</span>
+        {% endif %}
+        <span class="count">{{ speaker.speech_count }} speech{{ speaker.speech_count|pluralize:"es" }}</span>
+      </a>
+      {% empty %}
+      <p class="meta" style="padding:1rem;">No speakers found.</p>
+      {% endfor %}
+    </div>
+
+    {% include "partials/pagination.html" with page_obj=page %}
+  </div>
+
 </div>
+{% endblock %}
 
-{% include "partials/pagination.html" with page_obj=page %}
+{% block extra_js %}
+<script>
+document.querySelectorAll('.filter-list').forEach(function (list) {
+  var active = list.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+});
+</script>
 {% endblock %}
