@@ -114,7 +114,11 @@
   <aside class="speakers-sidebar">
     <div class="filter-section">
       <h3>Country</h3>
-      <ul class="filter-list">
+      <input type="text" id="country-filter-input" placeholder="Filter countries…"
+             style="width:100%; box-sizing:border-box; margin-bottom:0.4rem;
+                    padding:0.25rem 0.4rem; font-size:0.8rem;
+                    border:1px solid var(--border); border-radius:4px;">
+      <ul class="filter-list" id="country-filter-list">
         {% for c in country_list %}
         <li>
           {% with iso=c.country__iso3 name=c.country__short_name|default:c.country__name %}
@@ -191,5 +195,17 @@ document.querySelectorAll('.filter-list').forEach(function (list) {
   var active = list.querySelector('.active');
   if (active) active.scrollIntoView({ block: 'nearest' });
 });
+
+var countryInput = document.getElementById('country-filter-input');
+var countryList  = document.getElementById('country-filter-list');
+if (countryInput && countryList) {
+  countryInput.addEventListener('input', function () {
+    var term = this.value.toLowerCase();
+    countryList.querySelectorAll('li').forEach(function (li) {
+      var name = li.textContent.toLowerCase();
+      li.style.display = name.includes(term) ? '' : 'none';
+    });
+  });
+}
 </script>
 {% endblock %}
