@@ -157,7 +157,7 @@ def resolution_list(request):
             .order_by('-count')[:30]
         )
 
-    paginator = Paginator(qs.order_by('-session', 'adopted_symbol', 'draft_symbol'), 50)
+    paginator = Paginator(qs.order_by('-session', '-adopted_symbol', '-draft_symbol'), 50)
     page = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'votes/resolutions.html', {
