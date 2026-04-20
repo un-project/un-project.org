@@ -1,5 +1,6 @@
 import json
 
+from django.core.cache import cache
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db import connection
@@ -133,13 +134,15 @@ def _render_country_detail(request, country):
 
 
 def country_list(request):
-    qs = Country.objects.filter(iso3__isnull=False).order_by('name')
-    current    = qs.exclude(iso3__in=HISTORICAL_ISO3)
-    historical = qs.filter(iso3__in=HISTORICAL_ISO3)
-    return render(request, 'countries/list.html', {
-        'current': current,
-        'historical': historical,
-    })
+    cached = cache.get('country_list')
+    if cached is None:
+        qs = Country.objects.filter(iso3__isnull=False).order_by('name')
+        cached = {
+            'current':    list(qs.exclude(iso3__in=HISTORICAL_ISO3)),
+            'historical': list(qs.filter(iso3__in=HISTORICAL_ISO3)),
+        }
+        cache.set('country_list', cached, 24 * 3600)
+    return render(request, 'countries/list.html', cached)
 
 
 def country_detail(request, iso3):

@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 from django.db.models import Count, Min, Max
@@ -220,25 +221,29 @@ def session_detail(request, body, session):
 
 def agenda_list(request):
     body = request.GET.get('body', '')
-
-    qs = (
-        DocumentItem.objects
-        .filter(item_type=DocumentItem.ITEM_TYPE_AGENDA)
-        .values('title')
-        .annotate(
-            meeting_count=Count('document_id', distinct=True),
-            canonical_pk=Min('id'),
-            session_min=Min('document__session'),
-            session_max=Max('document__session'),
+    cache_key = f'agenda_list_{body}'
+    items = cache.get(cache_key)
+    if items is None:
+        qs = (
+            DocumentItem.objects
+            .filter(item_type=DocumentItem.ITEM_TYPE_AGENDA)
+            .values('title')
+            .annotate(
+                meeting_count=Count('document_id', distinct=True),
+                canonical_pk=Min('id'),
+                session_min=Min('document__session'),
+                session_max=Max('document__session'),
+            )
+            .filter(meeting_count__gte=2)
+            .order_by('-meeting_count')
         )
-        .filter(meeting_count__gte=2)
-        .order_by('-meeting_count')
-    )
-    if body in ('GA', 'SC'):
-        qs = qs.filter(document__body=body)
+        if body in ('GA', 'SC'):
+            qs = qs.filter(document__body=body)
+        items = list(qs[:300])
+        cache.set(cache_key, items, 4 * 3600)
 
     return render(request, 'meetings/agenda_list.html', {
-        'items': list(qs[:300]),
+        'items': items,
         'current_body': body,
     })
 

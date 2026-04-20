@@ -521,105 +521,118 @@ def country_compare(request):
 
 
 def votes_page(request):
-    # Summary counts
-    total_resolutions = Resolution.objects.filter(votes__vote_type='recorded').distinct().count()
-    total_recorded_votes = Vote.objects.filter(vote_type='recorded', yes_count__isnull=False).count()
-    total_country_votes = CountryVote.objects.count()
+    ctx = cache.get('votes_page_ctx')
+    if ctx is None:
+        # Summary counts
+        total_resolutions = Resolution.objects.filter(votes__vote_type='recorded').distinct().count()
+        total_recorded_votes = Vote.objects.filter(vote_type='recorded', yes_count__isnull=False).count()
+        total_country_votes = CountryVote.objects.count()
 
-    # Overall position breakdown (exclude absent from percentages)
-    pos_counts = {
-        p['vote_position']: p['n']
-        for p in CountryVote.objects.values('vote_position').annotate(n=Count('id'))
-    }
-    present_total = (
-        pos_counts.get('yes', 0) + pos_counts.get('no', 0) + pos_counts.get('abstain', 0)
-    )
-    yes_pct     = round(100 * pos_counts.get('yes', 0)     / present_total) if present_total else 0
-    no_pct      = round(100 * pos_counts.get('no', 0)      / present_total) if present_total else 0
-    abstain_pct = round(100 * pos_counts.get('abstain', 0) / present_total) if present_total else 0
-
-    # Most contested (highest no_count)
-    most_contested = (
-        Vote.objects
-        .filter(vote_type='recorded', no_count__isnull=False, no_count__gt=0,
-                document__date__year__gt=1900)
-        .select_related('resolution', 'document')
-        .order_by('-no_count')[:6]
-    )
-
-    # Voting blocs
-    countries_by_iso3 = {
-        c.iso3: c
-        for c in Country.objects.filter(iso3__isnull=False).exclude(iso3='')
-    }
-    coalition_blocs = []
-    for bloc in COALITIONS:
+        # Overall position breakdown
         pos_counts = {
-            row['vote_position']: row['n']
-            for row in (
-                CountryVote.objects
-                .filter(country__iso3__in=bloc['iso3'])
-                .exclude(vote_position='absent')
-                .values('vote_position')
-                .annotate(n=Count('id'))
-            )
+            p['vote_position']: p['n']
+            for p in CountryVote.objects.values('vote_position').annotate(n=Count('id'))
         }
-        total = sum(pos_counts.values())
-        members = [countries_by_iso3[iso3] for iso3 in bloc['iso3'] if iso3 in countries_by_iso3]
-        coalition_blocs.append({
-            'name': bloc['name'],
-            'slug': bloc.get('slug', ''),
-            'label': bloc['label'],
-            'members': members,
-            'members_extra': max(0, len(members) - 8),
-            'yes_pct':     round(100 * pos_counts.get('yes',     0) / total) if total else 0,
-            'no_pct':      round(100 * pos_counts.get('no',      0) / total) if total else 0,
-            'abstain_pct': round(100 * pos_counts.get('abstain', 0) / total) if total else 0,
-        })
-
-    # Most recent votes
-    recent_votes = (
-        Vote.objects
-        .filter(vote_type='recorded', yes_count__isnull=False,
-                document__date__year__gt=1900)
-        .select_related('resolution', 'document')
-        .order_by('-document__date')[:8]
-    )
-
-    # Countries casting the most No votes (politically revealing)
-    top_no_voters = list(
-        CountryVote.objects
-        .filter(vote_position='no')
-        .values('country__name', 'country__iso3', 'country__short_name')
-        .annotate(count=Count('id'))
-        .order_by('-count')[:8]
-    )
-
-    # Countries voting Yes most on non-adopted resolutions
-    top_yes_on_rejected = list(
-        CountryVote.objects
-        .filter(
-            vote_position='yes',
-            vote__vote_type='recorded',
-            vote__resolution__adopted_symbol__isnull=True,
+        present_total = (
+            pos_counts.get('yes', 0) + pos_counts.get('no', 0) + pos_counts.get('abstain', 0)
         )
-        .values('country__name', 'country__iso3', 'country__short_name')
-        .annotate(count=Count('id'))
-        .order_by('-count')[:8]
-    )
+        yes_pct     = round(100 * pos_counts.get('yes', 0)     / present_total) if present_total else 0
+        no_pct      = round(100 * pos_counts.get('no', 0)      / present_total) if present_total else 0
+        abstain_pct = round(100 * pos_counts.get('abstain', 0) / present_total) if present_total else 0
+
+        # Most contested (highest no_count)
+        most_contested = list(
+            Vote.objects
+            .filter(vote_type='recorded', no_count__isnull=False, no_count__gt=0,
+                    document__date__year__gt=1900)
+            .select_related('resolution', 'document')
+            .order_by('-no_count')[:6]
+        )
+
+        # Voting blocs — ONE query for all coalitions instead of one per bloc
+        countries_by_iso3 = {
+            c.iso3: c
+            for c in Country.objects.filter(iso3__isnull=False).exclude(iso3='')
+        }
+        all_bloc_iso3s = {iso3 for bloc in COALITIONS for iso3 in bloc['iso3']}
+        # Fetch position counts per-country in a single query
+        iso3_pos = defaultdict(lambda: defaultdict(int))
+        for row in (
+            CountryVote.objects
+            .filter(country__iso3__in=all_bloc_iso3s)
+            .exclude(vote_position='absent')
+            .values('country__iso3', 'vote_position')
+            .annotate(n=Count('id'))
+        ):
+            iso3_pos[row['country__iso3']][row['vote_position']] += row['n']
+
+        coalition_blocs = []
+        for bloc in COALITIONS:
+            pc = defaultdict(int)
+            for iso3 in bloc['iso3']:
+                for pos, n in iso3_pos[iso3].items():
+                    pc[pos] += n
+            total = sum(pc.values())
+            members = [countries_by_iso3[iso3] for iso3 in bloc['iso3'] if iso3 in countries_by_iso3]
+            coalition_blocs.append({
+                'name': bloc['name'],
+                'slug': bloc.get('slug', ''),
+                'label': bloc['label'],
+                'members': members,
+                'members_extra': max(0, len(members) - 8),
+                'yes_pct':     round(100 * pc.get('yes',     0) / total) if total else 0,
+                'no_pct':      round(100 * pc.get('no',      0) / total) if total else 0,
+                'abstain_pct': round(100 * pc.get('abstain', 0) / total) if total else 0,
+            })
+
+        # Most recent votes
+        recent_votes = list(
+            Vote.objects
+            .filter(vote_type='recorded', yes_count__isnull=False,
+                    document__date__year__gt=1900)
+            .select_related('resolution', 'document')
+            .order_by('-document__date')[:8]
+        )
+
+        # Countries casting the most No votes
+        top_no_voters = list(
+            CountryVote.objects
+            .filter(vote_position='no')
+            .values('country__name', 'country__iso3', 'country__short_name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:8]
+        )
+
+        # Countries voting Yes most on non-adopted resolutions
+        top_yes_on_rejected = list(
+            CountryVote.objects
+            .filter(
+                vote_position='yes',
+                vote__vote_type='recorded',
+                vote__resolution__adopted_symbol__isnull=True,
+            )
+            .values('country__name', 'country__iso3', 'country__short_name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:8]
+        )
+
+        ctx = {
+            'coalition_blocs':      coalition_blocs,
+            'total_resolutions':    total_resolutions,
+            'total_recorded_votes': total_recorded_votes,
+            'total_country_votes':  total_country_votes,
+            'yes_pct':              yes_pct,
+            'no_pct':               no_pct,
+            'abstain_pct':          abstain_pct,
+            'most_contested':       most_contested,
+            'recent_votes':         recent_votes,
+            'top_no_voters':        top_no_voters,
+            'top_yes_on_rejected':  top_yes_on_rejected,
+        }
+        cache.set('votes_page_ctx', ctx, 4 * 3600)
 
     return render(request, 'votes/index.html', {
-        'coalition_blocs':     coalition_blocs,
-        'total_resolutions':   total_resolutions,
-        'total_recorded_votes': total_recorded_votes,
-        'total_country_votes': total_country_votes,
-        'yes_pct':             yes_pct,
-        'no_pct':              no_pct,
-        'abstain_pct':         abstain_pct,
-        'most_contested':      most_contested,
-        'recent_votes':           recent_votes,
-        'top_no_voters':          top_no_voters,
-        'top_yes_on_rejected':    top_yes_on_rejected,
+        **ctx,
     })
 
 
