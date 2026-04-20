@@ -4,7 +4,8 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Issues
 
-- [ ] **Voting similarity map bug** — sometimes, after picking a country, the page displays "Not enough shared votes" even though they exist. Clicking a few times more on the country shows the results. There is also a similar issue on vote country page.
+- [ ] **Voting similarity map bug** — intermittent "Not enough shared votes" even though data
+  exists; the query was rewritten to SQL + cached so this should be much rarer, but monitor.
 
 ## Near-term (data already in DB)
 
@@ -49,8 +50,8 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **"Similar countries" on country page** — top-5 most/least aligned countries from the
   precomputed alignment series, linking to the compare page. Data already computed.
 
-- [ ] **Resolution search filters** — add date range, session, and resolution-only mode to
-  the search page (currently limited to body/country/speaker).
+- [x] **Resolution search filters** — text search by title/symbol added to the resolution list
+  sidebar; the main `/search/` page still lacks a resolution-only mode and date-range filter.
 
 - [ ] **Speaker search / list** — a `/speaker/` list page with name autocomplete so speakers
   can be found without browsing through country pages.
