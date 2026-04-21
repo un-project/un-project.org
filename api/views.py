@@ -1253,3 +1253,80 @@ def voting_blocs(request):
     })
     resp['Cache-Control'] = 'public, max-age=3600'
     return resp
+
+
+# ── Bubble chart ───────────────────────────────────────────────────────────────
+
+@ratelimit(60, key_prefix='rl:api', json=True)
+def bubble_chart_data(request):
+    year = request.GET.get('year', '')
+
+    if not year or not year.isdigit():
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT date_part('year', d.date)::int AS yr
+                FROM country_votes cv
+                JOIN votes v ON cv.vote_id = v.id
+                JOIN documents d ON v.document_id = d.id
+                WHERE d.date IS NOT NULL
+                  AND date_part('year', d.date) > 1900
+                  AND v.vote_scope = 'whole_resolution'
+                ORDER BY yr DESC
+            """)
+            years = [row[0] for row in cur.fetchall()]
+        resp = JsonResponse({'years': years})
+        resp['Cache-Control'] = 'no-store'
+        return resp
+
+    yr = int(year)
+    with connection.cursor() as cur:
+        cur.execute("""
+            WITH majority AS (
+                SELECT id,
+                    CASE
+                        WHEN GREATEST(yes_count, no_count, COALESCE(abstain_count, 0))
+                             = yes_count                       THEN 'yes'
+                        WHEN GREATEST(yes_count, no_count, COALESCE(abstain_count, 0))
+                             = no_count                        THEN 'no'
+                        ELSE 'abstain'
+                    END AS majority_pos
+                FROM votes
+                WHERE vote_scope = 'whole_resolution'
+            )
+            SELECT
+                c.iso3,
+                COALESCE(c.short_name, c.name) AS name,
+                ip.ideal_point,
+                COUNT(cv.id)::int AS n_votes,
+                ROUND(
+                    AVG(CASE WHEN cv.vote_position::text = m.majority_pos THEN 100.0 ELSE 0.0 END)::numeric,
+                    1
+                ) AS majority_pct
+            FROM countries c
+            JOIN country_votes cv ON cv.country_id = c.id
+            JOIN majority m ON m.id = cv.vote_id
+            JOIN votes v ON v.id = cv.vote_id
+            JOIN documents d ON v.document_id = d.id
+            LEFT JOIN country_ideal_points ip
+                   ON ip.iso3 = c.iso3 AND ip.year = %s
+            WHERE date_part('year', d.date) = %s
+              AND c.iso3 IS NOT NULL
+            GROUP BY c.id, c.iso3, c.short_name, c.name, ip.ideal_point
+            HAVING COUNT(cv.id) >= 5
+            ORDER BY c.iso3
+        """, [yr, yr])
+        rows = cur.fetchall()
+
+    countries = [
+        {
+            'iso3':         row[0],
+            'name':         row[1],
+            'ip':           round(float(row[2]), 3) if row[2] is not None else None,
+            'n':            row[3],
+            'majority_pct': float(row[4]),
+        }
+        for row in rows
+    ]
+    resp = JsonResponse({'year': yr, 'countries': countries})
+    resp['Cache-Control'] = 'no-store'
+    return resp

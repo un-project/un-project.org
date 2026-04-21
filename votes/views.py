@@ -1405,6 +1405,16 @@ def cosponsor_network_json(request):
     return JsonResponse({'nodes': nodes, 'edges': edges})
 
 
+def bubble_chart(request):
+    return render(request, 'votes/bubble.html', {
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Animated Bubble Chart', 'url': None},
+        ],
+    })
+
+
 def cosponsor_network(request):
     top_n    = int(request.GET.get('top', 50))
     min_edge = int(request.GET.get('min_edge', 5))
