@@ -128,6 +128,15 @@ CREATE TABLE IF NOT EXISTS public.veto_countries (
     UNIQUE (veto_id, country_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.voting_blocs (
+    id           SERIAL PRIMARY KEY,
+    country_id   INTEGER NOT NULL REFERENCES public.countries(id) ON DELETE CASCADE,
+    year         INTEGER NOT NULL,
+    bloc_index   INTEGER NOT NULL,
+    window_start INTEGER,
+    window_end   INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS public.speech_search_index (
     speech_id   integer PRIMARY KEY,
     document_id integer,

@@ -569,6 +569,61 @@ def test_meeting_detail_duplicate_flag(client, ga_doc):
     assert speeches[1]['duplicate'] is True
 
 
+# ── Voting blocs API ───────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_voting_blocs_years_returns_200(client):
+    response = client.get('/api/voting-blocs/')
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_voting_blocs_years_shape(client):
+    data = client.get('/api/voting-blocs/').json()
+    assert 'years' in data
+    assert isinstance(data['years'], list)
+
+
+@pytest.mark.django_db
+def test_voting_blocs_year_query_returns_200(client):
+    response = client.get('/api/voting-blocs/?year=2020')
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_voting_blocs_year_query_shape(client):
+    data = client.get('/api/voting-blocs/?year=2020').json()
+    assert 'year' in data
+    assert 'blocs' in data
+    assert isinstance(data['blocs'], list)
+
+
+# ── Word cloud API ─────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_wordcloud_no_country_id_returns_empty(client):
+    data = client.get('/api/wordcloud/').json()
+    assert data['words'] == []
+
+
+@pytest.mark.django_db
+def test_wordcloud_speeches_source(client, country):
+    response = client.get(f'/api/wordcloud/?country_id={country.pk}')
+    assert response.status_code == 200
+    data = response.json()
+    assert 'words' in data
+    assert isinstance(data['words'], list)
+
+
+@pytest.mark.django_db
+def test_wordcloud_debate_source(client, country):
+    response = client.get(f'/api/wordcloud/?source=debate&country_id={country.pk}')
+    assert response.status_code == 200
+    data = response.json()
+    assert 'words' in data
+    assert isinstance(data['words'], list)
+
+
 # ── Search endpoint ────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db

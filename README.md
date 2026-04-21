@@ -6,9 +6,11 @@ A web application for exploring United Nations meetings by browsing transcripts,
 
 - **Meeting transcripts** — full sequential display with speaker attribution and agenda navigation
 - **Speech search** — PostgreSQL full-text search across 66,000+ speech segments
-- **Country profiles** — representatives, voting history, and speech archive per country; filterable by body (GA/SC) and session
+- **Country profiles** — representatives, voting history, speech archive, speech frequency chart, and General Debate word cloud; filterable by body (GA/SC) and session
 - **Speaker profiles** — speech history and meeting attendance per speaker
-- **Voting records** — per-resolution vote tallies and per-country positions
+- **Speaker list** — searchable and filterable by country at `/speaker/`
+- **Voting records** — per-resolution vote tallies, per-country positions, and P5 breakdown on every resolution
+- **Voting blocs** — named political groups (NATO, EU, G77, …) and data-driven clusters at `/votes/blocs/`
 - **Compare countries** — side-by-side voting agreement analysis with cross-matrix and year-by-year breakdown
 - **Voting similarity map** — interactive D3 world map coloured by voting alignment; click any country to see most/least similar nations
 - **Filters** — browse meetings by body (GA/SC), session, and year
@@ -98,6 +100,16 @@ docker compose exec web python manage.py refresh_search_index --full
 
 The index is also refreshed automatically on every container start.
 
+### 7. Compute voting blocs (optional)
+
+Populate the data-driven voting clusters shown on `/votes/blocs/`:
+
+```bash
+docker compose exec web python manage.py compute_voting_blocs
+```
+
+This runs a pairwise-agreement clustering over 5-year rolling windows and takes a few minutes for the full history. Re-run after any bulk vote import.
+
 ## Deployment
 
 The production server runs the same Docker Compose stack.
@@ -170,6 +182,12 @@ docker compose start web
 docker compose exec web python manage.py refresh_search_index --full
 ```
 
+**5. Recompute voting blocs:**
+
+```bash
+docker compose exec web python manage.py compute_voting_blocs
+```
+
 ### Schema-only changes (no data migration)
 
 If you only changed `docker/init/01_schema.sql` (new tables, columns, or enum values) and
@@ -194,9 +212,13 @@ core/             Homepage and shared template tags
 meetings/         Document and DocumentItem models; meeting list/detail views
 speeches/         Speech and StageDirection models
 countries/        Country model and profile page
-speakers/         Speaker model and profile page
-votes/            Resolution, Vote, and CountryVote models
+speakers/         Speaker model, profile page, and list view
+votes/            Resolution, Vote, CountryVote, and VotingBloc models
+  coalitions.py   Named political blocs (COALITIONS list)
+  management/     Management commands (compute_voting_blocs)
 search/           Full-text search view and materialized view migration
+api/              JSON API views and URL routing
+debate/           GeneralDebateEntry model
 templates/        HTML templates
 static/           CSS and static assets (flags, speaker photos)
 ```
@@ -209,11 +231,14 @@ static/           CSS and static assets (flags, speaker photos)
 | `/meeting/` | Meeting list with filters |
 | `/meeting/<slug>/` | Meeting transcript (e.g. `/meeting/A-78-PV-12/`) |
 | `/country/<ISO3>/` | Country profile |
+| `/speaker/` | Speaker list with name search and country filter |
 | `/speaker/<id>/` | Speaker profile |
-| `/votes/` | Voting analysis — country selector, charts, vote table |
+| `/votes/` | Voting analysis — stats, tools, and recent votes |
+| `/votes/blocs/` | Voting blocs — named groups and data-driven clusters |
 | `/votes/compare/` | Compare voting records of two countries |
 | `/votes/map/` | Interactive world map of voting similarity |
 | `/votes/resolutions/` | Browse all resolutions |
+| `/votes/bloc/<slug>/` | Individual named bloc detail |
 | `/search/?q=...` | Full-text speech search |
 
 Meeting slugs are derived from the UN document symbol by replacing `/` and `.` with `-` (e.g. `A/78/PV.12` → `A-78-PV-12`).
@@ -255,6 +280,8 @@ The Django models map to a pre-existing PostgreSQL schema:
 | `resolutions` | `Resolution` | Draft and adopted resolutions |
 | `votes` | `Vote` | One voting event per resolution per meeting |
 | `country_votes` | `CountryVote` | Per-country vote position |
+| `voting_blocs` | `VotingBloc` | Data-driven clusters (populated by `compute_voting_blocs`) |
+| `general_debate_entries` | `GeneralDebateEntry` | General Debate speech entries |
 
 Two materialized views are created by migrations:
 - `speech_search_index` — legacy per-speech index (migration 0001)

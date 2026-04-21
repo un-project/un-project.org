@@ -276,6 +276,25 @@ Returns all Security Council vetoes (paginated, 50 per page).
 
 ---
 
+## Word Cloud
+
+### Country word cloud
+```
+GET /api/wordcloud/
+```
+Returns the top keywords for a country, suitable for rendering a word cloud.
+
+| Parameter    | Type   | Description                                                              |
+|--------------|--------|--------------------------------------------------------------------------|
+| `country_id` | int    | Country primary key (required)                                           |
+| `source`     | string | `speeches` (default) or `debate` (General Debate entries only)           |
+| `body`       | string | `GA` or `SC` — filters source speeches (ignored for `source=debate`)     |
+| `session`    | int    | Session number — filters source speeches                                 |
+
+**Response:** `words` (array of `{ text, weight }`, up to 150 words)
+
+---
+
 ## Search
 
 ### Full-text search
@@ -294,6 +313,40 @@ Searches speeches and resolutions using PostgreSQL full-text search. Minimum 2 c
 **Response fields:** `item_type`, `item_id`, `document_symbol`, `date`, `body`, `session`, `speaker_name`, `country_name`, `country_iso3`, `excerpt` (first 300 chars), `url`
 
 Results are ordered by relevance (cover-density rank).
+
+---
+
+## Voting Blocs
+
+### List available years
+```
+GET /api/voting-blocs/
+```
+Returns the list of years for which data-driven voting clusters have been computed.
+
+**Response:** `years` (array of integers, sorted descending)
+
+---
+
+### Get clusters for a year
+```
+GET /api/voting-blocs/?year=<year>
+```
+
+| Parameter | Type | Description           |
+|-----------|------|-----------------------|
+| `year`    | int  | Year to retrieve      |
+
+**Response fields:** `year`, `window` (e.g. `"2018–2022"`), `blocs` (array)
+
+Each bloc in `blocs`:
+
+| Field       | Description                                                        |
+|-------------|--------------------------------------------------------------------|
+| `index`     | Zero-based cluster index                                           |
+| `size`      | Number of member countries                                         |
+| `countries` | Array of `{ name, iso3 }`                                          |
+| `top_match` | Closest named political group: `{ name, slug, pct }` or `null`    |
 
 ---
 

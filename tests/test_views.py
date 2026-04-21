@@ -121,3 +121,13 @@ def test_speaker_detail_with_organization(client):
     assert response.status_code == 200
     assert b'UN Official' in response.content
     assert b'United Nations Secretariat' in response.content
+
+
+@pytest.mark.django_db
+def test_speaker_list_page(client):
+    assert client.get('/speaker/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_votes_blocs_page(client):
+    assert client.get('/votes/blocs/').status_code == 200

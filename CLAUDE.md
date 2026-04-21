@@ -41,6 +41,8 @@ assert c.get('/search/?q=nuclear', SERVER_NAME='localhost').status_code == 200
 assert c.get('/votes/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/votes/map/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/votes/compare/', SERVER_NAME='localhost').status_code == 200
+assert c.get('/votes/blocs/', SERVER_NAME='localhost').status_code == 200
+assert c.get('/speaker/', SERVER_NAME='localhost').status_code == 200
 print('All OK')
 "
 ```
@@ -53,9 +55,13 @@ core/             Homepage view, base template tags (query_tags.py)
 meetings/         Document + DocumentItem models; meeting list/detail views
 speeches/         Speech + StageDirection models
 countries/        Country model + profile page
-speakers/         Speaker model + profile page
-votes/            Resolution + Vote + CountryVote models
+speakers/         Speaker model + profile page; speaker list view
+votes/            Resolution + Vote + CountryVote + VotingBloc models
+  coalitions.py   Named political blocs (COALITIONS list)
+  management/     Management commands (compute_voting_blocs)
 search/           Full-text search view; materialized view migration
+api/              JSON API views and URL routing
+debate/           GeneralDebateEntry model
 templates/        All HTML templates
 static/css/       style.css — the only stylesheet
 docker/init/      01_schema.sql — DB init script for Docker
@@ -79,13 +85,23 @@ python manage.py refresh_search_index --full
 docker compose exec web python manage.py refresh_search_index --full
 ```
 
+The `voting_blocs` table (migration `votes/0004`) is populated by the management command:
+
+```bash
+python manage.py compute_voting_blocs              # all years
+python manage.py compute_voting_blocs --year 2022  # single year
+docker compose exec web python manage.py compute_voting_blocs
+```
+
 ## Key Conventions
 
 - **Meeting slugs**: `document.symbol` with `/` and `.` replaced by `-`. Example: `A/78/PV.12` → `A-78-PV-12`. The `slug` property lives on `Document`.
-- **URL structure**: `/meeting/<slug>/`, `/country/<iso3>/`, `/speaker/<pk>/`, `/search/?q=...`
+- **URL structure**: `/meeting/<slug>/`, `/country/<iso3>/`, `/speaker/<pk>/`, `/speaker/` (list), `/search/?q=...`, `/votes/blocs/`
 - **Speech anchors**: `#speech-<id>` on the meeting page. Search results link with `?q=<term>#speech-<id>` so the JS highlighter can mark the term.
 - **Agenda item anchors**: `#item-<pk>` injected by the view as `item_header` entries in the transcript list.
 - **Pagination**: use the `{% include "partials/pagination.html" with page_obj=page %}` partial. It relies on the `url_with_page` template tag from `core/templatetags/query_tags.py`.
+- **Sentinel dates**: exclude 1900-01-01 stub dates using `exclude(date__year__lte=1900)` (not `filter(date__year__gt=1900)` — the latter silently drops NULL-date rows).
+- **API URLs with PKs**: always build JSON API URLs in the view and pass them as context variables (e.g. `debate_wc_url = f'/api/wordcloud/?source=debate&country_id={country.pk}'`). Never concatenate PKs in templates with the `add` filter — `str + int` silently returns `''`.
 
 ## Updating the Docker Init Schema
 
@@ -125,5 +141,4 @@ Then `docker compose down -v && docker compose up` to apply to a fresh volume.
 - All templates extend `templates/base.html`
 - Use `{% block extra_js %}{% endblock %}` for page-specific scripts
 - Run `python manage.py check` before committing
-- Exclude sentinel dates (1900-01-01) from all date-sensitive queries using `document__date__year__gt=1900`
 - Build JSON API URLs in the view (not in templates) and pass them as context variables to avoid messy template conditionals

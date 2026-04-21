@@ -2,11 +2,6 @@
 
 Tracked tasks and future features for the UN Project web application.
 
-## Issues
-
-- [x] **Voting similarity map bug** — intermittent "Not enough shared votes" even though data
-  exists; the query was rewritten to SQL + cached so this should be much rarer, but monitor.
-
 ## Near-term (data already in DB)
 
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate
@@ -30,17 +25,8 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Key votes page** — list resolutions with the closest margins (≤ 5 vote difference) or
   where P5 members split. Purely SQL over existing `country_votes` data. High research value.
 
-- [x] **Country speech frequency chart** — bar chart of speeches per session/year on the
-  country profile page, alongside the existing voting tab. Data already in `speeches`.
-
-- [x] **General Debate word cloud per country** — word cloud of a country's General Debate
-  speeches over the years, drawn from `general_debate_entries`. Makes country pages richer.
-
 - [ ] **Ideal point timeline** — `country_ideal_points` is populated; add a small line chart on
   the country page showing the country's IRT ideal point moving left/right over decades.
-
-- [x] **P5 voting breakdown on resolution cards/detail** — flag icons with green/red/amber
-  backgrounds on list cards and a labelled row in the detail metadata table.
 
 - [ ] **"This meeting at a glance"** — collapsible summary on meeting detail: N speeches,
   N countries represented, resolutions adopted, adjournment time from stage directions.
@@ -50,11 +36,8 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **"Similar countries" on country page** — top-5 most/least aligned countries from the
   precomputed alignment series, linking to the compare page. Data already computed.
 
-- [x] **Resolution search filters** — text search by title/symbol added to the resolution list
-  sidebar; the main `/search/` page still lacks a resolution-only mode and date-range filter.
-
-- [x] **Speaker search / list** — `/speaker/` list page with name search; default view shows
-  most-active speakers by speech count.
+- [ ] **Resolution search filters** — the main `/search/` page still lacks a resolution-only
+  mode and date-range filter (resolution list sidebar already has text search).
 
 ## Future / Research
 
@@ -67,11 +50,6 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Explanation-of-vote tagging** — tag speeches given immediately before/after a vote as
   `explanation_of_vote` (requires extractor work). Surface them as a dedicated section on the
   resolution detail page — the most policy-relevant content around any vote.
-
-- [x] **Data-driven bloc detection** — apply clustering to the pairwise voting-agreement matrix
-  per year to recover blocs automatically. Stored in `voting_blocs (country_id, year, bloc_index,
-  window_start, window_end)` with rolling 5-year windows. Named blocs preserved; detected blocs
-  shown as a separate section on the votes page. Run `manage.py compute_voting_blocs` to populate.
 
 - [ ] **Vote prediction model** — predict a country's vote given its ideal point, resolution
   category, and sponsoring region. Useful for flagging anomalous votes.
