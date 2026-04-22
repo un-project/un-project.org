@@ -309,7 +309,7 @@
     <div class="chart-box" style="margin-top:1.25rem; margin-bottom:0.5rem;">
       <h3>Voting alignment over time
         <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
-          ideal point estimate — 0 = aligned with USA, negative = opposed
+          ideal point (re-centred) — 0 = global average · positive = more Western-aligned
         </small>
       </h3>
       <div id="ideal-point-chart"></div>
@@ -791,7 +791,7 @@
       .attr('x', iW - 3).attr('y', y(0) - 4)
       .attr('text-anchor', 'end')
       .attr('font-size', '0.65rem').attr('fill', 'var(--un-blue, #1a6fa8)').attr('opacity', 0.7)
-      .text('USA');
+      .text('avg');
 
     /* ±1 SE confidence band (skip rows with large or missing SE) */
     var bandData = RAW.filter(function (d) { return d.se !== null && d.se < 2; });

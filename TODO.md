@@ -33,7 +33,7 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Key votes page** — list resolutions with the closest margins (≤ 5 vote difference) or
   where P5 members split. Purely SQL over existing `country_votes` data. High research value.
 
-- [ ] **Ideal point timeline on country page** — `country_ideal_points` is populated; add a
+- [x] **Ideal point timeline on country page** — `country_ideal_points` is populated; add a
   line chart with SE confidence band on each country profile page showing its ideal point from
   1946 to today. The `bsv2017_mcmc` values match Voeten's scale (mean=0, std=1) so they're
   directly comparable to published political science literature.

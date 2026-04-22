@@ -65,19 +65,28 @@ def _render_country_detail(request, country):
         {'label': country.display_name, 'url': None},
     ]
 
-    # Ideal point time series (Bailey–Strezhnev–Voeten IRT model)
+    # Ideal point time series — re-centred by yearly global mean so 0 = world
+    # average that year (removes the IRT anchor effect where USA is pinned at 0).
     ideal_points_json = '[]'
     if country.iso3:
         with connection.cursor() as cur:
             cur.execute(
-                'SELECT year, ideal_point, se FROM country_ideal_points '
-                'WHERE iso3=%s ORDER BY year',
+                '''SELECT ip.year, ip.ideal_point, ip.se, m.mean_ip
+                   FROM country_ideal_points ip
+                   JOIN (
+                       SELECT year, AVG(ideal_point) AS mean_ip
+                       FROM country_ideal_points
+                       WHERE ideal_point IS NOT NULL
+                       GROUP BY year
+                   ) m ON m.year = ip.year
+                   WHERE ip.iso3 = %s
+                   ORDER BY ip.year''',
                 [country.iso3],
             )
             ideal_points_json = json.dumps([
                 {
                     'year':  row[0],
-                    'point': round(float(row[1]), 4),
+                    'point': round(float(row[1]) - float(row[3]), 4),
                     'se':    round(float(row[2]), 4) if row[2] is not None else None,
                 }
                 for row in cur.fetchall()
