@@ -1264,13 +1264,19 @@ def bubble_chart_data(request):
     if not year or not year.isdigit():
         with connection.cursor() as cur:
             cur.execute("""
-                SELECT DISTINCT date_part('year', d.date)::int AS yr
-                FROM country_votes cv
-                JOIN votes v ON cv.vote_id = v.id
-                JOIN documents d ON v.document_id = d.id
-                WHERE d.date IS NOT NULL
-                  AND date_part('year', d.date) > 1900
-                  AND v.vote_scope = 'whole_resolution'
+                SELECT yr FROM (
+                    SELECT DISTINCT date_part('year', d.date)::int AS yr
+                    FROM country_votes cv
+                    JOIN votes v ON cv.vote_id = v.id
+                    JOIN documents d ON v.document_id = d.id
+                    WHERE d.date IS NOT NULL
+                      AND date_part('year', d.date) > 1900
+                      AND v.vote_scope = 'whole_resolution'
+                ) vote_years
+                WHERE EXISTS (
+                    SELECT 1 FROM country_ideal_points ip
+                    WHERE ip.year = vote_years.yr
+                )
                 ORDER BY yr DESC
             """)
             years = [row[0] for row in cur.fetchall()]
@@ -1329,4 +1335,22 @@ def bubble_chart_data(request):
     ]
     resp = JsonResponse({'year': yr, 'countries': countries})
     resp['Cache-Control'] = 'no-store'
+    return resp
+
+
+# ── Ideal-point yearly mean (for re-centring) ──────────────────────────────────
+
+def ideal_points_yearly_mean(request):
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT year, AVG(ideal_point)
+            FROM country_ideal_points
+            WHERE ideal_point IS NOT NULL
+            GROUP BY year
+            ORDER BY year
+        """)
+        rows = cur.fetchall()
+    means = {row[0]: round(float(row[1]), 6) for row in rows}
+    resp = JsonResponse({'means': means})
+    resp['Cache-Control'] = 'public, max-age=86400'
     return resp

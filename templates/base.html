@@ -26,7 +26,7 @@
   </a>
 
   <form class="search-form" action="/search/" method="get" style="position:relative;">
-    <input type="search" name="q" id="nav-search" placeholder="Search speeches…"
+    <input type="search" name="q" id="nav-search" placeholder="Search speeches, countries, speakers…"
            value="{{ request.GET.q|default:'' }}" autocomplete="off">
     <button type="submit">Search</button>
     <div id="nav-suggest" style="
@@ -63,6 +63,7 @@
         <li><a href="/votes/map/">Similarity Map</a></li>
         <li><a href="/votes/compare/">Compare Countries</a></li>
         <li><a href="/votes/bubble/">Animated Bubbles</a></li>
+        <li><a href="/votes/ideal-points/lines/">Ideal Point Lines</a></li>
       </ul>
     </li>
     <li>

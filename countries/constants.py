@@ -13,6 +13,7 @@ HISTORICAL_ISO3 = frozenset([
     'EAZ',  # Zanzibar
     'HVO',  # Upper Volta (now Burkina Faso)
     'BYS',  # Byelorussian SSR (voted separately in the UN)
+    'UAR',  # United Arab Republic (Egypt + Syria 1958–1961, then Egypt alone until 1971)
 ])
 
 # Contextual info for each historical state.
@@ -81,5 +82,10 @@ HISTORICAL_INFO = {
         'dissolved': 1991,
         'note': 'The Byelorussian SSR was a constituent republic of the Soviet Union but held a separate UN seat from 1945. It became the independent Republic of Belarus in 1991.',
         'successors': [('Belarus', 'BLR')],
+    },
+    'UAR': {
+        'dissolved': 1971,
+        'note': 'The United Arab Republic was formed in 1958 as a union of Egypt and Syria. Syria seceded in 1961 following a coup, but Egypt retained the name until 1971 when it became the Arab Republic of Egypt.',
+        'successors': [('Egypt', 'EGY')],
     },
 }

@@ -1087,6 +1087,26 @@ def cohesion_heatmap(request):
     })
 
 
+def ideal_points_lines(request):
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT COALESCE(c.short_name, c.name) AS name, c.iso3
+            FROM countries c
+            WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM country_ideal_points)
+            ORDER BY COALESCE(c.short_name, c.name)
+        """)
+        countries = [{'name': r[0], 'iso3': r[1]} for r in cur.fetchall()]
+
+    return render(request, 'votes/ip_lines.html', {
+        'countries_json': json.dumps(countries),
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Ideal Point Lines', 'url': None},
+        ],
+    })
+
+
 def ideal_points_timeline(request):
     with connection.cursor() as cur:
         cur.execute("""

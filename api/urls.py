@@ -37,4 +37,6 @@ urlpatterns = [
     path('voting-blocs/', views.voting_blocs, name='voting_blocs'),
     # Bubble chart
     path('bubble-chart/', views.bubble_chart_data, name='bubble_chart_data'),
+    # Ideal-point yearly mean
+    path('ideal-points/yearly-mean/', views.ideal_points_yearly_mean, name='ideal_points_yearly_mean'),
 ]

@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict oBanwPXhvwclaI0tHzv0y4kWv0mXSguPzsRdKrVhiBLOp7TBi45wbBoMPeG19hc
+\restrict 5YZLk67IzCQtXga2Wpl1keEwS43b1KEatvHwTtnDE8clnVF3nV1vlnboibu1Ebi
 
 -- Dumped from database version 16.13
--- Dumped by pg_dump version 16.13
+-- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -152,6 +152,41 @@ ALTER SEQUENCE public.countries_id_seq OWNED BY public.countries.id;
 
 
 --
+-- Name: country_alignment_series; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.country_alignment_series (
+    id integer NOT NULL,
+    country_id_a integer NOT NULL,
+    country_id_b integer NOT NULL,
+    year integer NOT NULL,
+    agreement_rate double precision NOT NULL,
+    n_votes integer NOT NULL,
+    CONSTRAINT country_alignment_series_check CHECK ((country_id_a < country_id_b))
+);
+
+
+--
+-- Name: country_alignment_series_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.country_alignment_series_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: country_alignment_series_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.country_alignment_series_id_seq OWNED BY public.country_alignment_series.id;
+
+
+--
 -- Name: country_ideal_points; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -161,7 +196,8 @@ CREATE TABLE public.country_ideal_points (
     iso3 character varying(3) NOT NULL,
     year integer NOT NULL,
     ideal_point double precision NOT NULL,
-    se double precision
+    se double precision,
+    source character varying(32) DEFAULT 'computed_irt'::character varying NOT NULL
 );
 
 
@@ -267,6 +303,9 @@ CREATE TABLE public.documents (
     date date,
     location character varying(50),
     pdf_path character varying(500),
+    ocr_quality_score double precision,
+    ocr_quality_label character varying(10),
+    ods_used boolean,
     is_general_debate boolean DEFAULT false NOT NULL
 );
 
@@ -400,6 +439,38 @@ ALTER SEQUENCE public.resolution_citations_id_seq OWNED BY public.resolution_cit
 
 
 --
+-- Name: resolution_sponsors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.resolution_sponsors (
+    id integer NOT NULL,
+    resolution_id integer NOT NULL,
+    country_id integer,
+    country_name text NOT NULL
+);
+
+
+--
+-- Name: resolution_sponsors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.resolution_sponsors_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: resolution_sponsors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.resolution_sponsors_id_seq OWNED BY public.resolution_sponsors.id;
+
+
+--
 -- Name: resolutions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -416,7 +487,15 @@ CREATE TABLE public.resolutions (
     full_text text,
     crunsc_id character varying(30),
     undl_id character varying(30),
-    undl_link character varying(500)
+    undl_link character varying(500),
+    important_vote boolean,
+    issue_me boolean,
+    issue_nu boolean,
+    issue_co boolean,
+    issue_hr boolean,
+    issue_ec boolean,
+    issue_di boolean,
+    draft_text text
 );
 
 
@@ -559,10 +638,10 @@ CREATE MATERIALIZED VIEW public.search_index AS
             NULL::integer AS country_id,
             NULL::text AS country_name,
             NULL::text AS country_iso3,
-            ((COALESCE(r.title, ''::text) || ' '::text) || COALESCE(r.full_text, ''::text)) AS content,
-            (((setweight(to_tsvector('english'::regconfig, COALESCE(r.adopted_symbol, r.draft_symbol, ''::text)), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(r.title, ''::text)), 'B'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(r.category, ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(r.full_text, ''::text)), 'D'::"char")) AS search_vector
+            ((((COALESCE(r.title, ''::text) || ' '::text) || COALESCE(r.full_text, ''::text)) || ' '::text) || COALESCE(r.draft_text, ''::text)) AS content,
+            ((((setweight(to_tsvector('english'::regconfig, COALESCE(r.adopted_symbol, r.draft_symbol, ''::text)), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(r.title, ''::text)), 'B'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(r.category, ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(r.full_text, ''::text)), 'D'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(r.draft_text, ''::text)), 'D'::"char")) AS search_vector
            FROM public.resolutions r
-          WHERE ((COALESCE(r.title, ''::text) <> ''::text) OR (r.full_text IS NOT NULL))) base
+          WHERE ((COALESCE(r.title, ''::text) <> ''::text) OR (r.full_text IS NOT NULL) OR (r.draft_text IS NOT NULL))) base
   WITH NO DATA;
 
 
@@ -642,6 +721,76 @@ ALTER SEQUENCE public.stage_directions_id_seq OWNED BY public.stage_directions.i
 
 
 --
+-- Name: veto_countries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.veto_countries (
+    id integer NOT NULL,
+    veto_id integer NOT NULL,
+    country_id integer NOT NULL
+);
+
+
+--
+-- Name: veto_countries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.veto_countries_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: veto_countries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.veto_countries_id_seq OWNED BY public.veto_countries.id;
+
+
+--
+-- Name: vetoes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vetoes (
+    id integer NOT NULL,
+    dppa_id integer NOT NULL,
+    draft_symbol text,
+    date date,
+    meeting_symbol character varying(30),
+    document_id integer,
+    agenda text,
+    short_agenda text,
+    n_vetoing_pm integer,
+    dppa_url character varying(500),
+    last_update date
+);
+
+
+--
+-- Name: vetoes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.vetoes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: vetoes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.vetoes_id_seq OWNED BY public.vetoes.id;
+
+
+--
 -- Name: votes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -686,6 +835,40 @@ ALTER SEQUENCE public.votes_id_seq OWNED BY public.votes.id;
 
 
 --
+-- Name: voting_blocs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.voting_blocs (
+    id integer NOT NULL,
+    country_id integer NOT NULL,
+    year integer NOT NULL,
+    bloc_index integer NOT NULL,
+    window_start integer NOT NULL,
+    window_end integer NOT NULL
+);
+
+
+--
+-- Name: voting_blocs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.voting_blocs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: voting_blocs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.voting_blocs_id_seq OWNED BY public.voting_blocs.id;
+
+
+--
 -- Name: amendments id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -697,6 +880,13 @@ ALTER TABLE ONLY public.amendments ALTER COLUMN id SET DEFAULT nextval('public.a
 --
 
 ALTER TABLE ONLY public.countries ALTER COLUMN id SET DEFAULT nextval('public.countries_id_seq'::regclass);
+
+
+--
+-- Name: country_alignment_series id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.country_alignment_series ALTER COLUMN id SET DEFAULT nextval('public.country_alignment_series_id_seq'::regclass);
 
 
 --
@@ -749,6 +939,13 @@ ALTER TABLE ONLY public.resolution_citations ALTER COLUMN id SET DEFAULT nextval
 
 
 --
+-- Name: resolution_sponsors id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.resolution_sponsors ALTER COLUMN id SET DEFAULT nextval('public.resolution_sponsors_id_seq'::regclass);
+
+
+--
 -- Name: resolutions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -784,10 +981,31 @@ ALTER TABLE ONLY public.stage_directions ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: veto_countries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.veto_countries ALTER COLUMN id SET DEFAULT nextval('public.veto_countries_id_seq'::regclass);
+
+
+--
+-- Name: vetoes id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vetoes ALTER COLUMN id SET DEFAULT nextval('public.vetoes_id_seq'::regclass);
+
+
+--
 -- Name: votes id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.votes ALTER COLUMN id SET DEFAULT nextval('public.votes_id_seq'::regclass);
+
+
+--
+-- Name: voting_blocs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.voting_blocs ALTER COLUMN id SET DEFAULT nextval('public.voting_blocs_id_seq'::regclass);
 
 
 --
@@ -828,6 +1046,22 @@ ALTER TABLE ONLY public.countries
 
 ALTER TABLE ONLY public.countries
     ADD CONSTRAINT countries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: country_alignment_series country_alignment_series_country_id_a_country_id_b_year_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.country_alignment_series
+    ADD CONSTRAINT country_alignment_series_country_id_a_country_id_b_year_key UNIQUE (country_id_a, country_id_b, year);
+
+
+--
+-- Name: country_alignment_series country_alignment_series_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.country_alignment_series
+    ADD CONSTRAINT country_alignment_series_pkey PRIMARY KEY (id);
 
 
 --
@@ -919,6 +1153,22 @@ ALTER TABLE ONLY public.resolution_citations
 
 
 --
+-- Name: resolution_sponsors resolution_sponsors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.resolution_sponsors
+    ADD CONSTRAINT resolution_sponsors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: resolution_sponsors resolution_sponsors_resolution_id_country_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.resolution_sponsors
+    ADD CONSTRAINT resolution_sponsors_resolution_id_country_name_key UNIQUE (resolution_id, country_name);
+
+
+--
 -- Name: resolutions resolutions_crunsc_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1007,11 +1257,93 @@ ALTER TABLE ONLY public.speakers
 
 
 --
+-- Name: veto_countries veto_countries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.veto_countries
+    ADD CONSTRAINT veto_countries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: veto_countries veto_countries_veto_id_country_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.veto_countries
+    ADD CONSTRAINT veto_countries_veto_id_country_id_key UNIQUE (veto_id, country_id);
+
+
+--
+-- Name: vetoes vetoes_dppa_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vetoes
+    ADD CONSTRAINT vetoes_dppa_id_key UNIQUE (dppa_id);
+
+
+--
+-- Name: vetoes vetoes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vetoes
+    ADD CONSTRAINT vetoes_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: votes votes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.votes
     ADD CONSTRAINT votes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: voting_blocs voting_blocs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.voting_blocs
+    ADD CONSTRAINT voting_blocs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_country_votes_country_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_country_votes_country_id ON public.country_votes USING btree (country_id);
+
+
+--
+-- Name: idx_country_votes_vote_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_country_votes_vote_id ON public.country_votes USING btree (vote_id);
+
+
+--
+-- Name: idx_document_items_document_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_document_items_document_id ON public.document_items USING btree (document_id);
+
+
+--
+-- Name: idx_document_items_item_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_document_items_item_type ON public.document_items USING btree (item_type);
+
+
+--
+-- Name: idx_documents_body_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_documents_body_date ON public.documents USING btree (body, date DESC);
+
+
+--
+-- Name: idx_documents_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_documents_date ON public.documents USING btree (date DESC, meeting_number DESC);
 
 
 --
@@ -1057,10 +1389,73 @@ CREATE INDEX idx_search_index_vector ON public.search_index USING gin (search_ve
 
 
 --
+-- Name: idx_speeches_document_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_speeches_document_id ON public.speeches USING btree (document_id);
+
+
+--
+-- Name: idx_speeches_speaker_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_speeches_speaker_id ON public.speeches USING btree (speaker_id);
+
+
+--
+-- Name: idx_votes_document_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_votes_document_id ON public.votes USING btree (document_id);
+
+
+--
+-- Name: idx_votes_no_count; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_votes_no_count ON public.votes USING btree (no_count DESC NULLS LAST);
+
+
+--
+-- Name: idx_votes_resolution_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_votes_resolution_id ON public.votes USING btree (resolution_id);
+
+
+--
+-- Name: idx_votes_vote_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_votes_vote_type ON public.votes USING btree (vote_type);
+
+
+--
+-- Name: ix_cas_a_year; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_cas_a_year ON public.country_alignment_series USING btree (country_id_a, year);
+
+
+--
+-- Name: ix_cas_b_year; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_cas_b_year ON public.country_alignment_series USING btree (country_id_b, year);
+
+
+--
 -- Name: ix_cip_country; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX ix_cip_country ON public.country_ideal_points USING btree (country_id);
+
+
+--
+-- Name: ix_cip_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_cip_source ON public.country_ideal_points USING btree (source);
 
 
 --
@@ -1106,6 +1501,55 @@ CREATE UNIQUE INDEX ix_res_crunsc_id ON public.resolutions USING btree (crunsc_i
 
 
 --
+-- Name: ix_res_sponsors_country; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_res_sponsors_country ON public.resolution_sponsors USING btree (country_id);
+
+
+--
+-- Name: ix_res_sponsors_resolution; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_res_sponsors_resolution ON public.resolution_sponsors USING btree (resolution_id);
+
+
+--
+-- Name: ix_veto_countries_country; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_veto_countries_country ON public.veto_countries USING btree (country_id);
+
+
+--
+-- Name: ix_vetoes_document; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_vetoes_document ON public.vetoes USING btree (document_id);
+
+
+--
+-- Name: ix_vetoes_draft; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_vetoes_draft ON public.vetoes USING btree (draft_symbol);
+
+
+--
+-- Name: voting_blocs_country_year; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX voting_blocs_country_year ON public.voting_blocs USING btree (country_id, year);
+
+
+--
+-- Name: voting_blocs_year; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX voting_blocs_year ON public.voting_blocs USING btree (year);
+
+
+--
 -- Name: amendments amendments_proposed_by_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1119,6 +1563,22 @@ ALTER TABLE ONLY public.amendments
 
 ALTER TABLE ONLY public.amendments
     ADD CONSTRAINT amendments_resolution_id_fkey FOREIGN KEY (resolution_id) REFERENCES public.resolutions(id);
+
+
+--
+-- Name: country_alignment_series country_alignment_series_country_id_a_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.country_alignment_series
+    ADD CONSTRAINT country_alignment_series_country_id_a_fkey FOREIGN KEY (country_id_a) REFERENCES public.countries(id) ON DELETE CASCADE;
+
+
+--
+-- Name: country_alignment_series country_alignment_series_country_id_b_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.country_alignment_series
+    ADD CONSTRAINT country_alignment_series_country_id_b_fkey FOREIGN KEY (country_id_b) REFERENCES public.countries(id) ON DELETE CASCADE;
 
 
 --
@@ -1210,6 +1670,22 @@ ALTER TABLE ONLY public.resolution_citations
 
 
 --
+-- Name: resolution_sponsors resolution_sponsors_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.resolution_sponsors
+    ADD CONSTRAINT resolution_sponsors_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id) ON DELETE SET NULL;
+
+
+--
+-- Name: resolution_sponsors resolution_sponsors_resolution_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.resolution_sponsors
+    ADD CONSTRAINT resolution_sponsors_resolution_id_fkey FOREIGN KEY (resolution_id) REFERENCES public.resolutions(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sc_representatives sc_representatives_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1274,6 +1750,30 @@ ALTER TABLE ONLY public.stage_directions
 
 
 --
+-- Name: veto_countries veto_countries_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.veto_countries
+    ADD CONSTRAINT veto_countries_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id) ON DELETE CASCADE;
+
+
+--
+-- Name: veto_countries veto_countries_veto_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.veto_countries
+    ADD CONSTRAINT veto_countries_veto_id_fkey FOREIGN KEY (veto_id) REFERENCES public.vetoes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vetoes vetoes_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vetoes
+    ADD CONSTRAINT vetoes_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.documents(id) ON DELETE SET NULL;
+
+
+--
 -- Name: votes votes_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1301,5 +1801,5 @@ ALTER TABLE ONLY public.votes
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oBanwPXhvwclaI0tHzv0y4kWv0mXSguPzsRdKrVhiBLOp7TBi45wbBoMPeG19hc
+\unrestrict 5YZLk67IzCQtXga2Wpl1keEwS43b1KEatvHwTtnDE8clnVF3nV1vlnboibu1Ebi
 

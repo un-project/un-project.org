@@ -42,6 +42,8 @@ assert c.get('/votes/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/votes/map/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/votes/compare/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/votes/blocs/', SERVER_NAME='localhost').status_code == 200
+assert c.get('/votes/bubble/', SERVER_NAME='localhost').status_code == 200
+assert c.get('/votes/ideal-points/lines/', SERVER_NAME='localhost').status_code == 200
 assert c.get('/speaker/', SERVER_NAME='localhost').status_code == 200
 print('All OK')
 "

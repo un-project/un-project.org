@@ -2,6 +2,14 @@
 
 Tracked tasks and future features for the UN Project web application.
 
+## Issues
+
+- [ ] **Similarity map / historical states** — the similarity map must show the historical
+  states as they existed during their respective era
+  
+- [ ] **Fix speaker photos** — The `fetch_speaker_photos.py` script is unusable because it
+  retrieves photos of a different person rather than the UN speaker.
+
 ## Near-term (data already in DB)
 
 - [ ] **Speaker role / title** — the `speakers` table has `role` and `title` columns; populate

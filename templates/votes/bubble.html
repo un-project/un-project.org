@@ -208,8 +208,8 @@ function draw(countries, year, animate) {
         + (noIP.length ? ' · ' + noIP.length + ' without ideal point (hidden)' : '')
         + ' · ' + countries.length + ' total';
 
-    var dur = animate ? 700 : 0;
-    var t   = d3.transition().duration(dur).ease(d3.easeCubicInOut);
+    var dur = animate ? TRANSITION_MS : 0;
+    var t   = d3.transition().duration(dur).ease(d3.easeLinear);
 
     /* Circles keyed by ISO3 */
     var sel = g.selectAll('circle.bub').data(withIP, function(d){ return d.iso3; });
@@ -281,7 +281,8 @@ var cache   = {};
 var curIdx  = 0;
 var playing = false;
 var timer   = null;
-var INTERVAL_MS = 900;
+var TRANSITION_MS = 1200;
+var PREFETCH_AHEAD = 4;
 
 var slider  = document.getElementById('year-slider');
 var display = document.getElementById('year-display');
@@ -292,6 +293,19 @@ function setYear(idx, animate) {
     slider.value = idx;
     display.textContent = years[idx];
     loadAndDraw(years[idx], animate);
+}
+
+function prefetchAhead() {
+    for (var i = 1; i <= PREFETCH_AHEAD; i++) {
+        var idx = curIdx + i;
+        if (idx < years.length && !cache[years[idx]]) {
+            (function(yr) {
+                fetch('/api/bubble-chart/?year=' + yr)
+                    .then(function(r){ return r.json(); })
+                    .then(function(d){ cache[yr] = d.countries || []; });
+            }(years[idx]));
+        }
+    }
 }
 
 function loadAndDraw(year, animate) {
@@ -309,24 +323,28 @@ function loadAndDraw(year, animate) {
 }
 
 function advance() {
+    if (!playing) return;
     if (curIdx >= years.length - 1) {
         stopPlay();
         return;
     }
     setYear(curIdx + 1, true);
+    prefetchAhead();
+    timer = setTimeout(advance, TRANSITION_MS);
 }
 
 function startPlay() {
     if (curIdx >= years.length - 1) setYear(0, false);
     playing = true;
     playBtn.textContent = '⏸ Pause';
-    timer = setInterval(advance, INTERVAL_MS);
+    prefetchAhead();
+    timer = setTimeout(advance, TRANSITION_MS);
 }
 
 function stopPlay() {
     playing = false;
     playBtn.textContent = '▶ Play';
-    if (timer) { clearInterval(timer); timer = null; }
+    if (timer) { clearTimeout(timer); timer = null; }
 }
 
 playBtn.addEventListener('click', function(){
@@ -354,8 +372,8 @@ fetch('/api/bubble-chart/')
         display.textContent = years[curIdx];
         loadAndDraw(years[curIdx], false);
 
-        /* Pre-warm a few neighbouring years in background */
-        var preload = [curIdx - 1, curIdx - 2, curIdx + 1].filter(function(i){
+        /* Pre-warm neighbouring years in background */
+        var preload = [-2, -1, 1, 2, 3, 4].map(function(d){ return curIdx + d; }).filter(function(i){
             return i >= 0 && i < years.length;
         });
         preload.forEach(function(i){

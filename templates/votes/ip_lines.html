@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block title %}Ideal Point Lines{% endblock %}
+
+{% block extra_head %}
+<style>
+#ip-lines-wrap {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: visible;
+}
+#ip-lines-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ip-line { fill: none; stroke-width: 2px; }
+.ip-label {
+  font-size: 11px;
+  font-weight: 700;
+  dominant-baseline: middle;
+  cursor: pointer;
+}
+.ip-crosshair {
+  stroke: #999;
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+}
+#ip-tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+  display: none;
+  z-index: 200;
+  line-height: 1.7;
+  min-width: 160px;
+}
+#ip-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.ip-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem 0.25rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  background: #fff;
+  cursor: default;
+}
+.ip-legend-swatch {
+  width: 18px; height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.ip-legend-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #aaa;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0 0 0 2px;
+}
+.ip-legend-remove:hover { color: #e74c3c; }
+#ip-add-wrap {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#ip-add-wrap select { min-width: 220px; max-width: 320px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Ideal Point Timeline</h1>
+<p class="meta" style="margin-bottom:1rem;">
+  UN voting ideal points estimated by
+  <a href="https://erikvoeten.com/data-and-software/" target="_blank" rel="noopener">Bailey, Strezhnev &amp; Voeten</a>
+  using a 2-parameter IRT model.
+  Values are re-centred each year by subtracting the global mean across all UN members,
+  so 0 = average country that year. Higher = more aligned with the Western liberal bloc;
+  lower = more opposing. Add countries using the selector below.
+</p>
+
+<div id="ip-lines-wrap">
+  <svg id="ip-lines-svg" viewBox="0 0 860 460" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>
+  <div id="ip-tooltip"></div>
+</div>
+
+<div id="ip-legend"></div>
+
+<div id="ip-add-wrap">
+  <select id="ip-country-select" placeholder="Add a country…"></select>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* ── Countries list from Django ────────────────────────────────── */
+var ALL_COUNTRIES = {{ countries_json|safe }};
+var countryByIso3 = {};
+ALL_COUNTRIES.forEach(function(c){ countryByIso3[c.iso3] = c.name; });
+
+/* ── Layout ────────────────────────────────────────────────────── */
+var M = {top: 20, right: 130, bottom: 48, left: 52};
+var W = 860 - M.left - M.right;
+var H = 460 - M.top  - M.bottom;
+
+var svg = d3.select('#ip-lines-svg');
+var g   = svg.append('g').attr('transform', 'translate(' + M.left + ',' + M.top + ')');
+
+/* ── Scales ────────────────────────────────────────────────────── */
+var xSc = d3.scaleLinear().domain([1946, 2025]).range([0, W]);
+var ySc = d3.scaleLinear().domain([-4, 3.5]).range([H, 0]);
+
+/* ── Axes ──────────────────────────────────────────────────────── */
+var xAxisG = g.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + H + ')')
+    .call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(10));
+xAxisG.selectAll('.tick line').attr('stroke', '#eee');
+xAxisG.select('.domain').attr('stroke', '#ccc');
+
+var yAxisG = g.append('g').attr('class', 'y-axis')
+    .call(d3.axisLeft(ySc).tickSize(-W).ticks(8));
+yAxisG.selectAll('.tick line').attr('stroke', '#eee');
+yAxisG.select('.domain').attr('stroke', '#ccc');
+
+/* ── Axis labels ───────────────────────────────────────────────── */
+g.append('text')
+    .attr('x', W / 2).attr('y', H + 40)
+    .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', '#555')
+    .text('Year');
+
+g.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -(H / 2)).attr('y', -40)
+    .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', '#555')
+    .text('UN Ideal Point');
+
+/* ── Zero line ─────────────────────────────────────────────────── */
+g.append('line')
+    .attr('x1', 0).attr('x2', W)
+    .attr('y1', ySc(0)).attr('y2', ySc(0))
+    .attr('stroke', '#bbb').attr('stroke-width', 1).attr('stroke-dasharray', '4 3');
+
+/* ── Crosshair ─────────────────────────────────────────────────── */
+var crosshair = g.append('line').attr('class', 'ip-crosshair')
+    .attr('y1', 0).attr('y2', H).style('display', 'none');
+
+/* ── Tooltip ───────────────────────────────────────────────────── */
+var tip = document.getElementById('ip-tooltip');
+
+/* ── Colour palette ────────────────────────────────────────────── */
+var PALETTE = [
+    '#e87722','#2ca02c','#4878cf','#9c55b0',
+    '#d62728','#8c564b','#17becf','#bcbd22',
+    '#7f7f7f','#ff7f0e','#1f77b4','#e377c2',
+];
+var colorIdx = 0;
+var colorMap = {};
+
+function getColor(iso3) {
+    if (!colorMap[iso3]) {
+        colorMap[iso3] = PALETTE[colorIdx % PALETTE.length];
+        colorIdx++;
+    }
+    return colorMap[iso3];
+}
+
+/* ── Per-year global mean for re-centring ───────────────────────── */
+var yearlyMeans = {};   /* year -> mean */
+var meansReady  = false;
+var pendingIso3 = [];   /* iso3s requested before means loaded */
+
+fetch('/api/ideal-points/yearly-mean/')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        yearlyMeans = data.means || {};
+        meansReady  = true;
+        pendingIso3.forEach(addCountry);
+        pendingIso3 = [];
+    });
+
+function recentre(rawSeries) {
+    return rawSeries.map(function(d){
+        var m = yearlyMeans[String(d.year)];
+        return {year: d.year, ip: d.ip !== null && m !== undefined ? d.ip - m : null};
+    });
+}
+
+/* ── State ─────────────────────────────────────────────────────── */
+var seriesData = {};   /* iso3 -> [{year, ip}] (re-centred) */
+var lineGroup  = g.append('g');
+var labelGroup = g.append('g');
+
+/* ── Line generator ─────────────────────────────────────────────── */
+var lineGen = d3.line()
+    .defined(function(d){ return d.ip !== null; })
+    .x(function(d){ return xSc(d.year); })
+    .y(function(d){ return ySc(d.ip); });
+
+/* ── Render all lines ───────────────────────────────────────────── */
+function render() {
+    var iso3s = Object.keys(seriesData);
+
+    /* Lines */
+    var lines = lineGroup.selectAll('path.ip-line').data(iso3s, function(d){ return d; });
+    lines.enter().append('path').attr('class', 'ip-line')
+        .merge(lines)
+        .attr('stroke', function(d){ return getColor(d); })
+        .attr('d', function(d){ return lineGen(seriesData[d]); });
+    lines.exit().remove();
+
+    /* End labels */
+    var labels = labelGroup.selectAll('text.ip-label').data(iso3s, function(d){ return d; });
+    labels.enter().append('text').attr('class', 'ip-label')
+        .on('click', function(event, d){ removeCountry(d); })
+        .attr('title', 'Click to remove')
+        .merge(labels)
+        .attr('fill', function(d){ return getColor(d); })
+        .attr('x', function(d){
+            var pts = seriesData[d].filter(function(p){ return p.ip !== null; });
+            if (!pts.length) return 0;
+            return xSc(pts[pts.length - 1].year) + 6;
+        })
+        .attr('y', function(d){
+            var pts = seriesData[d].filter(function(p){ return p.ip !== null; });
+            if (!pts.length) return 0;
+            return ySc(pts[pts.length - 1].ip);
+        })
+        .text(function(d){ return countryByIso3[d] || d; });
+    labels.exit().remove();
+
+    renderLegend(iso3s);
+    updateXDomain();
+}
+
+/* ── Auto-fit X domain to loaded data ──────────────────────────── */
+function updateXDomain() {
+    var allYears = [];
+    Object.values(seriesData).forEach(function(pts){
+        pts.forEach(function(p){ if (p.ip !== null) allYears.push(p.year); });
+    });
+    if (!allYears.length) return;
+    var yMin = d3.min(allYears), yMax = d3.max(allYears);
+    xSc.domain([yMin, yMax + 1]);
+    xAxisG.call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(10));
+    xAxisG.selectAll('.tick line').attr('stroke', '#eee');
+    xAxisG.select('.domain').attr('stroke', '#ccc');
+    lineGroup.selectAll('path.ip-line').attr('d', function(d){ return lineGen(seriesData[d]); });
+    labelGroup.selectAll('text.ip-label')
+        .attr('x', function(d){
+            var pts = seriesData[d].filter(function(p){ return p.ip !== null; });
+            return pts.length ? xSc(pts[pts.length - 1].year) + 6 : 0;
+        })
+        .attr('y', function(d){
+            var pts = seriesData[d].filter(function(p){ return p.ip !== null; });
+            return pts.length ? ySc(pts[pts.length - 1].ip) : 0;
+        });
+}
+
+/* ── Legend ─────────────────────────────────────────────────────── */
+function renderLegend(iso3s) {
+    var leg = document.getElementById('ip-legend');
+    leg.innerHTML = iso3s.map(function(iso3){
+        var color = getColor(iso3);
+        var name  = countryByIso3[iso3] || iso3;
+        return '<span class="ip-legend-item" data-iso3="' + iso3 + '">'
+            + '<span class="ip-legend-swatch" style="background:' + color + ';"></span>'
+            + '<span>' + esc(name) + '</span>'
+            + '<button class="ip-legend-remove" title="Remove">×</button>'
+            + '</span>';
+    }).join('');
+    leg.querySelectorAll('.ip-legend-remove').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            removeCountry(this.closest('[data-iso3]').dataset.iso3);
+        });
+    });
+}
+
+/* ── Add / remove ───────────────────────────────────────────────── */
+function addCountry(iso3) {
+    if (seriesData[iso3]) return;
+    if (!meansReady) { if (pendingIso3.indexOf(iso3) === -1) pendingIso3.push(iso3); return; }
+    fetch('/api/countries/' + iso3 + '/ideal-points/')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            var raw = data.data.map(function(d){ return {year: d.year, ip: d.ideal_point}; });
+            seriesData[iso3] = recentre(raw);
+            render();
+        })
+        .catch(function(){ console.warn('Failed to load', iso3); });
+}
+
+function removeCountry(iso3) {
+    delete seriesData[iso3];
+    render();
+}
+
+/* ── Hover interaction ──────────────────────────────────────────── */
+var hoverRect = g.append('rect')
+    .attr('width', W).attr('height', H)
+    .attr('fill', 'none')
+    .attr('pointer-events', 'all')
+    .on('mousemove', function(event) {
+        var mx   = d3.pointer(event, g.node())[0];
+        var year = Math.round(xSc.invert(mx));
+        crosshair.style('display', null)
+            .attr('x1', xSc(year)).attr('x2', xSc(year));
+
+        var lines = Object.entries(seriesData).map(function(entry){
+            var iso3 = entry[0], pts = entry[1];
+            var pt = pts.find(function(p){ return p.year === year; });
+            return {iso3: iso3, ip: pt ? pt.ip : null};
+        }).filter(function(d){ return d.ip !== null; })
+          .sort(function(a, b){ return b.ip - a.ip; });
+
+        if (!lines.length) { tip.style.display = 'none'; return; }
+
+        tip.innerHTML = '<strong style="font-size:0.88rem;">' + year + '</strong><br>'
+            + lines.map(function(d){
+                var col = getColor(d.iso3);
+                return '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + col + ';margin-right:5px;vertical-align:middle;"></span>'
+                    + esc(countryByIso3[d.iso3] || d.iso3) + ': <strong>' + d.ip.toFixed(3) + '</strong>';
+            }).join('<br>');
+        tip.style.display = 'block';
+        tip.style.left = (event.clientX + 16) + 'px';
+        tip.style.top  = (event.clientY - 10) + 'px';
+    })
+    .on('mouseleave', function(){
+        crosshair.style('display', 'none');
+        tip.style.display = 'none';
+    });
+
+/* ── Country selector (Tom Select) ─────────────────────────────── */
+var sel = document.getElementById('ip-country-select');
+ALL_COUNTRIES.forEach(function(c){
+    var opt = document.createElement('option');
+    opt.value = c.iso3;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+});
+
+var ts = new TomSelect(sel, {
+    placeholder: 'Add a country…',
+    maxOptions: 300,
+    onChange: function(val){
+        if (val) { addCountry(val); this.clear(true); }
+    },
+});
+
+/* ── Helper ─────────────────────────────────────────────────────── */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Default: P5 + USSR ─────────────────────────────────────────── */
+['USA', 'GBR', 'FRA', 'RUS', 'CHN', 'SUN'].forEach(addCountry);
+
+}());
+</script>
+{% endblock %}

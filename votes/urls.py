@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/pk/<int:pk>/similarity/', views.country_similarity_json_by_pk, name='country_similarity_json_by_pk'),
     path('bloc/<slug:slug>/', views.bloc_detail, name='bloc_detail'),
     path('ideal-points/', views.ideal_points_timeline, name='ideal_points'),
+    path('ideal-points/lines/', views.ideal_points_lines, name='ideal_points_lines'),
     path('cohesion/', views.cohesion_heatmap, name='cohesion'),
     path('vetoes/', views.veto_list, name='veto_list'),
     path('cosponsor-network/', views.cosponsor_network, name='cosponsor_network'),

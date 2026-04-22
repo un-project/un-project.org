@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS public.country_ideal_points (
     year        INTEGER NOT NULL,
     ideal_point DOUBLE PRECISION NOT NULL,
     se          DOUBLE PRECISION,
+    source      VARCHAR(32) NOT NULL DEFAULT 'computed_irt',
     UNIQUE (iso3, year)
 );
 
