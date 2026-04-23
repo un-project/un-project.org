@@ -23,6 +23,7 @@ urlpatterns = [
     path('countries/<str:iso3>/sc-reps/', views.country_sc_reps, name='country_sc_reps'),
     path('countries/<str:iso3>/ideal-points/', views.country_ideal_points, name='country_ideal_points'),
     path('countries/<str:iso3>/neighbours/', views.country_neighbours, name='country_neighbours'),
+    path('countries/<str:iso3>/issue-alignment/', views.country_issue_alignment, name='country_issue_alignment'),
     path('countries/<str:iso3>/alignment/', views.country_alignment, name='country_alignment'),
     # Meetings
     path('meetings/', views.meeting_list, name='meeting_list'),

@@ -1036,6 +1036,85 @@ def country_neighbours(request, iso3):
 
 
 @ratelimit(60, key_prefix='rl:api', json=True)
+def country_issue_alignment(request, iso3):
+    """Per-year yes-rate broken down by issue area, with optional rolling smoothing."""
+    get_object_or_404(Country, iso3=iso3)
+    smooth = max(1, min(int(request.GET.get('smooth', 5)), 15))
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            SELECT date_part('year', d.date)::int AS yr,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') THEN 1 END)        AS n_all,
+                COUNT(CASE WHEN cv.vote_position = 'yes' THEN 1 END)                          AS yes_all,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') AND r.issue_me THEN 1 END) AS n_me,
+                COUNT(CASE WHEN cv.vote_position = 'yes' AND r.issue_me THEN 1 END)           AS yes_me,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') AND r.issue_nu THEN 1 END) AS n_nu,
+                COUNT(CASE WHEN cv.vote_position = 'yes' AND r.issue_nu THEN 1 END)           AS yes_nu,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') AND r.issue_hr THEN 1 END) AS n_hr,
+                COUNT(CASE WHEN cv.vote_position = 'yes' AND r.issue_hr THEN 1 END)           AS yes_hr,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') AND r.issue_co THEN 1 END) AS n_co,
+                COUNT(CASE WHEN cv.vote_position = 'yes' AND r.issue_co THEN 1 END)           AS yes_co,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') AND r.issue_di THEN 1 END) AS n_di,
+                COUNT(CASE WHEN cv.vote_position = 'yes' AND r.issue_di THEN 1 END)           AS yes_di,
+                COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') AND r.issue_ec THEN 1 END) AS n_ec,
+                COUNT(CASE WHEN cv.vote_position = 'yes' AND r.issue_ec THEN 1 END)           AS yes_ec
+            FROM country_votes cv
+            JOIN votes v ON cv.vote_id = v.id
+            JOIN documents d ON v.document_id = d.id
+            JOIN resolutions r ON r.id = v.resolution_id
+            JOIN countries c ON c.id = cv.country_id
+            WHERE c.iso3 = %s
+              AND v.vote_scope = 'whole_resolution'
+              AND date_part('year', d.date) > 1945
+            GROUP BY yr
+            HAVING COUNT(CASE WHEN cv.vote_position IN ('yes','no','abstain') THEN 1 END) >= 5
+            ORDER BY yr
+            """,
+            [iso3],
+        )
+        rows = cur.fetchall()
+
+    AREAS = [
+        ('all',  1,  2),
+        ('me',   3,  4),
+        ('nu',   5,  6),
+        ('hr',   7,  8),
+        ('co',   9, 10),
+        ('di',  11, 12),
+        ('ec',  13, 14),
+    ]
+    MIN_VOTES = 3
+
+    def pct(n, yes):
+        return round(100.0 * yes / n, 1) if n >= MIN_VOTES else None
+
+    raw = {}
+    for row in rows:
+        yr = row[0]
+        raw[yr] = {area: pct(row[ni], row[yi]) for area, ni, yi in AREAS}
+
+    years = sorted(raw)
+
+    def rolling(area):
+        vals = [raw[y][area] for y in years]
+        result = {}
+        for i, yr in enumerate(years):
+            window = [v for v in vals[max(0, i - smooth + 1): i + 1] if v is not None]
+            result[yr] = round(sum(window) / len(window), 1) if window else None
+        return result
+
+    smoothed = {area: rolling(area) for area, _, _ in AREAS}
+
+    series = {
+        area: [{'year': yr, 'pct': smoothed[area][yr]} for yr in years]
+        for area, _, _ in AREAS
+    }
+
+    return JsonResponse({'iso3': iso3, 'smooth': smooth, 'series': series})
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
 def country_alignment(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     partner = request.GET.get('partner', '')

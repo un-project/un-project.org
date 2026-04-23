@@ -329,6 +329,18 @@
       <p id="nb-empty" class="meta" style="display:none;">No data for this year.</p>
     </div>
     {% endif %}
+
+    {% if country.iso3 %}
+    <div class="chart-box" style="margin-top:0.75rem; margin-bottom:0.5rem;">
+      <h3>Issue-area voting alignment
+        <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+          % yes votes by issue category · 5-year rolling average
+        </small>
+      </h3>
+      <div id="ia-chart"></div>
+      <div id="ia-legend" style="display:flex; flex-wrap:wrap; gap:0.45rem 1.1rem; margin-top:0.6rem; font-size:0.8rem;"></div>
+    </div>
+    {% endif %}
   </main>
 
 </div>
@@ -977,6 +989,153 @@
     if (!nbLoaded) { nbLoaded = true; load(parseInt(yearSel.value)); }
     if (origInit2) origInit2.apply(this, arguments);
   };
+}());
+</script>
+{% endif %}
+
+{% if country.iso3 %}
+<script>
+/* ── Issue-area voting alignment chart ─────────────────────────────── */
+(function () {
+  if (!document.getElementById('ia-chart')) return;
+  var ISO3 = '{{ country.iso3 }}';
+
+  var AREAS = [
+    {code:'all', label:'All votes',          color:'#888'},
+    {code:'me',  label:'Middle East',        color:'#c0392b'},
+    {code:'nu',  label:'Nuclear weapons',    color:'#2980b9'},
+    {code:'hr',  label:'Human rights',       color:'#8e44ad'},
+    {code:'co',  label:'Colonialism',        color:'#d35400'},
+    {code:'di',  label:'Disarmament',        color:'#27ae60'},
+    {code:'ec',  label:'Economic dev.',      color:'#f39c12'},
+  ];
+
+  var rendered = false;
+  var origInit3 = window._initVotingTab;
+  window._initVotingTab = function () {
+    if (!rendered) { rendered = true; loadAndRender(); }
+    if (origInit3) origInit3.apply(this, arguments);
+  };
+
+  function loadAndRender() {
+    fetch('/api/countries/' + ISO3 + '/issue-alignment/?smooth=5')
+      .then(function (r) { return r.json(); })
+      .then(function (data) { render(data.series); })
+      .catch(function () {});
+  }
+
+  function render(series) {
+    var container = document.getElementById('ia-chart');
+    if (!container || !window.d3) return;
+
+    /* Determine full year range from 'all' series */
+    var allPts = series['all'].filter(function (d) { return d.pct !== null; });
+    if (!allPts.length) return;
+
+    var W0 = container.clientWidth || 640;
+    var ml = 38, mr = 12, mt = 8, mb = 28;
+    var iW = W0 - ml - mr, iH = 160;
+
+    var xExt = d3.extent(allPts, function (d) { return d.year; });
+    var x = d3.scaleLinear().domain(xExt).range([0, iW]);
+    var y = d3.scaleLinear().domain([0, 100]).range([iH, 0]);
+
+    var svg = d3.select(container).append('svg')
+      .attr('width', W0).attr('height', iH + mt + mb);
+    var g = svg.append('g').attr('transform', 'translate(' + ml + ',' + mt + ')');
+
+    g.append('rect').attr('width', iW).attr('height', iH)
+      .attr('fill', 'var(--hover-bg, #f8f9fa)').attr('rx', 3);
+
+    /* Reference line at 50% */
+    g.append('line').attr('x1',0).attr('x2',iW)
+      .attr('y1',y(50)).attr('y2',y(50))
+      .attr('stroke','#ccc').attr('stroke-width',1).attr('stroke-dasharray','4 3');
+    g.append('text').attr('x',iW-2).attr('y',y(50)-4)
+      .attr('text-anchor','end').attr('font-size','0.65rem')
+      .attr('fill','#bbb').text('50%');
+
+    var lineGen = d3.line()
+      .defined(function (d) { return d.pct !== null; })
+      .x(function (d) { return x(d.year); })
+      .y(function (d) { return y(d.pct); })
+      .curve(d3.curveMonotoneX);
+
+    AREAS.forEach(function (a) {
+      var pts = series[a.code];
+      if (!pts || !pts.some(function (d) { return d.pct !== null; })) return;
+      g.append('path')
+        .datum(pts)
+        .attr('fill', 'none')
+        .attr('stroke', a.color)
+        .attr('stroke-width', a.code === 'all' ? 1.6 : 1.4)
+        .attr('stroke-dasharray', a.code === 'all' ? '5 3' : null)
+        .attr('opacity', a.code === 'all' ? 0.6 : 0.85)
+        .attr('d', lineGen);
+    });
+
+    /* X axis */
+    var xMin = xExt[0], firstDecade = Math.ceil(xMin / 10) * 10;
+    g.append('g').attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(d3.range(firstDecade, 2030, 10)).tickFormat(d3.format('d')).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); })
+      .selectAll('text').style('font-size','0.68rem').style('fill','var(--muted)');
+
+    /* Y axis — just 0, 50, 100 */
+    g.append('g')
+      .call(d3.axisLeft(y).tickValues([0, 50, 100]).tickFormat(function (d) { return d + '%'; }).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); })
+      .selectAll('text').style('font-size','0.68rem').style('fill','var(--muted)');
+
+    /* Hover tooltip */
+    var tip = d3.select(container).style('position','relative').append('div')
+      .style('position','absolute').style('pointer-events','none')
+      .style('background','rgba(0,0,0,0.8)').style('color','#fff')
+      .style('font-size','0.75rem').style('padding','0.25rem 0.55rem')
+      .style('border-radius','4px').style('display','none').style('line-height','1.7')
+      .style('white-space','nowrap');
+
+    var yearMap = {};
+    AREAS.forEach(function (a) {
+      (series[a.code] || []).forEach(function (d) {
+        if (!yearMap[d.year]) yearMap[d.year] = {};
+        yearMap[d.year][a.code] = d.pct;
+      });
+    });
+
+    g.append('rect').attr('width',iW).attr('height',iH)
+      .attr('fill','none').attr('pointer-events','all')
+      .on('mousemove', function (event) {
+        var yr = Math.round(x.invert(d3.pointer(event)[0]));
+        var row = yearMap[yr];
+        if (!row) return;
+        var lines = AREAS
+          .filter(function (a) { return row[a.code] !== null && row[a.code] !== undefined; })
+          .sort(function (a, b) { return (row[b.code] || 0) - (row[a.code] || 0); });
+        if (!lines.length) return;
+        tip.style('display','block')
+          .html('<strong>' + yr + '</strong><br>' + lines.map(function (a) {
+            return '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:' + a.color + ';margin-right:4px;vertical-align:middle;"></span>'
+              + a.label + ': <strong>' + row[a.code].toFixed(1) + '%</strong>';
+          }).join('<br>'))
+          .style('left', (ml + x(yr) + 8) + 'px')
+          .style('top', mt + 'px');
+      })
+      .on('mouseleave', function () { tip.style('display','none'); });
+
+    /* Legend */
+    var leg = document.getElementById('ia-legend');
+    if (leg) {
+      leg.innerHTML = AREAS.map(function (a) {
+        var hasPts = (series[a.code] || []).some(function (d) { return d.pct !== null; });
+        if (!hasPts) return '';
+        var dash = a.code === 'all' ? 'border-top:2px dashed ' + a.color + ';' : 'border-top:2px solid ' + a.color + ';';
+        return '<span style="display:inline-flex;align-items:center;gap:0.3rem;">'
+          + '<span style="width:18px;height:0;' + dash + 'flex-shrink:0;"></span>'
+          + a.label + '</span>';
+      }).join('');
+    }
+  }
 }());
 </script>
 {% endif %}

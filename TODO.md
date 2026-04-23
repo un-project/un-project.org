@@ -66,10 +66,12 @@ Tracked tasks and future features for the UN Project web application.
   overlay on a world map. Shows the Western bloc vs. G77/non-aligned movement shifting over
   time. Depends on canonical ideal point source.
 
-- [ ] **Issue-area ideal points** — the `important_vote`, `issue_me`, `issue_nu`, `issue_hr`
+- [x] **Issue-area ideal points** — the `important_vote`, `issue_me`, `issue_nu`, `issue_hr`
   columns on resolutions allow computing ideal points conditional on issue area. Separate
   timelines for "how aligned is country X on human rights votes" vs "disarmament votes" —
   much richer than a single dimension. Requires extractor work (filtered CSV per issue area).
+  *Implemented as per-issue-area yes-rate (5yr rolling avg) on country pages — full IRT
+  per issue area can replace this once extractor work is done.*
 
 - [ ] **"Similar countries" on country page** — top-5 most/least aligned countries from the
   precomputed alignment series, linking to the compare page. Data already computed.
