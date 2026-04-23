@@ -314,6 +314,20 @@
       </h3>
       <div id="ideal-point-chart"></div>
     </div>
+
+    <div class="chart-box" style="margin-top:0.75rem; margin-bottom:0.5rem;">
+      <h3>Closest neighbours
+        <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+          countries with the most similar voting alignment in a given year
+        </small>
+      </h3>
+      <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+        <label for="nb-year-select" style="font-size:0.85rem; color:var(--muted);">Year:</label>
+        <select id="nb-year-select" style="font-size:0.85rem;"></select>
+      </div>
+      <div id="nb-list" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
+      <p id="nb-empty" class="meta" style="display:none;">No data for this year.</p>
+    </div>
     {% endif %}
   </main>
 
@@ -855,6 +869,114 @@
       })
       .on('mouseleave', function () { tip.style('display', 'none'); });
   }
+}());
+</script>
+
+<script>
+/* ── Closest neighbours widget ─────────────────────────────────────── */
+(function () {
+  var RAW_NB = {{ ideal_points_json|safe }};
+  if (!RAW_NB.length) return;
+
+  var ISO3 = '{{ country.iso3 }}';
+  var yearSel = document.getElementById('nb-year-select');
+  var list    = document.getElementById('nb-list');
+  var empty   = document.getElementById('nb-empty');
+  if (!yearSel) return;
+
+  /* Populate year options — descending, only years that exist in RAW */
+  var years = RAW_NB.map(function (d) { return d.year; }).sort(function (a, b) { return b - a; });
+  years.forEach(function (yr) {
+    var opt = document.createElement('option');
+    opt.value = yr;
+    opt.textContent = yr;
+    yearSel.appendChild(opt);
+  });
+
+  function bar(centred) {
+    /* mini bar: width proportional to |centred|, capped at 80px each side */
+    var maxBar = 80;
+    var absMax = 3; /* typical range of re-centred values */
+    var px = Math.min(Math.abs(centred) / absMax * maxBar, maxBar);
+    var colour = centred >= 0 ? 'var(--un-blue, #1a6fa8)' : '#c0392b';
+    var bar = document.createElement('span');
+    bar.style.cssText = 'display:inline-block; height:8px; width:' + px + 'px; background:' + colour +
+      '; opacity:0.55; border-radius:2px; vertical-align:middle; margin:0 4px;';
+    return bar;
+  }
+
+  function load(year) {
+    list.innerHTML = '<span class="meta">Loading…</span>';
+    empty.style.display = 'none';
+    fetch('/api/countries/' + ISO3 + '/neighbours/?year=' + year + '&n=10')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        list.innerHTML = '';
+        if (!data.neighbours || !data.neighbours.length) {
+          empty.style.display = '';
+          return;
+        }
+        data.neighbours.forEach(function (nb) {
+          var row = document.createElement('div');
+          row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-size:0.87rem;';
+
+          var flag = document.createElement('img');
+          flag.src = '/static/flags/' + nb.iso3 + '.svg';
+          flag.alt = nb.iso3;
+          flag.style.cssText = 'width:22px; height:15px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;';
+          flag.onerror = function () { flag.style.display = 'none'; };
+
+          var name = document.createElement('a');
+          name.href = '/country/' + nb.iso3 + '/';
+          name.textContent = nb.name;
+          name.style.cssText = 'min-width:160px; color:inherit; text-decoration:none;';
+          name.onmouseenter = function () { name.style.textDecoration = 'underline'; };
+          name.onmouseleave = function () { name.style.textDecoration = 'none'; };
+
+          var mid = document.createElement('span');
+          mid.style.cssText = 'display:flex; align-items:center; gap:0; width:170px; justify-content:center;';
+          var leftSpacer = document.createElement('span');
+          leftSpacer.style.cssText = 'display:inline-block; width:80px; text-align:right;';
+          var rightSpacer = document.createElement('span');
+          rightSpacer.style.cssText = 'display:inline-block; width:80px;';
+          if (nb.centred_ip >= 0) {
+            leftSpacer.appendChild(document.createTextNode(''));
+            rightSpacer.appendChild(bar(nb.centred_ip));
+          } else {
+            leftSpacer.appendChild(bar(nb.centred_ip));
+            rightSpacer.appendChild(document.createTextNode(''));
+          }
+          mid.appendChild(leftSpacer);
+          var centre = document.createElement('span');
+          centre.style.cssText = 'width:1px; height:12px; background:var(--muted,#999); display:inline-block; flex-shrink:0;';
+          mid.appendChild(centre);
+          mid.appendChild(rightSpacer);
+
+          var val = document.createElement('span');
+          val.style.cssText = 'color:var(--muted); min-width:50px; text-align:right; font-variant-numeric:tabular-nums;';
+          val.textContent = (nb.centred_ip >= 0 ? '+' : '') + nb.centred_ip.toFixed(3);
+
+          row.appendChild(flag);
+          row.appendChild(name);
+          row.appendChild(mid);
+          row.appendChild(val);
+          list.appendChild(row);
+        });
+      })
+      .catch(function () {
+        list.innerHTML = '<span class="meta">Failed to load.</span>';
+      });
+  }
+
+  yearSel.addEventListener('change', function () { load(parseInt(yearSel.value)); });
+
+  /* Load on tab open, just like the ideal-point chart */
+  var nbLoaded = false;
+  var origInit2 = window._initVotingTab;
+  window._initVotingTab = function () {
+    if (!nbLoaded) { nbLoaded = true; load(parseInt(yearSel.value)); }
+    if (origInit2) origInit2.apply(this, arguments);
+  };
 }());
 </script>
 {% endif %}

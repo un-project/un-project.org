@@ -993,6 +993,49 @@ def country_ideal_points(request, iso3):
 
 
 @ratelimit(60, key_prefix='rl:api', json=True)
+def country_neighbours(request, iso3):
+    """Return the N countries with the closest ideal point to iso3 in a given year."""
+    get_object_or_404(Country, iso3=iso3)
+    try:
+        year = int(request.GET['year'])
+    except (KeyError, ValueError):
+        return JsonResponse({'error': 'year parameter required'}, status=400)
+    n = min(int(request.GET.get('n', 10)), 50)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            WITH mean AS (
+                SELECT AVG(ideal_point) AS m FROM country_ideal_points WHERE year = %s
+            ),
+            target AS (
+                SELECT ideal_point FROM country_ideal_points WHERE iso3 = %s AND year = %s
+            )
+            SELECT ip.iso3, c.name, ip.ideal_point - mean.m AS centred_ip,
+                   ABS(ip.ideal_point - t.ideal_point) AS dist
+            FROM country_ideal_points ip
+            JOIN countries c ON c.iso3 = ip.iso3
+            CROSS JOIN mean
+            JOIN target t ON true
+            WHERE ip.year = %s AND ip.iso3 != %s AND ip.ideal_point IS NOT NULL
+            ORDER BY dist
+            LIMIT %s
+            """,
+            [year, iso3, year, year, iso3, n],
+        )
+        rows = cursor.fetchall()
+
+    return JsonResponse({
+        'iso3': iso3,
+        'year': year,
+        'neighbours': [
+            {'iso3': r[0], 'name': r[1], 'centred_ip': round(float(r[2]), 4), 'dist': round(float(r[3]), 4)}
+            for r in rows
+        ],
+    })
+
+
+@ratelimit(60, key_prefix='rl:api', json=True)
 def country_alignment(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     partner = request.GET.get('partner', '')
