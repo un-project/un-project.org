@@ -1,16 +1,20 @@
 """
 Download speaker photos from Wikipedia and save to static/speakers/<id>.jpg.
 
+Processes speakers in descending order of speech count so the most prominent
+delegates are handled first. Role-only entries (The President, The Acting
+President, etc.) are skipped.
+
 Usage:
-    python scripts/fetch_speaker_photos.py [--force] [--limit N]
+    python scripts/fetch_speaker_photos.py [--force] [--limit N] [--dry-run]
 
 Options:
-    --force   Re-download even if the file already exists.
-    --limit N Process at most N speakers (useful for testing).
+    --force    Re-download even if the file already exists.
+    --limit N  Process at most N speakers (useful for testing).
+    --dry-run  Print what would be fetched without saving anything.
 
-Wikipedia REST API is used (no API key required). Requests are rate-limited
-to ~5/s to be polite. Only speakers whose Wikipedia page includes a thumbnail
-image will get a photo saved.
+Wikipedia REST summary API and MediaWiki search API are used (no key
+required). Requests are rate-limited to ~4/s to be polite.
 """
 import os
 import sys
@@ -28,26 +32,166 @@ import django
 django.setup()
 
 from django.conf import settings
+from django.db.models import Count
 from speakers.models import Speaker
 
 PHOTOS_DIR = os.path.join(settings.BASE_DIR, 'static', 'speakers')
 SUMMARY_API = 'https://en.wikipedia.org/api/rest_v1/page/summary/{}'
-HEADERS = {'User-Agent': 'UN-Project/1.0 (educational; contact via github)'}
-DELAY = 0.25  # seconds between requests
+SEARCH_API  = 'https://en.wikipedia.org/w/api.php'
+HEADERS     = {'User-Agent': 'UN-Project/1.0 (educational; github.com/un-project)'}
+DELAY       = 0.25  # seconds between requests
+
+# Speakers whose name is a role label, not a real person
+ROLE_NAMES = frozenset([
+    'The President',
+    'The Acting President',
+    'The Vice-President',
+    'The Chairman',
+    'The Acting Chairman',
+    'The Secretary-General',
+    'The Acting Secretary-General',
+    'NA',
+    'N/A',
+    'Unknown',
+])
+
+TITLE_PREFIXES = (
+    'Mr. ', 'Mrs. ', 'Ms. ', 'Miss ', 'Dr. ', 'Prof. ',
+    'Sir ', 'H.E. ', 'Lord ', 'Baron ', 'Prince ', 'Princess ',
+    'Ambassador ', 'Minister ',
+)
+
+# Keywords that strongly suggest the article is about a politician/diplomat
+DIPLOMAT_WORDS = frozenset([
+    'politician', 'diplomat', 'minister', 'ambassador', 'statesman',
+    'stateswoman', 'representative', 'delegate', 'official', 'secretary',
+    'chancellor', 'senator', 'member of parliament', 'envoy', 'consul',
+    'foreign minister', 'prime minister', 'head of state', 'head of government',
+    'attaché', 'chargé', 'un representative', 'united nations',
+    'permanent representative', 'deputy permanent', 'security council',
+    'general assembly', 'foreign affairs', 'ministry of foreign',
+])
+
+# Keywords that suggest the article is definitely NOT a UN diplomat
+EXCLUSION_WORDS = frozenset([
+    'athlete', 'footballer', 'soccer', 'basketball player', 'tennis player',
+    'boxer', 'wrestler', 'cricketer', 'rugby', 'racing driver', 'swimmer',
+    'sprinter', 'marathon', 'olympic', 'paralympic',
+    'actor', 'actress', 'singer', 'musician', 'rapper', 'guitarist',
+    'composer', 'conductor', 'violinist', 'pianist',
+    'novelist', 'author', 'poet', 'screenwriter',
+    'painter', 'sculptor', 'artist',
+    'television presenter', 'radio presenter', 'tv presenter',
+    'model', 'fashion',
+    'businessman', 'entrepreneur', 'ceo', 'executive',
+    'serial killer', 'criminal',
+])
 
 
-def fetch_summary(title):
-    url = SUMMARY_API.format(urllib.parse.quote(title, safe=''))
+def strip_title(name):
+    for prefix in TITLE_PREFIXES:
+        if name.startswith(prefix):
+            return name[len(prefix):]
+    return name
+
+
+def fetch_json(url, params=None):
+    if params:
+        url = url + '?' + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers=HEADERS)
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=12) as resp:
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return None
-        raise
+        return None
     except Exception:
         return None
+
+
+def fetch_summary(title):
+    """Fetch Wikipedia page summary by exact title."""
+    time.sleep(DELAY)
+    return fetch_json(SUMMARY_API.format(urllib.parse.quote(title, safe='')))
+
+
+def search_wikipedia(query, limit=5):
+    """Return list of article titles matching query via MediaWiki search."""
+    time.sleep(DELAY)
+    data = fetch_json(SEARCH_API, {
+        'action': 'query',
+        'list': 'search',
+        'srsearch': query,
+        'srlimit': limit,
+        'srnamespace': 0,
+        'format': 'json',
+    })
+    if not data:
+        return []
+    return [r['title'] for r in data.get('query', {}).get('search', [])]
+
+
+def is_valid_diplomat(summary, country_name=None):
+    """
+    Return True if the Wikipedia summary is plausibly about the right diplomat.
+
+    Checks:
+    1. Must be a standard article (not disambiguation).
+    2. Description or extract must contain at least one diplomat keyword.
+    3. Must not contain exclusion keywords (athlete, entertainer, etc.).
+    4. If country_name is supplied, at least one of description/extract must
+       mention the country (or a common demonym/adjective for it).
+    """
+    if not summary:
+        return False
+    if summary.get('type') != 'standard':
+        return False
+    title = (summary.get('title') or '').lower()
+    if 'disambiguation' in title:
+        return False
+
+    desc    = (summary.get('description') or '').lower()
+    extract = (summary.get('extract')     or '').lower()[:600]
+    combined = desc + ' ' + extract
+
+    # Hard reject: clearly not a diplomat
+    for word in EXCLUSION_WORDS:
+        if word in combined:
+            return False
+
+    # Must have at least one positive signal
+    has_diplomat_signal = any(w in combined for w in DIPLOMAT_WORDS)
+    if not has_diplomat_signal:
+        return False
+
+    # Country check — if we know the country, the article should mention it
+    if country_name:
+        country_lower = country_name.lower()
+        # Also accept common short forms (e.g. "United States of America" → "united states")
+        variants = [country_lower]
+        if 'united states of america' in country_lower:
+            variants += ['united states', 'american', 'u.s.']
+        elif 'united kingdom' in country_lower:
+            variants += ['british', 'england', 'uk']
+        elif 'russian federation' in country_lower:
+            variants += ['russia', 'russian', 'soviet']
+        elif 'china' in country_lower:
+            variants += ['chinese', "people's republic"]
+        elif 'france' in country_lower:
+            variants += ['french']
+        elif 'germany' in country_lower:
+            variants += ['german']
+
+        if not any(v in combined for v in variants):
+            return False
+
+    return True
+
+
+def best_thumbnail(summary):
+    img = summary.get('thumbnail') or summary.get('originalimage')
+    return img['source'] if img else None
 
 
 def download_image(url, dest_path):
@@ -62,72 +206,89 @@ def download_image(url, dest_path):
         return False
 
 
-TITLE_PREFIXES = ('Mr. ', 'Mrs. ', 'Ms. ', 'Dr. ', 'Prof. ', 'Sir ', 'H.E. ', 'Lord ')
-
-
-def strip_title(name):
-    for prefix in TITLE_PREFIXES:
-        if name.startswith(prefix):
-            return name[len(prefix):]
-    return name
-
-
-def candidate_titles(speaker):
-    """Generate Wikipedia article title candidates for a speaker."""
-    raw = speaker.name.strip()
-    name = strip_title(raw)
-    yield name
-    if name != raw:
-        yield raw  # also try with prefix, occasionally used
-    # Try with country context for common diplomatic roles
-    if speaker.country:
-        country = speaker.country.name
-        yield f"{name} (diplomat)"
-        yield f"{name} (politician)"
-        yield f"{name} ({country} politician)"
-
-
-def process_speaker(speaker, force=False):
+def process_speaker(speaker, force=False, dry_run=False):
     dest = os.path.join(PHOTOS_DIR, f'{speaker.pk}.jpg')
     if os.path.exists(dest) and not force:
         return 'skipped'
 
-    for title in candidate_titles(speaker):
-        time.sleep(DELAY)
-        data = fetch_summary(title)
-        if not data:
-            continue
-        # Confirm the page is about a person (not a disambiguation or place)
-        if data.get('type') not in ('standard', 'disambiguation'):
-            continue
-        thumbnail = data.get('thumbnail') or data.get('originalimage')
-        if not thumbnail:
-            continue
-        img_url = thumbnail['source']
-        # Convert to JPEG-compatible URL — Wikipedia serves .jpg for most portraits
-        if download_image(img_url, dest):
-            return f'saved ({title})'
+    name    = strip_title(speaker.name.strip())
+    country = speaker.country.name if speaker.country else None
+
+    # ── Candidate generation ──────────────────────────────────────
+    # Build a prioritised list of search queries.
+    queries = [name]
+    if country:
+        queries += [
+            f'{name} {country}',
+            f'{name} {country} diplomat',
+            f'{name} diplomat',
+            f'{name} politician',
+            f'{name} ambassador',
+        ]
+    else:
+        queries += [f'{name} diplomat', f'{name} politician']
+
+    # ── Try each query until we find a validated match ────────────
+    seen_titles = set()
+    for query in queries:
+        # Try direct title lookup first (fast, no extra request)
+        if query == name or query not in seen_titles:
+            summary = fetch_summary(query)
+            if summary and is_valid_diplomat(summary, country):
+                img_url = best_thumbnail(summary)
+                if img_url:
+                    if dry_run:
+                        return f'would save: {summary["title"]}'
+                    if download_image(img_url, dest):
+                        return f'saved ({summary["title"]})'
+
+        # Fall back to search API
+        titles = search_wikipedia(query, limit=3)
+        for title in titles:
+            if title in seen_titles:
+                continue
+            seen_titles.add(title)
+            summary = fetch_summary(title)
+            if summary and is_valid_diplomat(summary, country):
+                img_url = best_thumbnail(summary)
+                if img_url:
+                    if dry_run:
+                        return f'would save: {summary["title"]}'
+                    if download_image(img_url, dest):
+                        return f'saved ({summary["title"]})'
 
     return 'not found'
 
 
 def main():
     parser = argparse.ArgumentParser(description='Fetch speaker photos from Wikipedia.')
-    parser.add_argument('--force', action='store_true', help='Re-download existing photos.')
-    parser.add_argument('--limit', type=int, default=None, help='Process at most N speakers.')
+    parser.add_argument('--force',   action='store_true', help='Re-download existing photos.')
+    parser.add_argument('--dry-run', action='store_true', help='Print matches without saving.')
+    parser.add_argument('--limit',   type=int, default=None, help='Process at most N speakers.')
     args = parser.parse_args()
 
     os.makedirs(PHOTOS_DIR, exist_ok=True)
 
-    speakers = Speaker.objects.select_related('country').order_by('name')
+    # Most-prominent speakers first; skip pure role entries
+    speakers = (
+        Speaker.objects
+        .exclude(name__in=ROLE_NAMES)
+        .annotate(speech_count=Count('speeches'))
+        .filter(speech_count__gt=0)
+        .select_related('country')
+        .order_by('-speech_count', 'name')
+    )
     if args.limit:
         speakers = speakers[:args.limit]
 
-    total = speakers.count()
-    saved = skipped = not_found = 0
+    total     = speakers.count()
+    saved     = 0
+    skipped   = 0
+    not_found = 0
 
     for i, speaker in enumerate(speakers, 1):
-        result = process_speaker(speaker, force=args.force)
+        result = process_speaker(speaker, force=args.force, dry_run=args.dry_run)
+
         if result == 'skipped':
             skipped += 1
         elif result == 'not found':
@@ -136,12 +297,12 @@ def main():
             saved += 1
 
         if result != 'skipped':
-            status = f'[{i}/{total}] {speaker.name}: {result}'
-            print(status)
-        elif i % 100 == 0:
+            print(f'[{i}/{total}] {speaker.name} ({speaker.speech_count} speeches): {result}')
+        elif i % 200 == 0:
             print(f'[{i}/{total}] ... ({skipped} skipped so far)')
 
-    print(f'\nDone. Saved: {saved}, Not found: {not_found}, Skipped (already existed): {skipped}')
+    label = 'Would save' if args.dry_run else 'Saved'
+    print(f'\nDone. {label}: {saved}, Not found: {not_found}, Skipped: {skipped}')
 
 
 if __name__ == '__main__':

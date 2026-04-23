@@ -100,7 +100,29 @@ docker compose exec web python manage.py refresh_search_index --full
 
 The index is also refreshed automatically on every container start.
 
-### 7. Compute voting blocs (optional)
+### 7. Fetch speaker photos (optional)
+
+Download Wikipedia portrait photos for UN delegates and save them to `static/speakers/<id>.jpg`:
+
+```bash
+python scripts/fetch_speaker_photos.py
+```
+
+Speakers are processed in descending order of speech count so the most prominent delegates are handled first. Role-only entries (The President, The Acting President, etc.) are skipped automatically.
+
+The script validates each Wikipedia article before saving: it requires at least one diplomat keyword (minister, ambassador, delegate, …) in the description or extract, rejects non-diplomat matches (athletes, entertainers, …), and checks that the article mentions the speaker's country. A two-phase approach is used: direct title lookup first, then a MediaWiki search API fallback.
+
+Options:
+
+| Flag | Description |
+|------|-------------|
+| `--force` | Re-download even if the photo already exists |
+| `--limit N` | Process at most N speakers (useful for testing) |
+| `--dry-run` | Print what would be fetched without saving anything |
+
+Requests are rate-limited to ~4/s. A typical full run (several thousand speakers) takes 20–30 minutes. Re-run after any bulk speaker import to pick up new delegates.
+
+### 8. Compute voting blocs (optional)
 
 Populate the data-driven voting clusters shown on `/votes/blocs/`:
 
