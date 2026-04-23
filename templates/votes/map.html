@@ -348,15 +348,20 @@
     var c = a3 && countryByIso3[a3];
     if (!c) return;
     var label = c.name;
-    /* If hovering a territory that belongs to the selected historical state,
-       show the historical name alongside the modern one */
+    /* Territory of the selected historical state → show historical name */
     if (selectedIso3 && histToCurrent[selectedIso3] &&
         histToCurrent[selectedIso3].indexOf(a3) !== -1) {
       var hc = countryByIso3[selectedIso3];
       if (hc) label = hc.name + ' — ' + c.name;
     }
-    if (simScores[a3] !== undefined) {
-      label += ' — ' + Math.round(simScores[a3] * 100) + '%';
+    var ef = effectiveScore(a3);
+    if (ef) {
+      label += ' — ' + Math.round(ef.score * 100) + '%';
+      /* Inherited score: note the historical predecessor it came from */
+      if (ef.via !== a3) {
+        var vc = countryByIso3[ef.via];
+        if (vc) label += ' (via ' + vc.name + ')';
+      }
     }
     tooltip.textContent = label;
     tooltip.style.display = 'block';
@@ -387,6 +392,25 @@
     return '<img src="/static/flags/' + iso3 + '.svg" alt="">';
   }
 
+  /*
+   * For a given topojson polygon (current iso3), find the best available
+   * similarity score: direct, or inherited from a historical predecessor.
+   * Returns {score, via} or null.
+   */
+  function effectiveScore(a3) {
+    if (simScores[a3] !== undefined) return {score: simScores[a3], via: a3};
+    var preds = OVERLAPS[a3];
+    if (preds) {
+      for (var i = 0; i < preds.length; i++) {
+        var hist = preds[i];
+        if (hist !== a3 && simScores[hist] !== undefined) {
+          return {score: simScores[hist], via: hist};
+        }
+      }
+    }
+    return null;
+  }
+
   function countryFill(a3) {
     if (!a3) return '#e8e8e8';
     if (a3 === selectedIso3) return 'var(--un-blue, #1a6fa8)';
@@ -395,7 +419,8 @@
         histToCurrent[selectedIso3].indexOf(a3) !== -1) {
       return 'var(--un-blue, #1a6fa8)';
     }
-    if (simScores[a3] !== undefined) return colorScale(simScores[a3]);
+    var ef = effectiveScore(a3);
+    if (ef) return colorScale(ef.score);
     if (countryByIso3[a3]) return '#ccc';
     return '#e8e8e8';
   }
