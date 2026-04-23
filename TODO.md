@@ -76,7 +76,7 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **"Similar countries" on country page** — top-5 most/least aligned countries from the
   precomputed alignment series, linking to the compare page. Data already computed.
 
-- [ ] **Resolution search filters** — the main `/search/` page still lacks a resolution-only
+- [x] **Resolution search filters** — the main `/search/` page still lacks a resolution-only
   mode and date-range filter (resolution list sidebar already has text search).
 
 ## Future / Research

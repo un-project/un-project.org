@@ -3,14 +3,28 @@
 
 {% block extra_js %}
 <script>
-document.querySelector('form.filters').addEventListener('submit', function (e) {
-  e.preventDefault();
-  var params = new URLSearchParams();
-  new FormData(this).forEach(function (value, key) {
-    if (value) params.set(key, value);
+(function () {
+  var form       = document.querySelector('form.filters');
+  var typeSel    = document.getElementById('type-select');
+  var speechOnly = document.getElementById('speech-only-filters');
+
+  function updateVisibility() {
+    var t = typeSel ? typeSel.value : '';
+    if (speechOnly) speechOnly.style.display = (t === 'resolution') ? 'none' : '';
+  }
+
+  if (typeSel) typeSel.addEventListener('change', updateVisibility);
+  updateVisibility();
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var params = new URLSearchParams();
+    new FormData(this).forEach(function (value, key) {
+      if (value) params.set(key, value);
+    });
+    window.location = '/search/?' + params.toString();
   });
-  window.location = '/search/?' + params.toString();
-});
+}());
 </script>
 {% endblock %}
 
@@ -18,7 +32,14 @@ document.querySelector('form.filters').addEventListener('submit', function (e) {
 <h1>Search</h1>
 
 <form class="filters" method="get" action="/search/">
-  <input type="search" name="q" value="{{ query }}" placeholder="Search speeches…" style="flex:1; min-width:200px;">
+  <input type="search" name="q" value="{{ query }}"
+    placeholder="Search speeches and resolutions…" style="flex:1; min-width:200px;">
+
+  <select id="type-select" name="type">
+    <option value="">Speeches &amp; resolutions</option>
+    <option value="speech"     {% if current_type == "speech"     %}selected{% endif %}>Speeches only</option>
+    <option value="resolution" {% if current_type == "resolution" %}selected{% endif %}>Resolutions only</option>
+  </select>
 
   <select name="body">
     <option value="">All bodies</option>
@@ -26,19 +47,21 @@ document.querySelector('form.filters').addEventListener('submit', function (e) {
     <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
   </select>
 
-  <select name="country" data-searchable>
-    <option value="">All countries</option>
-    {% for c in countries %}
-    <option value="{{ c.pk }}" data-iso3="{{ c.iso3|default:'' }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-    {% endfor %}
-  </select>
+  <span id="speech-only-filters" style="display:contents;">
+    <select name="country" data-searchable>
+      <option value="">All countries</option>
+      {% for c in countries %}
+      <option value="{{ c.pk }}" data-iso3="{{ c.iso3|default:'' }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
 
-  <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country">
-    <option value="">All speakers</option>
-    {% if selected_speaker %}
-    <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>
-    {% endif %}
-  </select>
+    <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country">
+      <option value="">All speakers</option>
+      {% if selected_speaker %}
+      <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>
+      {% endif %}
+    </select>
+  </span>
 
   <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.88rem; color:var(--muted);">
     From <input type="date" name="date_from" value="{{ date_from }}" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:var(--radius); font-size:0.88rem;">
@@ -55,6 +78,8 @@ document.querySelector('form.filters').addEventListener('submit', function (e) {
   <p class="meta" style="margin-bottom:1rem;">
     {{ page.paginator.count }} result{{ page.paginator.count|pluralize }} for
     "<strong>{{ query }}</strong>"
+    {% if current_type == 'resolution' %}<span class="meta">&mdash; resolutions only</span>
+    {% elif current_type == 'speech' %}<span class="meta">&mdash; speeches only</span>{% endif %}
     <span style="font-size:0.82rem; margin-left:0.5rem; color:var(--muted);">
       — supports phrases <code>"like this"</code>, exclusions <code>-word</code>, and OR
     </span>
@@ -87,7 +112,11 @@ document.querySelector('form.filters').addEventListener('submit', function (e) {
   <div class="search-result search-result-resolution">
     <div style="display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap;">
       <span class="badge" style="background:var(--un-dark);">Resolution</span>
+      {% if result.document_slug %}
+      <a href="/votes/resolution/{{ result.document_slug }}/" style="font-weight:700; font-size:0.95rem;">{{ result.document_symbol }}</a>
+      {% else %}
       <strong style="font-size:0.95rem;">{{ result.document_symbol }}</strong>
+      {% endif %}
       {% if result.body %}<span class="badge badge-{{ result.body|lower }}">{{ result.body }}</span>{% endif %}
       {% if result.session %}<span class="meta">Session {{ result.session }}</span>{% endif %}
     </div>
@@ -104,6 +133,6 @@ document.querySelector('form.filters').addEventListener('submit', function (e) {
   {% endif %}
 
 {% else %}
-<p class="meta">Enter a search term above to find speeches and statements.</p>
+<p class="meta">Enter a search term above to find speeches and resolutions.</p>
 {% endif %}
 {% endblock %}

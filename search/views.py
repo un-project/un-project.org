@@ -21,6 +21,7 @@ def timeline(request):
 def search(request):
     query_str  = request.GET.get('q', '').strip()
     body       = request.GET.get('body', '')
+    item_type  = request.GET.get('type', '')   # '' | 'speech' | 'resolution'
     country_id = request.GET.get('country', '')
     speaker_id = request.GET.get('speaker', '')
     date_from  = request.GET.get('date_from', '').strip()
@@ -54,6 +55,8 @@ def search(request):
             .order_by('-rank')
         )
 
+        if item_type in ('speech', 'resolution'):
+            qs = qs.filter(item_type=item_type)
         if body in ('GA', 'SC'):
             qs = qs.filter(body=body)
         if country_id and country_id.isdigit():
@@ -89,6 +92,7 @@ def search(request):
         'query':            query_str,
         'page':             page,
         'current_body':     body,
+        'current_type':     item_type,
         'current_country':  country_id,
         'current_speaker':  speaker_id,
         'date_from':        date_from,
