@@ -251,6 +251,42 @@
       </h3>
       <div id="cv-issue-list"></div>
     </div>
+
+    {% if similar_most or similar_least %}
+    <div class="sidebar-box">
+      <h3>Similar countries <span style="font-size:0.7rem; font-weight:400; color:var(--muted);">all-time</span></h3>
+      {% if similar_most %}
+      <p style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); margin:0 0 0.35rem;">Most aligned</p>
+      <ul style="list-style:none; margin:0 0 0.75rem; padding:0; display:flex; flex-direction:column; gap:0.3rem;">
+        {% for s in similar_most %}
+        <li style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem;">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}"
+               style="width:20px; height:13px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;"
+               onerror="this.style.display='none'">
+          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}"
+             style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit;">{{ s.name }}</a>
+          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if similar_least %}
+      <p style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); margin:0 0 0.35rem;">Least aligned</p>
+      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.3rem;">
+        {% for s in similar_least %}
+        <li style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem;">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}"
+               style="width:20px; height:13px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;"
+               onerror="this.style.display='none'">
+          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}"
+             style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit;">{{ s.name }}</a>
+          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
   </aside>
 
   <main>

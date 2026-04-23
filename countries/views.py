@@ -107,6 +107,40 @@ def _render_country_detail(request, country):
     sponsored_page = sponsored_paginator.get_page(request.GET.get('sp_page'))
     sponsored_count = sponsored_paginator.count
 
+    # All-time most/least aligned countries (weighted avg over country_alignment_series)
+    similar_most = []
+    similar_least = []
+    if country.iso3:
+        _alignment_sql = """
+            SELECT c.iso3, COALESCE(c.short_name, c.name) AS label,
+                   SUM(cas.agreement_rate * cas.n_votes) / SUM(cas.n_votes) AS rate
+            FROM country_alignment_series cas
+            JOIN countries c ON (
+                CASE WHEN cas.country_id_a = %s THEN cas.country_id_b
+                     ELSE cas.country_id_a END = c.id
+            )
+            WHERE (cas.country_id_a = %s OR cas.country_id_b = %s)
+              AND cas.n_votes >= 5
+              AND c.iso3 IS NOT NULL
+            GROUP BY c.iso3, c.short_name, c.name
+            HAVING SUM(cas.n_votes) >= 50
+            ORDER BY rate {order}
+            LIMIT 5
+        """
+        with connection.cursor() as cur:
+            cur.execute(_alignment_sql.format(order='DESC'),
+                        [country.pk, country.pk, country.pk])
+            similar_most = [
+                {'iso3': r[0], 'name': r[1], 'rate': round(r[2] * 100, 1)}
+                for r in cur.fetchall()
+            ]
+            cur.execute(_alignment_sql.format(order='ASC'),
+                        [country.pk, country.pk, country.pk])
+            similar_least = [
+                {'iso3': r[0], 'name': r[1], 'rate': round(r[2] * 100, 1)}
+                for r in cur.fetchall()
+            ]
+
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
     debate_wc_url = f'/api/wordcloud/?source=debate&country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
@@ -141,6 +175,8 @@ def _render_country_detail(request, country):
         'debate_entries':       debate_entries,
         'debate_wc_url':        debate_wc_url,
         'historical_info':      HISTORICAL_INFO.get(country.iso3),
+        'similar_most':         similar_most,
+        'similar_least':        similar_least,
     })
 
 

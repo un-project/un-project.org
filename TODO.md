@@ -73,7 +73,7 @@ Tracked tasks and future features for the UN Project web application.
   *Implemented as per-issue-area yes-rate (5yr rolling avg) on country pages — full IRT
   per issue area can replace this once extractor work is done.*
 
-- [ ] **"Similar countries" on country page** — top-5 most/least aligned countries from the
+- [x] **"Similar countries" on country page** — top-5 most/least aligned countries from the
   precomputed alignment series, linking to the compare page. Data already computed.
 
 - [ ] **Resolution search filters** — the main `/search/` page still lacks a resolution-only
