@@ -264,8 +264,8 @@
    * — filtered to only those present in countryByIso3.
    */
   var OVERLAPS = {
-    /* Germany: unified (DEU) + East Germany (DDR) */
-    'DEU': ['DEU', 'DDR'],
+    /* Germany: unified (DEU) + East Germany (DDR) + West Germany (GER) */
+    'DEU': ['DEU', 'DDR', 'GER'],
     /* Ex-Soviet states: also offer USSR */
     'RUS': ['RUS','SUN'],
     'BLR': ['BLR','BYS','SUN'],
@@ -288,7 +288,26 @@
     'TZA': ['TZA','EAT','EAZ'],
     /* Burkina Faso (was Upper Volta) */
     'BFA': ['BFA','HVO'],
+    /* United Arab Republic (Egypt 1958–1971; Syria 1958–1961) */
+    'EGY': ['EGY','UAR'],
+    'SYR': ['SYR','UAR'],
   };
+
+  /*
+   * Reverse of OVERLAPS: historical iso3 → array of current iso3s whose
+   * topojson polygons cover that historical state's territory.
+   * Used to highlight the correct map regions when a historical country
+   * is selected (e.g. SUN selected → colour Russia, Ukraine, … blue).
+   */
+  var histToCurrent = {};
+  Object.keys(OVERLAPS).forEach(function (current) {
+    OVERLAPS[current].forEach(function (iso) {
+      if (iso !== current) {
+        if (!histToCurrent[iso]) histToCurrent[iso] = [];
+        histToCurrent[iso].push(current);
+      }
+    });
+  });
 
   /* ── Map setup ──────────────────────────────────────────────────── */
   var mapWrap = document.getElementById('map-wrap');
@@ -329,6 +348,13 @@
     var c = a3 && countryByIso3[a3];
     if (!c) return;
     var label = c.name;
+    /* If hovering a territory that belongs to the selected historical state,
+       show the historical name alongside the modern one */
+    if (selectedIso3 && histToCurrent[selectedIso3] &&
+        histToCurrent[selectedIso3].indexOf(a3) !== -1) {
+      var hc = countryByIso3[selectedIso3];
+      if (hc) label = hc.name + ' — ' + c.name;
+    }
     if (simScores[a3] !== undefined) {
       label += ' — ' + Math.round(simScores[a3] * 100) + '%';
     }
@@ -364,6 +390,11 @@
   function countryFill(a3) {
     if (!a3) return '#e8e8e8';
     if (a3 === selectedIso3) return 'var(--un-blue, #1a6fa8)';
+    /* Historical country selected: highlight all territories that covered it */
+    if (selectedIso3 && histToCurrent[selectedIso3] &&
+        histToCurrent[selectedIso3].indexOf(a3) !== -1) {
+      return 'var(--un-blue, #1a6fa8)';
+    }
     if (simScores[a3] !== undefined) return colorScale(simScores[a3]);
     if (countryByIso3[a3]) return '#ccc';
     return '#e8e8e8';
