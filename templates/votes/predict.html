@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}Vote Prediction{% endblock %}
+
+{% block extra_head %}
+<style>
+#pred-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+#pred-form .field { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 220px; }
+#pred-form label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+#pred-run { align-self: flex-end; padding: 0.45rem 1.1rem; }
+
+#pred-summary {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.pred-stat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.55rem 1rem;
+  font-size: 0.88rem;
+  background: #fff;
+  min-width: 100px;
+  text-align: center;
+}
+.pred-stat .n { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+.pred-stat.yes  .n { color: #2e7d32; }
+.pred-stat.abs  .n { color: #e65100; }
+.pred-stat.no   .n { color: #c62828; }
+.pred-stat .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
+
+#pred-table-wrap { overflow-x: auto; }
+#pred-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+#pred-table th {
+  text-align: left; padding: 0.4rem 0.6rem;
+  border-bottom: 2px solid var(--border);
+  font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+#pred-table th:hover { color: var(--text); }
+#pred-table td { padding: 0.32rem 0.6rem; border-bottom: 1px solid var(--hover-bg, #f5f5f5); }
+#pred-table tr:hover td { background: var(--hover-bg, #f5f5f5); }
+.pred-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pred-badge.yes     { background: #e8f5e9; color: #2e7d32; }
+.pred-badge.abstain { background: #fff3e0; color: #e65100; }
+.pred-badge.no      { background: #ffebee; color: #c62828; }
+.pred-badge.anchor  { outline: 2px solid currentColor; }
+
+.pbar {
+  display: inline-block; height: 8px; border-radius: 3px;
+  background: #ddd; vertical-align: middle;
+  overflow: hidden; position: relative; width: 80px;
+}
+.pbar-fill { height: 100%; border-radius: 3px; }
+
+#pred-loading { display: none; color: var(--muted); font-size: 0.9rem; margin: 1rem 0; }
+#pred-empty   { display: none; color: var(--muted); margin: 1rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Vote Prediction</h1>
+<p class="meta" style="margin-bottom:1.25rem;">
+  Given a set of countries expected to vote <strong>Yes</strong> or <strong>No</strong>,
+  this tool predicts how all other UN members will vote based on their
+  <a href="/votes/ideal-points/lines/">voting ideal points</a>.
+  The model fits a threshold between the two blocs and assigns each country a probability
+  of voting Yes. Useful for anticipating outcomes before a GA vote.
+</p>
+
+<div id="pred-form">
+  <div class="field">
+    <label for="yes-select">Known supporters (Yes)</label>
+    <select id="yes-select" multiple placeholder="Add countries…"></select>
+  </div>
+  <div class="field">
+    <label for="no-select">Known opponents (No)</label>
+    <select id="no-select" multiple placeholder="Add countries…"></select>
+  </div>
+  <button id="pred-run" class="button">Predict</button>
+</div>
+
+<p id="pred-loading">Computing predictions…</p>
+<p id="pred-empty">Select at least one country above and click Predict.</p>
+
+<div id="pred-results" style="display:none;">
+  <div id="pred-summary"></div>
+  <div class="chart-box" style="padding-bottom:1rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.5rem;">
+      <h3 style="margin:0;">Predicted votes
+        <small id="pred-year-label" style="font-size:0.72rem; font-weight:400; color:var(--muted);"></small>
+      </h3>
+      <div style="display:flex; gap:0.5rem; align-items:center; font-size:0.82rem; color:var(--muted);">
+        <label>Filter:
+          <select id="pred-filter" style="font-size:0.82rem; margin-left:0.3rem;">
+            <option value="">All</option>
+            <option value="yes">Yes</option>
+            <option value="abstain">Abstain</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div id="pred-table-wrap">
+      <table id="pred-table">
+        <thead>
+          <tr>
+            <th data-col="name">Country</th>
+            <th data-col="ideal_point">Ideal point</th>
+            <th data-col="p_yes" class="sorted-desc">P(Yes) ▾</th>
+            <th data-col="predicted">Predicted vote</th>
+          </tr>
+        </thead>
+        <tbody id="pred-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+'use strict';
+
+var ALL_COUNTRIES = {{ countries_json|safe }};
+
+/* ── Tom Select setup ─────────────────────────────────────────── */
+function makeSelect(id) {
+  var el = document.getElementById(id);
+  ALL_COUNTRIES.forEach(function (c) {
+    var opt = document.createElement('option');
+    opt.value = c.iso3;
+    opt.textContent = c.name;
+    el.appendChild(opt);
+  });
+  return new TomSelect(el, {
+    plugins: ['remove_button'],
+    placeholder: 'Add countries…',
+    maxOptions: 300,
+  });
+}
+
+var tsYes = makeSelect('yes-select');
+var tsNo  = makeSelect('no-select');
+
+/* ── Default anchors: Western P3 vs Eastern P2 ─────────────────── */
+['USA', 'GBR', 'FRA'].forEach(function (iso3) { tsYes.addItem(iso3, true); });
+['RUS', 'CHN'].forEach(function  (iso3) { tsNo.addItem(iso3, true); });
+
+/* ── State ────────────────────────────────────────────────────── */
+var sortCol = 'p_yes', sortAsc = false;
+var filterVal = '';
+var currentData = [];
+
+/* ── Run prediction ───────────────────────────────────────────── */
+document.getElementById('pred-run').addEventListener('click', runPrediction);
+
+function runPrediction() {
+  var yesVals = tsYes.getValue();
+  var noVals  = tsNo.getValue();
+  if (!yesVals.length && !noVals.length) {
+    document.getElementById('pred-empty').style.display = '';
+    document.getElementById('pred-results').style.display = 'none';
+    return;
+  }
+
+  var params = new URLSearchParams();
+  if (yesVals.length) params.set('yes', yesVals.join(','));
+  if (noVals.length)  params.set('no',  noVals.join(','));
+
+  document.getElementById('pred-loading').style.display = '';
+  document.getElementById('pred-results').style.display = 'none';
+  document.getElementById('pred-empty').style.display = 'none';
+
+  fetch('/api/vote-predict/?' + params.toString())
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      document.getElementById('pred-loading').style.display = 'none';
+      if (data.error) { alert(data.error); return; }
+      currentData = data.predictions;
+      document.getElementById('pred-year-label').textContent = 'based on ' + data.year + ' ideal points';
+      renderSummary(data.predictions);
+      renderTable(data.predictions);
+      document.getElementById('pred-results').style.display = '';
+    })
+    .catch(function () {
+      document.getElementById('pred-loading').style.display = 'none';
+      alert('Failed to fetch predictions.');
+    });
+}
+
+/* ── Summary bar ──────────────────────────────────────────────── */
+function renderSummary(preds) {
+  var counts = {yes: 0, abstain: 0, no: 0};
+  preds.forEach(function (p) { counts[p.predicted] = (counts[p.predicted] || 0) + 1; });
+  var total = preds.length;
+  document.getElementById('pred-summary').innerHTML =
+    ['yes', 'abstain', 'no'].map(function (v) {
+      var n = counts[v] || 0;
+      var pct = total ? Math.round(n / total * 100) : 0;
+      var labels = {yes: 'Predicted Yes', abstain: 'Abstain', no: 'Predicted No'};
+      return '<div class="pred-stat ' + v + '">'
+        + '<div class="n">' + n + '</div>'
+        + '<div class="lbl">' + labels[v] + ' (' + pct + '%)</div>'
+        + '</div>';
+    }).join('');
+}
+
+/* ── Table ────────────────────────────────────────────────────── */
+document.getElementById('pred-filter').addEventListener('change', function () {
+  filterVal = this.value;
+  renderTable(currentData);
+});
+
+document.querySelectorAll('#pred-table th[data-col]').forEach(function (th) {
+  th.addEventListener('click', function () {
+    var col = this.dataset.col;
+    if (sortCol === col) { sortAsc = !sortAsc; }
+    else { sortCol = col; sortAsc = col === 'name'; }
+    document.querySelectorAll('#pred-table th').forEach(function (h) {
+      h.textContent = h.textContent.replace(' ▴', '').replace(' ▾', '');
+      h.classList.remove('sorted-asc', 'sorted-desc');
+    });
+    this.textContent += sortAsc ? ' ▴' : ' ▾';
+    this.classList.add(sortAsc ? 'sorted-asc' : 'sorted-desc');
+    renderTable(currentData);
+  });
+});
+
+function renderTable(preds) {
+  var filtered = filterVal ? preds.filter(function (p) { return p.predicted === filterVal; }) : preds;
+
+  var sorted = filtered.slice().sort(function (a, b) {
+    var av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return sortAsc ? av - bv : bv - av;
+  });
+
+  var ORDER = {yes: 0, abstain: 1, no: 2};
+  if (sortCol === 'predicted') {
+    sorted.sort(function (a, b) {
+      var d = ORDER[a.predicted] - ORDER[b.predicted];
+      return sortAsc ? d : -d;
+    });
+  }
+
+  var rows = sorted.map(function (p) {
+    var pct = Math.round(p.p_yes * 100);
+    var fillColor = p.p_yes >= 0.60 ? '#2e7d32' : (p.p_yes <= 0.40 ? '#c62828' : '#e65100');
+    var anchorClass = p.anchor ? ' anchor' : '';
+    return '<tr>'
+      + '<td style="white-space:nowrap;">'
+        + '<img src="/static/flags/' + esc(p.iso3) + '.svg" alt="" '
+        + 'style="width:20px;height:13px;object-fit:cover;border:1px solid #ddd;vertical-align:middle;margin-right:6px;" '
+        + 'onerror="this.style.display=\'none\'">'
+        + '<a href="/country/' + esc(p.iso3) + '/" style="color:inherit;">' + esc(p.name) + '</a>'
+      + '</td>'
+      + '<td style="font-variant-numeric:tabular-nums; text-align:right; padding-right:1rem;">'
+        + (p.ideal_point >= 0 ? '+' : '') + p.ideal_point.toFixed(3)
+      + '</td>'
+      + '<td style="white-space:nowrap;">'
+        + '<span class="pbar"><span class="pbar-fill" style="width:' + pct + '%;background:' + fillColor + ';"></span></span>'
+        + ' <span style="font-variant-numeric:tabular-nums;">' + pct + '%</span>'
+      + '</td>'
+      + '<td><span class="pred-badge ' + p.predicted + anchorClass + '">' + p.predicted + '</span></td>'
+      + '</tr>';
+  }).join('');
+
+  document.getElementById('pred-tbody').innerHTML = rows || '<tr><td colspan="4" class="meta" style="padding:0.75rem;">No results.</td></tr>';
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── Auto-run with defaults ───────────────────────────────────── */
+runPrediction();
+
+}());
+</script>
+{% endblock %}

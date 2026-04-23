@@ -1160,6 +1160,26 @@ def ideal_points_timeline(request):
     })
 
 
+def vote_predict(request):
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT COALESCE(c.short_name, c.name), c.iso3
+            FROM countries c
+            WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM country_ideal_points)
+            ORDER BY COALESCE(c.short_name, c.name)
+        """)
+        countries = [{'name': r[0], 'iso3': r[1]} for r in cur.fetchall()]
+
+    return render(request, 'votes/predict.html', {
+        'countries_json': json.dumps(countries),
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Vote Prediction', 'url': None},
+        ],
+    })
+
+
 def p5_divergence(request):
     P5 = [
         ('USA', 'United States',  '#1a6fa8', 'west'),

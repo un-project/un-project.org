@@ -1462,6 +1462,90 @@ def bubble_chart_data(request):
 
 # ── Ideal-point yearly mean (for re-centring) ──────────────────────────────────
 
+@ratelimit(60, key_prefix='rl:api', json=True)
+def vote_predict(request):
+    """
+    Predict votes using a simple IRT-style threshold model.
+    Params: yes=ISO3,ISO3,...  no=ISO3,...  year=YYYY (optional)
+    """
+    yes_iso3s = [s.strip().upper() for s in request.GET.get('yes', '').split(',') if s.strip()]
+    no_iso3s  = [s.strip().upper() for s in request.GET.get('no',  '').split(',') if s.strip()]
+
+    if not yes_iso3s and not no_iso3s:
+        return JsonResponse({'error': 'Provide at least one yes= or no= country'}, status=400)
+
+    year_raw = request.GET.get('year', '').strip()
+    with connection.cursor() as cur:
+        if year_raw.isdigit():
+            year = int(year_raw)
+        else:
+            cur.execute('SELECT MAX(year) FROM country_ideal_points')
+            year = cur.fetchone()[0]
+
+        cur.execute(
+            """
+            SELECT ip.iso3, COALESCE(c.short_name, c.name),
+                   ip.ideal_point - m.mean_ip AS centred
+            FROM country_ideal_points ip
+            JOIN countries c ON c.iso3 = ip.iso3
+            JOIN (
+                SELECT year, AVG(ideal_point) AS mean_ip
+                FROM country_ideal_points WHERE ideal_point IS NOT NULL GROUP BY year
+            ) m ON m.year = ip.year
+            WHERE ip.year = %s AND ip.ideal_point IS NOT NULL
+            ORDER BY centred DESC
+            """,
+            [year],
+        )
+        all_rows = cur.fetchall()
+
+    ip_map = {r[0]: (r[1], float(r[2])) for r in all_rows}
+
+    yes_ips = [ip_map[iso3][1] for iso3 in yes_iso3s if iso3 in ip_map]
+    no_ips  = [ip_map[iso3][1] for iso3 in no_iso3s  if iso3 in ip_map]
+
+    # Estimate threshold β and discrimination α
+    mean_yes = sum(yes_ips) / len(yes_ips) if yes_ips else None
+    mean_no  = sum(no_ips)  / len(no_ips)  if no_ips  else None
+
+    if mean_yes is not None and mean_no is not None:
+        beta = (mean_yes + mean_no) / 2.0
+        sep  = mean_yes - mean_no
+        alpha = max(1.0, min(5.0, 2.8 / max(abs(sep), 0.3)))
+    elif mean_yes is not None:
+        beta  = mean_yes - 0.5
+        alpha = 2.0
+    else:
+        beta  = mean_no + 0.5
+        alpha = 2.0
+
+    anchors = set(yes_iso3s) | set(no_iso3s)
+    predictions = []
+    for iso3, (name, ip) in ip_map.items():
+        p = 1.0 / (1.0 + math.exp(-alpha * (ip - beta)))
+        if iso3 in yes_iso3s:
+            predicted = 'yes'
+        elif iso3 in no_iso3s:
+            predicted = 'no'
+        else:
+            predicted = 'yes' if p >= 0.60 else ('no' if p <= 0.40 else 'abstain')
+        predictions.append({
+            'iso3': iso3,
+            'name': name,
+            'ideal_point': round(ip, 4),
+            'p_yes': round(p, 3),
+            'predicted': predicted,
+            'anchor': iso3 in anchors,
+        })
+
+    return JsonResponse({
+        'year': year,
+        'beta': round(beta, 4),
+        'alpha': round(alpha, 4),
+        'predictions': predictions,
+    })
+
+
 def ideal_points_yearly_mean(request):
     with connection.cursor() as cur:
         cur.execute("""

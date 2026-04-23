@@ -81,7 +81,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Future / Research
 
-- [ ] **Vote prediction** — given a new resolution and its sponsoring bloc, predict each
+- [x] **Vote prediction** — given a new resolution and its sponsoring bloc, predict each
   country's vote from its current ideal point. Useful as a "before the vote" feature during
   live GA sessions.
 
