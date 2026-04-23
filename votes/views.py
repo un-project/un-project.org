@@ -1160,6 +1160,56 @@ def ideal_points_timeline(request):
     })
 
 
+def p5_divergence(request):
+    P5 = [
+        ('USA', 'United States',  '#1a6fa8', 'west'),
+        ('GBR', 'United Kingdom', '#2196a0', 'west'),
+        ('FRA', 'France',         '#3aab5c', 'west'),
+        ('RUS', 'Russia',         '#c0392b', 'east'),
+        ('CHN', 'China',          '#e67e22', 'east'),
+        ('SUN', 'USSR',           '#922b21', 'east'),
+    ]
+    iso3s = [r[0] for r in P5]
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            SELECT ip.iso3, ip.year,
+                   ip.ideal_point - m.mean_ip AS centred
+            FROM country_ideal_points ip
+            JOIN (
+                SELECT year, AVG(ideal_point) AS mean_ip
+                FROM country_ideal_points
+                WHERE ideal_point IS NOT NULL
+                GROUP BY year
+            ) m ON m.year = ip.year
+            WHERE ip.iso3 = ANY(%s) AND ip.ideal_point IS NOT NULL
+            ORDER BY ip.iso3, ip.year
+            """,
+            [iso3s],
+        )
+        rows = cur.fetchall()
+
+    by_iso3 = {}
+    for iso3, year, centred in rows:
+        by_iso3.setdefault(iso3, []).append({'year': year, 'ip': round(float(centred), 4)})
+
+    series = [
+        {'iso3': iso3, 'label': label, 'color': color, 'group': group,
+         'points': by_iso3.get(iso3, [])}
+        for iso3, label, color, group in P5
+    ]
+
+    return render(request, 'votes/p5_divergence.html', {
+        'series_json': json.dumps(series),
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'P5 Divergence', 'url': None},
+        ],
+    })
+
+
 def bloc_detail(request, slug):
     bloc = COALITIONS_BY_SLUG.get(slug)
     if not bloc:

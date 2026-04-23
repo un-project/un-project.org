@@ -38,12 +38,12 @@ Tracked tasks and future features for the UN Project web application.
   1946 to today. The `bsv2017_mcmc` values match Voeten's scale (mean=0, std=1) so they're
   directly comparable to published political science literature.
 
-- [ ] **"Closest neighbours" widget** — for any country in any year, query
+- [x] **"Closest neighbours" widget** — for any country in any year, query
   `country_ideal_points` for the N countries with the smallest `|ip - X|`. Shows which
   countries were most aligned in a given GA session. Cheap to compute at request time; could
   live on the country profile page or the compare page.
 
-- [ ] **P5 divergence chart** — dedicated chart showing USA/UK/France vs Russia/China ideal
+- [x] **P5 divergence chart** — dedicated chart showing USA/UK/France vs Russia/China ideal
   points drifting apart over time. Good homepage or "About the data" visual that immediately
   explains the site's value proposition.
 

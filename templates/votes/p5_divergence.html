@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block title %}P5 Divergence — UN Voting Ideal Points{% endblock %}
+
+{% block extra_head %}
+<style>
+#p5-wrap {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: visible;
+}
+#p5-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.p5-line { fill: none; }
+.p5-crosshair { stroke: #bbb; stroke-width: 1px; stroke-dasharray: 3 3; pointer-events: none; }
+#p5-tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+  display: none;
+  z-index: 200;
+  line-height: 1.8;
+  min-width: 200px;
+}
+#p5-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1rem;
+}
+.p5-legend-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.p5-legend-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.p5-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+}
+.p5-legend-swatch {
+  width: 24px; height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>P5 Divergence</h1>
+<p class="meta" style="margin-bottom:1rem;">
+  UN voting ideal points for the five permanent Security Council members, estimated using the
+  <a href="https://erikvoeten.com/data-and-software/" target="_blank" rel="noopener">Bailey, Strezhnev &amp; Voeten (2017)</a>
+  model. Values are re-centred each year so 0 = the global average across all UN members.
+  Positive = more aligned with the Western liberal bloc; negative = more opposing.
+  The chart shows how the Western P3 (USA, UK, France) and Eastern P2 (Russia/USSR, China)
+  have drifted apart — and occasionally converged — since 1946.
+</p>
+
+<div id="p5-wrap">
+  <svg id="p5-svg" viewBox="0 0 860 420" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>
+  <div id="p5-tooltip"></div>
+</div>
+
+<div id="p5-legend"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+'use strict';
+
+var SERIES = {{ series_json|safe }};
+
+/* Index by iso3 for tooltip lookups */
+var byIso3 = {};
+SERIES.forEach(function(s){ byIso3[s.iso3] = s; });
+
+/* ── Layout ────────────────────────────────────────────────────── */
+var M = {top: 24, right: 72, bottom: 44, left: 52};
+var VW = 860, VH = 420;
+var W = VW - M.left - M.right;
+var H = VH - M.top  - M.bottom;
+
+var svg = d3.select('#p5-svg');
+var g   = svg.append('g').attr('transform', 'translate(' + M.left + ',' + M.top + ')');
+
+/* ── Scales ────────────────────────────────────────────────────── */
+var allYears = [];
+SERIES.forEach(function(s){ s.points.forEach(function(p){ allYears.push(p.year); }); });
+var yMin = d3.min(allYears), yMax = d3.max(allYears);
+
+var xSc = d3.scaleLinear().domain([yMin, yMax + 1]).range([0, W]);
+
+var allIPs = [];
+SERIES.forEach(function(s){ s.points.forEach(function(p){ allIPs.push(p.ip); }); });
+var ipExtent = d3.extent(allIPs);
+var ipPad = Math.ceil(Math.max(Math.abs(ipExtent[0]), Math.abs(ipExtent[1])) * 1.12);
+var ySc = d3.scaleLinear().domain([-ipPad, ipPad]).range([H, 0]);
+
+/* ── Grid / axes ───────────────────────────────────────────────── */
+var xAxisG = g.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + H + ')')
+    .call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(12));
+xAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
+xAxisG.select('.domain').attr('stroke', '#ccc');
+xAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+
+var yAxisG = g.append('g').attr('class', 'y-axis')
+    .call(d3.axisLeft(ySc).tickSize(-W).ticks(8));
+yAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
+yAxisG.select('.domain').attr('stroke', '#ccc');
+yAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+
+/* ── Axis labels ───────────────────────────────────────────────── */
+g.append('text').attr('x', W/2).attr('y', H + 38)
+    .attr('text-anchor','middle').attr('font-size','12px').attr('fill','#555').text('Year');
+g.append('text').attr('transform','rotate(-90)').attr('x',-(H/2)).attr('y',-40)
+    .attr('text-anchor','middle').attr('font-size','12px').attr('fill','#555').text('UN Ideal Point (re-centred)');
+
+/* ── Zero line ─────────────────────────────────────────────────── */
+g.append('line')
+    .attr('x1',0).attr('x2',W)
+    .attr('y1',ySc(0)).attr('y2',ySc(0))
+    .attr('stroke','#ccc').attr('stroke-width',1.2).attr('stroke-dasharray','5 3');
+
+g.append('text')
+    .attr('x', W + 4).attr('y', ySc(0) + 4)
+    .attr('font-size', '10px').attr('fill', '#aaa').text('avg');
+
+/* ── Divergence band (mean of west group vs mean of east group) ── */
+(function() {
+    var westSeries = SERIES.filter(function(s){ return s.group === 'west'; });
+    var eastSeries = SERIES.filter(function(s){ return s.group === 'east'; });
+
+    /* Collect all years present in at least one east AND one west series */
+    var yearSet = {};
+    SERIES.forEach(function(s){ s.points.forEach(function(p){ yearSet[p.year] = true; }); });
+    var years = Object.keys(yearSet).map(Number).sort(d3.ascending);
+
+    var bandData = years.map(function(yr){
+        var wVals = westSeries.map(function(s){
+            var pt = s.points.find(function(p){ return p.year === yr; });
+            return pt ? pt.ip : null;
+        }).filter(function(v){ return v !== null; });
+
+        var eVals = eastSeries.map(function(s){
+            var pt = s.points.find(function(p){ return p.year === yr; });
+            return pt ? pt.ip : null;
+        }).filter(function(v){ return v !== null; });
+
+        if (!wVals.length || !eVals.length) return null;
+        var wMean = d3.mean(wVals);
+        var eMean = d3.mean(eVals);
+        return {year: yr, w: wMean, e: eMean};
+    }).filter(Boolean);
+
+    /* Shaded gap between the two group means */
+    g.append('path')
+        .datum(bandData)
+        .attr('fill', '#dce8f5').attr('opacity', 0.55)
+        .attr('d', d3.area()
+            .defined(function(d){ return d !== null; })
+            .x(function(d){ return xSc(d.year); })
+            .y0(function(d){ return ySc(Math.min(d.w, d.e)); })
+            .y1(function(d){ return ySc(Math.max(d.w, d.e)); })
+            .curve(d3.curveMonotoneX));
+}());
+
+/* ── Key event annotations ─────────────────────────────────────── */
+var EVENTS = [
+    {year: 1950, label: 'Korean War', dy: -14},
+    {year: 1973, label: 'NIEO debate', dy: -14},
+    {year: 1991, label: 'USSR dissolved', dy: -14},
+    {year: 2003, label: 'Iraq War', dy: -14},
+];
+
+EVENTS.forEach(function(ev){
+    var x0 = xSc(ev.year);
+    g.append('line')
+        .attr('x1', x0).attr('x2', x0).attr('y1', 0).attr('y2', H)
+        .attr('stroke', '#bbb').attr('stroke-width', 1)
+        .attr('stroke-dasharray', '2 4').attr('pointer-events', 'none');
+    g.append('text')
+        .attr('x', x0 + 3).attr('y', ev.dy < 0 ? 12 : H - 6)
+        .attr('font-size', '9.5px').attr('fill', '#999')
+        .attr('pointer-events', 'none')
+        .text(ev.label);
+});
+
+/* ── Lines ─────────────────────────────────────────────────────── */
+var lineGen = d3.line()
+    .defined(function(d){ return d.ip !== null; })
+    .x(function(d){ return xSc(d.year); })
+    .y(function(d){ return ySc(d.ip); })
+    .curve(d3.curveMonotoneX);
+
+SERIES.forEach(function(s){
+    var isDashed = s.iso3 === 'SUN'; /* USSR ends 1991 */
+    g.append('path')
+        .datum(s.points)
+        .attr('class', 'p5-line')
+        .attr('stroke', s.color)
+        .attr('stroke-width', s.group === 'west' ? 2.2 : 2.2)
+        .attr('stroke-dasharray', isDashed ? '6 3' : null)
+        .attr('opacity', isDashed ? 0.7 : 1)
+        .attr('d', lineGen);
+
+    /* End-of-line label */
+    var pts = s.points.filter(function(p){ return p.ip !== null; });
+    if (pts.length) {
+        var last = pts[pts.length - 1];
+        g.append('text')
+            .attr('x', xSc(last.year) + 5)
+            .attr('y', ySc(last.ip) + 4)
+            .attr('font-size', '11px').attr('font-weight', '700')
+            .attr('fill', s.color)
+            .text(s.iso3 === 'SUN' ? 'USSR' : s.iso3);
+    }
+});
+
+/* ── Crosshair ─────────────────────────────────────────────────── */
+var crosshair = g.append('line').attr('class','p5-crosshair')
+    .attr('y1',0).attr('y2',H).style('display','none');
+
+/* ── Tooltip ───────────────────────────────────────────────────── */
+var tip = document.getElementById('p5-tooltip');
+
+g.append('rect')
+    .attr('width', W).attr('height', H)
+    .attr('fill', 'none').attr('pointer-events', 'all')
+    .on('mousemove', function(event){
+        var mx   = d3.pointer(event, g.node())[0];
+        var year = Math.round(xSc.invert(mx));
+        crosshair.style('display', null).attr('x1', xSc(year)).attr('x2', xSc(year));
+
+        var lines = SERIES.map(function(s){
+            var pt = s.points.find(function(p){ return p.year === year; });
+            return {label: s.label, iso3: s.iso3, color: s.color, ip: pt ? pt.ip : null};
+        }).filter(function(d){ return d.ip !== null; })
+          .sort(function(a,b){ return b.ip - a.ip; });
+
+        if (!lines.length) { tip.style.display = 'none'; return; }
+
+        tip.innerHTML = '<strong style="font-size:0.88rem;">' + year + '</strong><br>'
+            + lines.map(function(d){
+                return '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;'
+                    + 'background:' + d.color + ';margin-right:5px;vertical-align:middle;"></span>'
+                    + esc(d.label) + ': <strong>'
+                    + (d.ip >= 0 ? '+' : '') + d.ip.toFixed(3) + '</strong>';
+            }).join('<br>');
+        tip.style.display = 'block';
+        tip.style.left = (event.clientX + 16) + 'px';
+        tip.style.top  = (event.clientY - 10) + 'px';
+    })
+    .on('mouseleave', function(){
+        crosshair.style('display','none');
+        tip.style.display = 'none';
+    });
+
+/* ── Legend ─────────────────────────────────────────────────────── */
+(function(){
+    var west = SERIES.filter(function(s){ return s.group === 'west'; });
+    var east = SERIES.filter(function(s){ return s.group === 'east'; });
+    var leg  = document.getElementById('p5-legend');
+
+    function groupHTML(title, series) {
+        return '<div class="p5-legend-group">'
+            + '<span class="p5-legend-title">' + esc(title) + '</span>'
+            + series.map(function(s){
+                var dashed = s.iso3 === 'SUN'
+                    ? 'background:repeating-linear-gradient(to right,' + s.color + ' 0px,' + s.color + ' 6px,transparent 6px,transparent 9px);'
+                    : 'background:' + s.color + ';';
+                return '<span class="p5-legend-item">'
+                    + '<span class="p5-legend-swatch" style="' + dashed + '"></span>'
+                    + esc(s.label) + (s.iso3 === 'SUN' ? ' <span style="font-size:0.75em;color:var(--muted);">(1946–1991)</span>' : '')
+                    + '</span>';
+            }).join('')
+            + '</div>';
+    }
+
+    leg.innerHTML = groupHTML('Western P3', west) + groupHTML('Eastern P2', east);
+}());
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+}());
+</script>
+{% endblock %}
