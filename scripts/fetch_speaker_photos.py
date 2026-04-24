@@ -17,6 +17,7 @@ Wikipedia REST summary API and MediaWiki search API are used (no key
 required). Requests are rate-limited to ~4/s to be polite.
 """
 import os
+import re
 import sys
 import time
 import json
@@ -70,6 +71,9 @@ DIPLOMAT_WORDS = frozenset([
     'attaché', 'chargé', 'un representative', 'united nations',
     'permanent representative', 'deputy permanent', 'security council',
     'general assembly', 'foreign affairs', 'ministry of foreign',
+    'civil servant', 'foreign service', 'foreign secretary',
+    'under-secretary', 'high commissioner', 'special representative',
+    'special envoy', 'deputy minister', 'state secretary',
 ])
 
 # Countries whose demonym does NOT contain the country name as a substring.
@@ -106,7 +110,7 @@ COUNTRY_DEMONYMS = {
     'turkey':                     ['turkish'],
     'türkiye':                    ['turkish'],
     'ukraine':                    ['ukrainian'],
-    'united kingdom':             ['british', 'english', 'uk'],
+    'united kingdom':             ['british', 'english', 'welsh', 'scottish', 'uk'],
     'united states':              ['american', 'u.s.'],
     'united states of america':   ['american', 'u.s.'],
     'china':                      ['chinese'],
@@ -127,6 +131,14 @@ EXCLUSION_WORDS = frozenset([
     'businessman', 'entrepreneur', 'ceo', 'executive',
     'serial killer', 'criminal',
 ])
+
+# Image filenames that are definitely not portraits (skip during article scan)
+_IMAGE_SKIP_RE = re.compile(
+    r'^(?:flag|map|coat|emblem|icon|logo|seal|symbol|blank|locator|'
+    r'commons|wikimedia|globe|arrow|gnome|bullet|crystal|nuvola|'
+    r'question|edit|cscr|featured|sound|audio|video|pictogram)',
+    re.IGNORECASE,
+)
 
 
 def strip_title(name):
@@ -193,7 +205,7 @@ def is_valid_diplomat(summary, country_name=None):
         return False
 
     desc    = (summary.get('description') or '').lower()
-    extract = (summary.get('extract')     or '').lower()[:600]
+    extract = (summary.get('extract')     or '').lower()[:1000]
     combined = desc + ' ' + extract
 
     # Hard reject: clearly not a diplomat
@@ -217,9 +229,76 @@ def is_valid_diplomat(summary, country_name=None):
     return True
 
 
-def best_thumbnail(summary):
+def get_image_url(summary, name_hint=''):
+    """
+    Return a photo URL for the person.  Tries three strategies in order:
+    1. REST summary thumbnail / originalimage (cheapest — no extra request).
+    2. Scan article images via prop=images and download the best candidate.
+       Many biography pages have photos in infoboxes that are NOT exposed as
+       the REST thumbnail (the "page image" property may not be set).
+    """
     img = summary.get('thumbnail') or summary.get('originalimage')
-    return img['source'] if img else None
+    if img:
+        return img['source']
+    title = summary.get('title') or ''
+    if not title:
+        return None
+    return _scan_article_images(title, name_hint)
+
+
+def _scan_article_images(title, name_hint=''):
+    """Collect all images in the article and return the URL of the best candidate."""
+    time.sleep(DELAY)
+    data = fetch_json(SEARCH_API, {
+        'action': 'query',
+        'titles': title,
+        'prop': 'images',
+        'imlimit': 20,
+        'format': 'json',
+    })
+    if not data:
+        return None
+    pages = data.get('query', {}).get('pages', {})
+    for page in pages.values():
+        candidates = []
+        for img in page.get('images', []):
+            fname = img['title']           # "File:Foo.jpg"
+            base  = fname[5:]              # strip "File:"
+            ext   = base.rsplit('.', 1)[-1].lower() if '.' in base else ''
+            if ext not in ('jpg', 'jpeg', 'png'):
+                continue
+            if _IMAGE_SKIP_RE.match(base.replace('_', ' ')):
+                continue
+            # Score by how many name parts appear in the filename
+            parts = name_hint.lower().split() if name_hint else []
+            score = sum(1 for p in parts if len(p) > 2 and p in base.lower())
+            candidates.append((-score, fname))   # negative for ascending sort
+
+        candidates.sort()
+        for _, fname in candidates[:4]:
+            url = _file_url(fname)
+            if url:
+                return url
+    return None
+
+
+def _file_url(file_title):
+    """Resolve a Wikimedia File: title to its direct download URL."""
+    time.sleep(DELAY)
+    data = fetch_json(SEARCH_API, {
+        'action': 'query',
+        'titles': file_title,
+        'prop': 'imageinfo',
+        'iiprop': 'url',
+        'iiurlwidth': 500,
+        'format': 'json',
+    })
+    if not data:
+        return None
+    for page in data.get('query', {}).get('pages', {}).values():
+        for info in page.get('imageinfo', []):
+            return info.get('thumburl') or info.get('url')
+    return None
 
 
 def download_image(url, dest_path):
@@ -248,47 +327,63 @@ def process_speaker(speaker, force=False, dry_run=False):
     if country:
         queries += [
             f'{name} {country}',
+            f'{name} permanent representative',   # specific to UN delegates
+            f'{name} united nations {country}',
             f'{name} {country} diplomat',
             f'{name} diplomat',
             f'{name} politician',
-            f'{name} ambassador',
         ]
     else:
-        queries += [f'{name} diplomat', f'{name} politician']
+        queries += [
+            f'{name} permanent representative',
+            f'{name} diplomat',
+            f'{name} politician',
+        ]
 
     # ── Try each query until we find a validated match ────────────
     # Direct title lookup only makes sense for short, natural-language names,
     # not for constructed phrases like "Salam Lebanon diplomat".
-    _LOOKUP_STOP = frozenset(['diplomat', 'politician', 'ambassador'])
+    _LOOKUP_STOP = frozenset(['diplomat', 'politician', 'representative', 'nations'])
 
     seen_titles = set()
+    no_photo_title = None   # valid diplomat found but no photo on Wikipedia
+
     for query in queries:
         words = query.lower().split()
         if len(words) <= 3 and not (_LOOKUP_STOP & set(words)):
             summary = fetch_summary(query)
             if summary and is_valid_diplomat(summary, country):
-                img_url = best_thumbnail(summary)
+                img_url = get_image_url(summary, name)
                 if img_url:
                     if dry_run:
                         return f'would save: {summary["title"]}'
                     if download_image(img_url, dest):
                         return f'saved ({summary["title"]})'
+                elif not no_photo_title:
+                    no_photo_title = summary['title']
 
         # Search API — handles full-name expansion and disambiguation
-        titles = search_wikipedia(query, limit=3)
+        titles = search_wikipedia(query, limit=5)
         for title in titles:
             if title in seen_titles:
                 continue
             seen_titles.add(title)
             summary = fetch_summary(title)
             if summary and is_valid_diplomat(summary, country):
-                img_url = best_thumbnail(summary)
+                img_url = get_image_url(summary, name)
                 if img_url:
                     if dry_run:
                         return f'would save: {summary["title"]}'
                     if download_image(img_url, dest):
                         return f'saved ({summary["title"]})'
+                elif not no_photo_title:
+                    no_photo_title = summary['title']
+                    # No other query will find a different article for this person;
+                    # stop searching to avoid wasting API calls.
+                    return f'no photo ({no_photo_title})'
 
+    if no_photo_title:
+        return f'no photo ({no_photo_title})'
     return 'not found'
 
 
@@ -316,6 +411,7 @@ def main():
     total     = speakers.count()
     saved     = 0
     skipped   = 0
+    no_photo  = 0
     not_found = 0
 
     for i, speaker in enumerate(speakers, 1):
@@ -325,6 +421,8 @@ def main():
             skipped += 1
         elif result == 'not found':
             not_found += 1
+        elif result.startswith('no photo'):
+            no_photo += 1
         else:
             saved += 1
 
@@ -334,7 +432,8 @@ def main():
             print(f'[{i}/{total}] ... ({skipped} skipped so far)')
 
     label = 'Would save' if args.dry_run else 'Saved'
-    print(f'\nDone. {label}: {saved}, Not found: {not_found}, Skipped: {skipped}')
+    print(f'\nDone. {label}: {saved}, No photo: {no_photo}, '
+          f'Not found: {not_found}, Skipped: {skipped}')
 
 
 if __name__ == '__main__':
