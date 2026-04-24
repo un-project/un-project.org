@@ -37,8 +37,9 @@ from django.db.models import Count
 from speakers.models import Speaker
 
 PHOTOS_DIR = os.path.join(settings.BASE_DIR, 'static', 'speakers')
-SUMMARY_API = 'https://en.wikipedia.org/api/rest_v1/page/summary/{}'
-SEARCH_API  = 'https://en.wikipedia.org/w/api.php'
+SUMMARY_API  = 'https://en.wikipedia.org/api/rest_v1/page/summary/{}'
+SEARCH_API   = 'https://en.wikipedia.org/w/api.php'
+COMMONS_API  = 'https://commons.wikimedia.org/w/api.php'
 HEADERS     = {'User-Agent': 'UN-Project/1.0 (educational; github.com/un-project)'}
 DELAY       = 0.25  # seconds between requests
 
@@ -301,6 +302,82 @@ def _file_url(file_title):
     return None
 
 
+def _get_list_links(title, country=None):
+    """
+    Return the linked Wikipedia article titles from a list page (e.g.
+    "List of permanent representatives of Kenya to the United Nations").
+    Used to expand list-article search results into individual person pages.
+    """
+    time.sleep(DELAY)
+    data = fetch_json(SEARCH_API, {
+        'action': 'query',
+        'titles': title,
+        'prop': 'links',
+        'pllimit': 30,
+        'plnamespace': 0,
+        'format': 'json',
+    })
+    if not data:
+        return []
+    for page in data.get('query', {}).get('pages', {}).values():
+        links = [lk['title'] for lk in page.get('links', [])]
+        # Prefer links that mention the country
+        if country:
+            cl = country.lower()
+            links.sort(key=lambda t: cl not in t.lower())
+        return links
+    return []
+
+
+def search_commons_portrait(name, country=None):
+    """
+    Search Wikimedia Commons for a portrait of the person.
+
+    Uses intitle: to find files whose name contains the speaker's name,
+    combined with 'united nations' (or country) to filter out unrelated
+    namesakes (e.g. athletes with the same surname).
+    Validates multi-word names by requiring all parts to appear in the
+    filename, so 'Costa Filho' only matches files containing both words.
+    """
+    seen = set()
+    queries = [f'intitle:{name} united nations']
+    if country:
+        queries.append(f'intitle:{name} {country}')
+    queries.append(f'intitle:{name}')   # broadest fallback
+
+    for query in queries:
+        time.sleep(DELAY)
+        data = fetch_json(COMMONS_API, {
+            'action': 'query',
+            'list': 'search',
+            'srsearch': query,
+            'srnamespace': 6,   # File namespace
+            'srlimit': 5,
+            'format': 'json',
+        })
+        if not data:
+            continue
+        for r in data.get('query', {}).get('search', []):
+            ftitle = r['title']
+            if ftitle in seen:
+                continue
+            seen.add(ftitle)
+            base = ftitle[5:] if ftitle.startswith('File:') else ftitle
+            ext  = base.rsplit('.', 1)[-1].lower() if '.' in base else ''
+            if ext not in ('jpg', 'jpeg', 'png'):
+                continue
+            if _IMAGE_SKIP_RE.match(base.replace('_', ' ')):
+                continue
+            # For multi-word names require every significant part in the filename
+            parts = [p for p in name.lower().split() if len(p) > 2]
+            if len(parts) >= 2 and not all(p in base.lower() for p in parts):
+                continue
+            url = _file_url(ftitle)
+            if url:
+                return url
+    return None
+
+
 def download_image(url, dest_path):
     req = urllib.request.Request(url, headers=HEADERS)
     try:
@@ -341,14 +418,17 @@ def process_speaker(speaker, force=False, dry_run=False):
         ]
 
     # ── Try each query until we find a validated match ────────────
-    # Direct title lookup only makes sense for short, natural-language names,
-    # not for constructed phrases like "Salam Lebanon diplomat".
+    # Direct title lookup only makes sense for short natural-language names,
+    # not constructed phrases like "Salam Lebanon diplomat".
     _LOOKUP_STOP = frozenset(['diplomat', 'politician', 'representative', 'nations'])
 
-    seen_titles = set()
-    no_photo_title = None   # valid diplomat found but no photo on Wikipedia
+    seen_titles  = set()
+    validated_title = None   # Wikipedia article validated; photo may still be None
 
     for query in queries:
+        if validated_title:
+            break   # already found the right person — don't burn more API calls
+
         words = query.lower().split()
         if len(words) <= 3 and not (_LOOKUP_STOP & set(words)):
             summary = fetch_summary(query)
@@ -359,15 +439,22 @@ def process_speaker(speaker, force=False, dry_run=False):
                         return f'would save: {summary["title"]}'
                     if download_image(img_url, dest):
                         return f'saved ({summary["title"]})'
-                elif not no_photo_title:
-                    no_photo_title = summary['title']
+                validated_title = validated_title or summary['title']
 
-        # Search API — handles full-name expansion and disambiguation
-        titles = search_wikipedia(query, limit=5)
+        # Search API — handles full-name expansion and disambiguation.
+        # "List of…" articles are skipped but saved as an expansion fallback:
+        # they often link to the individual person page we actually want
+        # (e.g. searching "Kariuki Kenya" returns the full PR list which
+        # contains a link to the individual diplomat's Wikipedia article).
+        titles     = search_wikipedia(query, limit=5)
+        list_title = None
         for title in titles:
             if title in seen_titles:
                 continue
             seen_titles.add(title)
+            if title.lower().startswith('list of'):
+                list_title = list_title or title
+                continue
             summary = fetch_summary(title)
             if summary and is_valid_diplomat(summary, country):
                 img_url = get_image_url(summary, name)
@@ -376,14 +463,40 @@ def process_speaker(speaker, force=False, dry_run=False):
                         return f'would save: {summary["title"]}'
                     if download_image(img_url, dest):
                         return f'saved ({summary["title"]})'
-                elif not no_photo_title:
-                    no_photo_title = summary['title']
-                    # No other query will find a different article for this person;
-                    # stop searching to avoid wasting API calls.
-                    return f'no photo ({no_photo_title})'
+                if not validated_title:
+                    validated_title = summary['title']
+                    break   # found the person; skip remaining results
 
-    if no_photo_title:
-        return f'no photo ({no_photo_title})'
+        # Expand the list article if no direct match was found this round
+        if list_title and not validated_title:
+            for linked in _get_list_links(list_title, country)[:10]:
+                if linked in seen_titles:
+                    continue
+                seen_titles.add(linked)
+                summary = fetch_summary(linked)
+                if summary and is_valid_diplomat(summary, country):
+                    img_url = get_image_url(summary, name)
+                    if img_url:
+                        if dry_run:
+                            return f'would save: {summary["title"]}'
+                        if download_image(img_url, dest):
+                            return f'saved ({summary["title"]})'
+                    if not validated_title:
+                        validated_title = summary['title']
+                        break
+
+    # ── Wikimedia Commons fallback ────────────────────────────────
+    # Tries even when Wikipedia found the person but had no photo, since
+    # Commons often has portrait photos not mirrored on the Wikipedia page.
+    img_url = search_commons_portrait(name, country)
+    if img_url:
+        if dry_run:
+            return 'would save: (Commons)'
+        if download_image(img_url, dest):
+            return 'saved (Commons)'
+
+    if validated_title:
+        return f'no photo ({validated_title})'
     return 'not found'
 
 
