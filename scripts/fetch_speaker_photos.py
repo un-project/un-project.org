@@ -72,6 +72,47 @@ DIPLOMAT_WORDS = frozenset([
     'general assembly', 'foreign affairs', 'ministry of foreign',
 ])
 
+# Countries whose demonym does NOT contain the country name as a substring.
+# e.g. "lebanese" does not contain "lebanon", so a bare `in` check would reject
+# valid matches.  Add an entry here whenever the country name ≠ demonym stem.
+COUNTRY_DEMONYMS = {
+    'belgium':                    ['belgian'],
+    'czech republic':             ['czech', 'czechoslovak'],
+    'czechia':                    ['czech'],
+    'denmark':                    ['danish', 'dane'],
+    'finland':                    ['finnish', 'finn'],
+    'france':                     ['french'],
+    'germany':                    ['german'],
+    'greece':                     ['greek', 'hellenic'],
+    'hungary':                    ['hungarian', 'magyar'],
+    'ivory coast':                ['ivorian'],
+    "côte d'ivoire":              ['ivorian'],
+    'ireland':                    ['irish'],
+    'italy':                      ['italian'],
+    'lebanon':                    ['lebanese'],
+    'myanmar':                    ['burmese'],
+    'netherlands':                ['dutch', 'netherlandish'],
+    'norway':                     ['norwegian'],
+    'palestine':                  ['palestinian'],
+    'philippines':                ['filipino', 'philippine'],
+    'poland':                     ['polish'],
+    'portugal':                   ['portuguese'],
+    'russia':                     ['russian'],
+    'russian federation':         ['russian'],
+    'spain':                      ['spanish'],
+    'sweden':                     ['swedish'],
+    'switzerland':                ['swiss'],
+    'thailand':                   ['thai'],
+    'turkey':                     ['turkish'],
+    'türkiye':                    ['turkish'],
+    'ukraine':                    ['ukrainian'],
+    'united kingdom':             ['british', 'english', 'uk'],
+    'united states':              ['american', 'u.s.'],
+    'united states of america':   ['american', 'u.s.'],
+    'china':                      ['chinese'],
+    "people's republic of china": ['chinese'],
+}
+
 # Keywords that suggest the article is definitely NOT a UN diplomat
 EXCLUSION_WORDS = frozenset([
     'athlete', 'footballer', 'soccer', 'basketball player', 'tennis player',
@@ -166,23 +207,10 @@ def is_valid_diplomat(summary, country_name=None):
         return False
 
     # Country check — if we know the country, the article should mention it
+    # (using COUNTRY_DEMONYMS for countries where the name ≠ demonym stem)
     if country_name:
         country_lower = country_name.lower()
-        # Also accept common short forms (e.g. "United States of America" → "united states")
-        variants = [country_lower]
-        if 'united states of america' in country_lower:
-            variants += ['united states', 'american', 'u.s.']
-        elif 'united kingdom' in country_lower:
-            variants += ['british', 'england', 'uk']
-        elif 'russian federation' in country_lower:
-            variants += ['russia', 'russian', 'soviet']
-        elif 'china' in country_lower:
-            variants += ['chinese', "people's republic"]
-        elif 'france' in country_lower:
-            variants += ['french']
-        elif 'germany' in country_lower:
-            variants += ['german']
-
+        variants = [country_lower] + COUNTRY_DEMONYMS.get(country_lower, [])
         if not any(v in combined for v in variants):
             return False
 
@@ -229,10 +257,14 @@ def process_speaker(speaker, force=False, dry_run=False):
         queries += [f'{name} diplomat', f'{name} politician']
 
     # ── Try each query until we find a validated match ────────────
+    # Direct title lookup only makes sense for short, natural-language names,
+    # not for constructed phrases like "Salam Lebanon diplomat".
+    _LOOKUP_STOP = frozenset(['diplomat', 'politician', 'ambassador'])
+
     seen_titles = set()
     for query in queries:
-        # Try direct title lookup first (fast, no extra request)
-        if query == name or query not in seen_titles:
+        words = query.lower().split()
+        if len(words) <= 3 and not (_LOOKUP_STOP & set(words)):
             summary = fetch_summary(query)
             if summary and is_valid_diplomat(summary, country):
                 img_url = best_thumbnail(summary)
@@ -242,7 +274,7 @@ def process_speaker(speaker, force=False, dry_run=False):
                     if download_image(img_url, dest):
                         return f'saved ({summary["title"]})'
 
-        # Fall back to search API
+        # Search API — handles full-name expansion and disambiguation
         titles = search_wikipedia(query, limit=3)
         for title in titles:
             if title in seen_titles:
