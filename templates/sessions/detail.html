@@ -5,9 +5,167 @@
 <meta property="og:type"        content="website">
 <meta property="og:site_name"   content="UN Project">
 <meta property="og:title"       content="{{ body_label }} — Session {{ session }} — UN Project">
-<meta property="og:description" content="{{ documents|length }} meeting{{ documents|length|pluralize }} and {{ resolution_rows|length }} resolution{{ resolution_rows|length|pluralize }} in session {{ session }}.">
+<meta property="og:description" content="{{ documents|length }} meeting{{ documents|length|pluralize }}, {{ resolution_rows|length }} resolution{{ resolution_rows|length|pluralize }}, {{ total_speeches }} speeches in session {{ session }}.">
 <meta property="og:url"         content="{{ request.build_absolute_uri }}">
 <meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}/static/img/logo.png">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.session-stats {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.session-stat {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.9rem 1.25rem;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.session-stat:last-child { border-right: none; }
+.session-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--un-blue);
+  line-height: 1.1;
+}
+.session-stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin: 2rem 0;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .overview-grid { grid-template-columns: 1fr; }
+}
+
+.section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.country-list {
+  list-style: none;
+  margin: 0; padding: 0;
+}
+.country-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.country-list li:last-child { border-bottom: none; }
+.country-list .bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.country-list .bar-fill {
+  height: 100%;
+  background: var(--un-blue);
+  border-radius: 3px;
+}
+.country-list .count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.item-list {
+  list-style: none;
+  margin: 0; padding: 0;
+}
+.item-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.item-list li:last-child { border-bottom: none; }
+.item-list .item-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.item-list .bar {
+  width: 80px;
+  flex-shrink: 0;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.item-list .bar-fill {
+  height: 100%;
+  background: var(--accent, #6c757d);
+  border-radius: 3px;
+}
+.item-list .count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  min-width: 3rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.session-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.session-table th {
+  text-align: left;
+  padding: 0.4rem 0.75rem 0.4rem 0;
+  border-bottom: 2px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.session-table td {
+  padding: 0.4rem 0.75rem 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.session-table tr:last-child td { border-bottom: none; }
+.session-table tr:hover td { background: var(--hover-bg, #f8f9fa); }
+
+.vote-yes  { color: #2d7a2d; font-weight: 600; }
+.vote-no   { color: #b33a3a; font-weight: 600; }
+.vote-abs  { color: var(--muted); }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -33,44 +191,117 @@
   <a href="/votes/resolutions/?body={{ body }}&session={{ session }}" class="btn btn-secondary btn-sm">All resolutions &rarr;</a>
 </div>
 
-{# ── Meetings ──────────────────────────────────────────────────── #}
-<h2 style="margin:1.5rem 0 0.75rem; font-size:1.15rem;">
-  Meetings
-  <span class="meta" style="font-weight:normal; font-size:0.88rem; margin-left:0.5rem;">{{ documents|length }}</span>
-</h2>
+{# ── Stats strip ───────────────────────────────────────────────── #}
+<div class="session-stats">
+  <div class="session-stat">
+    <div class="session-stat-value">{{ documents|length }}</div>
+    <div class="session-stat-label">Meeting{{ documents|length|pluralize }}</div>
+  </div>
+  <div class="session-stat">
+    <div class="session-stat-value">{{ total_speeches }}</div>
+    <div class="session-stat-label">Speech{{ total_speeches|pluralize:"es" }}</div>
+  </div>
+  <div class="session-stat">
+    <div class="session-stat-value">{{ country_count }}</div>
+    <div class="session-stat-label">Countr{{ country_count|pluralize:"y,ies" }} represented</div>
+  </div>
+  <div class="session-stat">
+    <div class="session-stat-value">{{ resolution_rows|length }}</div>
+    <div class="session-stat-label">Resolution{{ resolution_rows|length|pluralize }}</div>
+  </div>
+</div>
 
-{% if documents %}
+{# ── Most active countries + Top agenda items ──────────────────── #}
+<div class="overview-grid">
+
+  <div>
+    <p class="section-title">Most active countries</p>
+    {% if top_countries %}
+    {% with max_count=top_countries.0.speech_count %}
+    <ul class="country-list">
+      {% for c in top_countries %}
+      <li>
+        {% if c.speaker__country__iso3 %}
+        <img src="/static/flags/{{ c.speaker__country__iso3 }}.svg" alt="" style="width:18px;height:13px;object-fit:cover;border-radius:1px;flex-shrink:0;">
+        <a href="/country/{{ c.speaker__country__iso3 }}/" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.speaker__country__name }}</a>
+        {% else %}
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.speaker__country__name }}</span>
+        {% endif %}
+        <div class="bar"><div class="bar-fill" data-max="{{ max_count }}" data-val="{{ c.speech_count }}"></div></div>
+        <span class="count">{{ c.speech_count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endwith %}
+    {% else %}
+    <p class="meta">No speech data available.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <p class="section-title">Top agenda items</p>
+    {% if top_items %}
+    {% with max_meetings=top_items.0.meeting_count %}
+    <ul class="item-list">
+      {% for item in top_items %}
+      <li>
+        <span class="item-title" title="{{ item.title }}">{{ item.title }}</span>
+        <div class="bar"><div class="bar-fill" data-max="{{ max_meetings }}" data-val="{{ item.meeting_count }}"></div></div>
+        <span class="count">{{ item.meeting_count }} mtg{{ item.meeting_count|pluralize }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endwith %}
+    {% else %}
+    <p class="meta">No agenda item data available.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{# ── Key resolutions ───────────────────────────────────────────── #}
+{% if contested_rows or important_count %}
+<h2 style="margin:2rem 0 0.75rem; font-size:1.15rem;">Key resolutions</h2>
+
+{% if important_count %}
+<p style="font-size:0.88rem; color:var(--muted); margin:0 0 1rem;">
+  {{ important_count }} resolution{{ important_count|pluralize }} flagged as politically significant (Voeten important votes).
+  <a href="/votes/resolutions/?body={{ body }}&session={{ session }}">Browse all &rarr;</a>
+</p>
+{% endif %}
+
+{% if contested_rows %}
+<p class="section-title" style="margin-top:1rem;">Most contested votes</p>
 <div style="overflow-x:auto;">
-<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+<table class="session-table">
   <thead>
-    <tr style="border-bottom:2px solid var(--border); text-align:left;">
-      <th style="padding:0.4rem 0.75rem 0.4rem 0;">#</th>
-      <th style="padding:0.4rem 0.75rem;">Symbol</th>
-      <th style="padding:0.4rem 0.75rem;">Date</th>
-      <th style="padding:0.4rem 0.75rem;">Location</th>
+    <tr>
+      <th>Resolution</th>
+      <th>Title</th>
+      <th style="text-align:center;">Yes</th>
+      <th style="text-align:center;">No</th>
+      <th style="text-align:center;">Abstain</th>
+      <th style="text-align:center;">Margin</th>
     </tr>
   </thead>
   <tbody>
-    {% for doc in documents %}
-    <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:0.4rem 0.75rem 0.4rem 0; color:var(--muted);">{{ doc.meeting_number }}</td>
-      <td style="padding:0.4rem 0.75rem;">
-        <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
-      </td>
-      <td style="padding:0.4rem 0.75rem; white-space:nowrap;">
-        {% if doc.date %}{{ doc.date|date:"N j, Y" }}{% else %}<span class="meta">—</span>{% endif %}
-      </td>
-      <td style="padding:0.4rem 0.75rem; color:var(--muted); font-size:0.85rem;">{{ doc.location|default:"" }}</td>
+    {% for row in contested_rows %}
+    <tr>
+      <td style="white-space:nowrap;"><a href="{{ row.resolution.get_absolute_url }}"><strong>{{ row.resolution }}</strong></a></td>
+      <td style="font-size:0.85rem; color:var(--muted);">{{ row.resolution.title|default:""|truncatechars:80 }}</td>
+      <td style="text-align:center;" class="vote-yes">{{ row.vote.yes_count }}</td>
+      <td style="text-align:center;" class="vote-no">{{ row.vote.no_count }}</td>
+      <td style="text-align:center;" class="vote-abs">{{ row.vote.abstain_count }}</td>
+      <td style="text-align:center; color:var(--muted); font-size:0.85rem;">+{{ row.margin }}</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
 </div>
-{% else %}
-<p class="meta">No meetings found for this session.</p>
+{% endif %}
 {% endif %}
 
-{# ── Resolutions ───────────────────────────────────────────────── #}
+{# ── All resolutions ───────────────────────────────────────────── #}
 <h2 style="margin:2rem 0 0.75rem; font-size:1.15rem;">
   Resolutions
   <span class="meta" style="font-weight:normal; font-size:0.88rem; margin-left:0.5rem;">{{ resolution_rows|length }}</span>
@@ -78,35 +309,35 @@
 
 {% if resolution_rows %}
 <div style="overflow-x:auto;">
-<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+<table class="session-table">
   <thead>
-    <tr style="border-bottom:2px solid var(--border); text-align:left;">
-      <th style="padding:0.4rem 0.75rem 0.4rem 0;">Symbol</th>
-      <th style="padding:0.4rem 0.75rem;">Title</th>
-      <th style="padding:0.4rem 0.75rem; text-align:center;">Yes</th>
-      <th style="padding:0.4rem 0.75rem; text-align:center;">No</th>
-      <th style="padding:0.4rem 0.75rem; text-align:center;">Abstain</th>
+    <tr>
+      <th>Symbol</th>
+      <th>Title</th>
+      <th style="text-align:center;">Yes</th>
+      <th style="text-align:center;">No</th>
+      <th style="text-align:center;">Abstain</th>
     </tr>
   </thead>
   <tbody>
     {% for row in resolution_rows %}
-    <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:0.4rem 0.75rem 0.4rem 0; white-space:nowrap;">
+    <tr>
+      <td style="white-space:nowrap;">
         <a href="{{ row.resolution.get_absolute_url }}"><strong>{{ row.resolution }}</strong></a>
       </td>
-      <td style="padding:0.4rem 0.75rem; font-size:0.85rem; color:var(--muted);">
+      <td style="font-size:0.85rem; color:var(--muted);">
         {{ row.resolution.title|default:""|truncatechars:100 }}
       </td>
       {% if row.vote %}
         {% if row.vote.vote_type == 'consensus' %}
-          <td colspan="3" style="padding:0.4rem 0.75rem; text-align:center; font-size:0.82rem; color:var(--muted);">adopted by consensus</td>
+          <td colspan="3" style="text-align:center; font-size:0.82rem; color:var(--muted);">adopted by consensus</td>
         {% else %}
-          <td style="padding:0.4rem 0.75rem; text-align:center; color:#2d7a2d; font-weight:600;">{{ row.vote.yes_count }}</td>
-          <td style="padding:0.4rem 0.75rem; text-align:center; color:#b33a3a; font-weight:600;">{{ row.vote.no_count }}</td>
-          <td style="padding:0.4rem 0.75rem; text-align:center; color:var(--muted);">{{ row.vote.abstain_count }}</td>
+          <td style="text-align:center;" class="vote-yes">{{ row.vote.yes_count }}</td>
+          <td style="text-align:center;" class="vote-no">{{ row.vote.no_count }}</td>
+          <td style="text-align:center;" class="vote-abs">{{ row.vote.abstain_count }}</td>
         {% endif %}
       {% else %}
-        <td colspan="3" style="padding:0.4rem 0.75rem; text-align:center; font-size:0.82rem; color:var(--muted);">—</td>
+        <td colspan="3" style="text-align:center; font-size:0.82rem; color:var(--muted);">—</td>
       {% endif %}
     </tr>
     {% endfor %}
@@ -117,6 +348,51 @@
 <p class="meta">No resolutions found for this session.</p>
 {% endif %}
 
+{# ── All meetings ──────────────────────────────────────────────── #}
+<h2 style="margin:2rem 0 0.75rem; font-size:1.15rem;">
+  Meetings
+  <span class="meta" style="font-weight:normal; font-size:0.88rem; margin-left:0.5rem;">{{ documents|length }}</span>
+</h2>
+
+{% if documents %}
+<div style="overflow-x:auto;">
+<table class="session-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Symbol</th>
+      <th>Date</th>
+      <th>Location</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in documents %}
+    <tr>
+      <td style="color:var(--muted);">{{ doc.meeting_number }}</td>
+      <td><a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a></td>
+      <td style="white-space:nowrap; color:var(--muted);">
+        {% if doc.date %}{{ doc.date|date:"N j, Y" }}{% else %}<span class="meta">—</span>{% endif %}
+      </td>
+      <td style="color:var(--muted); font-size:0.85rem;">{{ doc.location|default:"" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="meta">No meetings found for this session.</p>
+{% endif %}
+
 {% include "partials/wordcloud.html" with wc_url=wc_url wc_title="Most Used Keywords" %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.bar-fill').forEach(function (el) {
+  var max = parseInt(el.getAttribute('data-max'), 10);
+  var val = parseInt(el.getAttribute('data-val'), 10);
+  el.style.width = (max > 0 ? (val / max * 100) : 0).toFixed(1) + '%';
+});
+</script>
 {% endblock %}

@@ -197,6 +197,47 @@ def session_detail(request, body, session):
     year_min = min(d.year for d in dates) if dates else None
     year_max = max(d.year for d in dates) if dates else None
 
+    # Most active countries by speech count
+    top_countries = list(
+        Speech.objects
+        .filter(document__body=body, document__session=session)
+        .exclude(speaker__country=None)
+        .values('speaker__country__id', 'speaker__country__name', 'speaker__country__iso3')
+        .annotate(speech_count=Count('id'))
+        .order_by('-speech_count')[:15]
+    )
+    country_count = (
+        Speech.objects
+        .filter(document__body=body, document__session=session)
+        .exclude(speaker__country=None)
+        .values('speaker__country__id')
+        .distinct()
+        .count()
+    )
+    total_speeches = Speech.objects.filter(document__body=body, document__session=session).count()
+
+    # Top agenda items by number of meetings they appeared in
+    top_items = list(
+        DocumentItem.objects
+        .filter(document__body=body, document__session=session, item_type=DocumentItem.ITEM_TYPE_AGENDA)
+        .values('title')
+        .annotate(meeting_count=Count('document_id', distinct=True))
+        .order_by('-meeting_count')[:10]
+    )
+
+    # Most contested recorded votes (smallest winning margin)
+    _recorded = [
+        r for r in resolution_rows
+        if r['vote'] and r['vote'].vote_type == 'recorded'
+        and r['vote'].yes_count is not None and r['vote'].no_count is not None
+        and r['vote'].no_count > 0
+    ]
+    contested_rows = [
+        {**r, 'margin': r['vote'].yes_count - r['vote'].no_count}
+        for r in sorted(_recorded, key=lambda r: r['vote'].yes_count - r['vote'].no_count)[:5]
+    ]
+    important_count = sum(1 for r in resolution_rows if r['resolution'].important_vote)
+
     body_label = _BODY_LABEL.get(body, body)
     crumbs = [
         {'label': 'Home', 'url': f'/?body={body}'},
@@ -212,6 +253,12 @@ def session_detail(request, body, session):
         'resolution_rows': resolution_rows,
         'year_min': year_min,
         'year_max': year_max,
+        'top_countries': top_countries,
+        'country_count': country_count,
+        'total_speeches': total_speeches,
+        'top_items': top_items,
+        'contested_rows': contested_rows,
+        'important_count': important_count,
         'crumbs': crumbs,
         'wc_url': f'/api/wordcloud/?body={body}&session={session}',
     })
