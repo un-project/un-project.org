@@ -982,7 +982,7 @@ def country_ideal_points(request, iso3):
     get_object_or_404(Country, iso3=iso3)
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT year, ideal_point, se FROM country_ideal_points WHERE iso3 = %s ORDER BY year",
+            "SELECT year, ideal_point, se FROM canonical_ideal_points WHERE iso3 = %s ORDER BY year",
             [iso3],
         )
         rows = cursor.fetchall()
@@ -1006,14 +1006,14 @@ def country_neighbours(request, iso3):
         cursor.execute(
             """
             WITH mean AS (
-                SELECT AVG(ideal_point) AS m FROM country_ideal_points WHERE year = %s
+                SELECT AVG(ideal_point) AS m FROM canonical_ideal_points WHERE year = %s
             ),
             target AS (
-                SELECT ideal_point FROM country_ideal_points WHERE iso3 = %s AND year = %s
+                SELECT ideal_point FROM canonical_ideal_points WHERE iso3 = %s AND year = %s
             )
             SELECT ip.iso3, c.name, ip.ideal_point - mean.m AS centred_ip,
                    ABS(ip.ideal_point - t.ideal_point) AS dist
-            FROM country_ideal_points ip
+            FROM canonical_ideal_points ip
             JOIN countries c ON c.iso3 = ip.iso3
             CROSS JOIN mean
             JOIN target t ON true
@@ -1396,7 +1396,7 @@ def bubble_chart_data(request):
                       AND v.vote_scope = 'whole_resolution'
                 ) vote_years
                 WHERE EXISTS (
-                    SELECT 1 FROM country_ideal_points ip
+                    SELECT 1 FROM canonical_ideal_points ip
                     WHERE ip.year = vote_years.yr
                 )
                 ORDER BY yr DESC
@@ -1435,7 +1435,7 @@ def bubble_chart_data(request):
             JOIN majority m ON m.id = cv.vote_id
             JOIN votes v ON v.id = cv.vote_id
             JOIN documents d ON v.document_id = d.id
-            LEFT JOIN country_ideal_points ip
+            LEFT JOIN canonical_ideal_points ip
                    ON ip.iso3 = c.iso3 AND ip.year = %s
             WHERE date_part('year', d.date) = %s
               AND c.iso3 IS NOT NULL
@@ -1479,18 +1479,18 @@ def vote_predict(request):
         if year_raw.isdigit():
             year = int(year_raw)
         else:
-            cur.execute('SELECT MAX(year) FROM country_ideal_points')
+            cur.execute('SELECT MAX(year) FROM canonical_ideal_points')
             year = cur.fetchone()[0]
 
         cur.execute(
             """
             SELECT ip.iso3, COALESCE(c.short_name, c.name),
                    ip.ideal_point - m.mean_ip AS centred
-            FROM country_ideal_points ip
+            FROM canonical_ideal_points ip
             JOIN countries c ON c.iso3 = ip.iso3
             JOIN (
                 SELECT year, AVG(ideal_point) AS mean_ip
-                FROM country_ideal_points WHERE ideal_point IS NOT NULL GROUP BY year
+                FROM canonical_ideal_points WHERE ideal_point IS NOT NULL GROUP BY year
             ) m ON m.year = ip.year
             WHERE ip.year = %s AND ip.ideal_point IS NOT NULL
             ORDER BY centred DESC
@@ -1550,7 +1550,7 @@ def ideal_points_yearly_mean(request):
     with connection.cursor() as cur:
         cur.execute("""
             SELECT year, AVG(ideal_point)
-            FROM country_ideal_points
+            FROM canonical_ideal_points
             WHERE ideal_point IS NOT NULL
             GROUP BY year
             ORDER BY year

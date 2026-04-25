@@ -52,7 +52,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Medium effort
 
-- [ ] **Canonical ideal point source** — `country_ideal_points` now has three sources
+- [x] **Canonical ideal point source** — `country_ideal_points` now has three sources
   (`bsv2017_mcmc`, `voeten_bsv2017`, `computed_irt`). The site should expose only one series
   per country per year. Options: materialise a view with precedence
   `bsv2017_mcmc > voeten_bsv2017 > computed_irt`, or add an `is_canonical BOOLEAN` column

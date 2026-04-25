@@ -1027,7 +1027,7 @@ def cohesion_heatmap(request):
         # Ideal points: mean per country for ordering
         cur.execute("""
             SELECT ip.iso3, AVG(ip.ideal_point) AS mean_ip
-            FROM country_ideal_points ip
+            FROM canonical_ideal_points ip
             WHERE ip.ideal_point IS NOT NULL
             GROUP BY ip.iso3
         """)
@@ -1092,7 +1092,7 @@ def ideal_points_lines(request):
         cur.execute("""
             SELECT COALESCE(c.short_name, c.name) AS name, c.iso3
             FROM countries c
-            WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM country_ideal_points)
+            WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM canonical_ideal_points)
             ORDER BY COALESCE(c.short_name, c.name)
         """)
         countries = [{'name': r[0], 'iso3': r[1]} for r in cur.fetchall()]
@@ -1112,7 +1112,7 @@ def ideal_points_timeline(request):
         cur.execute("""
             SELECT ip.iso3, ip.year, ip.ideal_point,
                    COALESCE(c.short_name, c.name) AS label
-            FROM country_ideal_points ip
+            FROM canonical_ideal_points ip
             LEFT JOIN countries c ON c.iso3 = ip.iso3
             WHERE ip.ideal_point IS NOT NULL
             ORDER BY ip.iso3, ip.year
@@ -1165,7 +1165,7 @@ def vote_predict(request):
         cur.execute("""
             SELECT COALESCE(c.short_name, c.name), c.iso3
             FROM countries c
-            WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM country_ideal_points)
+            WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM canonical_ideal_points)
             ORDER BY COALESCE(c.short_name, c.name)
         """)
         countries = [{'name': r[0], 'iso3': r[1]} for r in cur.fetchall()]
@@ -1196,10 +1196,10 @@ def p5_divergence(request):
             """
             SELECT ip.iso3, ip.year,
                    ip.ideal_point - m.mean_ip AS centred
-            FROM country_ideal_points ip
+            FROM canonical_ideal_points ip
             JOIN (
                 SELECT year, AVG(ideal_point) AS mean_ip
-                FROM country_ideal_points
+                FROM canonical_ideal_points
                 WHERE ideal_point IS NOT NULL
                 GROUP BY year
             ) m ON m.year = ip.year
