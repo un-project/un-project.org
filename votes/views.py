@@ -171,14 +171,16 @@ def resolution_list(request):
 
     # P5 votes for the current page — one extra query for up to 50 resolutions
     page_ids = [r.pk for r in page]
+    p5_lookup_iso3s = P5_ISO3 + list(_P5_PREDECESSORS.keys())
     p5_rows = (
         CountryVote.objects
-        .filter(vote__resolution_id__in=page_ids, country__iso3__in=P5_ISO3)
+        .filter(vote__resolution_id__in=page_ids, country__iso3__in=p5_lookup_iso3s)
         .values('vote__resolution_id', 'country__iso3', 'vote_position')
     )
     p5_by_resolution = {}
     for row in p5_rows:
-        p5_by_resolution.setdefault(row['vote__resolution_id'], {})[row['country__iso3']] = row['vote_position']
+        iso3 = _P5_PREDECESSORS.get(row['country__iso3'], row['country__iso3'])
+        p5_by_resolution.setdefault(row['vote__resolution_id'], {})[iso3] = row['vote_position']
 
     return render(request, 'votes/resolutions.html', {
         'page':               page,
@@ -307,11 +309,17 @@ def resolution_detail(request, slug):
     )
 
     # P5 positions — extracted from the already-prefetched country_votes
+    # Historical predecessors (USSR) are mapped to their current P5 seat holder.
     p5_votes = {}
     for vote in votes:
         for cv in vote.country_votes.all():
-            if cv.country and cv.country.iso3 in P5_ISO3:
-                p5_votes[cv.country.iso3] = cv.vote_position
+            if not cv.country:
+                continue
+            iso3 = cv.country.iso3
+            if iso3 in P5_ISO3:
+                p5_votes[iso3] = cv.vote_position
+            elif iso3 in _P5_PREDECESSORS:
+                p5_votes[_P5_PREDECESSORS[iso3]] = cv.vote_position
 
     # Anomalous vote detection — one batch query per distinct year
     needed_iso3s = {}   # year -> set of iso3
@@ -993,6 +1001,8 @@ P5 = [
     {'iso3': 'FRA', 'name': 'France',         'color': '#6A1B9A'},
 ]
 P5_ISO3 = [p['iso3'] for p in P5]
+# Historical predecessors that held the same P5 seat
+_P5_PREDECESSORS = {'SUN': 'RUS'}  # USSR → Russia
 
 
 def veto_list(request):
