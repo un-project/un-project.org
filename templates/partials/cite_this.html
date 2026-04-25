@@ -1,0 +1,9 @@
+<details style="margin-top:2rem; border-top:1px solid var(--border); padding-top:1rem;">
+  <summary style="cursor:pointer; font-size:0.82rem; color:var(--muted); user-select:none; list-style:none; display:flex; align-items:center; gap:0.4rem;">
+    <span style="font-size:0.7rem;">▶</span> Cite this page
+  </summary>
+  <div style="margin-top:0.6rem; padding:0.75rem 1rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius);">
+    <p class="cite-text" style="margin:0 0 0.5rem; font-family:Georgia, serif; font-size:0.88rem; line-height:1.7;">UN Project. &#8220;{{ cite_title }}.&#8221; <em>UN Project</em>, <a href="{{ request.build_absolute_uri }}">{{ request.build_absolute_uri }}</a>. Accessed <span class="cite-date"></span>.</p>
+    <button class="cite-copy-btn" onclick="(function(btn){var p=btn.closest('details').querySelector('.cite-text');navigator.clipboard.writeText(p.innerText).then(function(){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy citation'},1500)});})(this)" style="font-size:0.78rem; padding:0.2rem 0.6rem; border:1px solid var(--border); border-radius:3px; background:#fff; cursor:pointer; color:var(--text);">Copy citation</button>
+  </div>
+</details>

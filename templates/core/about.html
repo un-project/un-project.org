@@ -24,12 +24,74 @@
   <li><strong>Country profiles</strong> — representatives, voting history, and speech archive per member state.</li>
   <li><strong>Speaker profiles</strong> — speech history and meeting attendance per speaker.</li>
   <li><strong>Voting records</strong> — per-resolution vote tallies and per-country positions, with interactive charts and country comparisons.</li>
+  <li><strong>Ideal point analysis</strong> — country voting alignment estimated via item-response theory, with bloc maps, timelines, and anomaly detection.</li>
 </ul>
 
-<h2 style="margin-top:2rem;">Data</h2>
-<p>
-  Source documents are official UN meeting records (procès-verbaux) published by the United Nations.
-  They are in the public domain. Data is extracted from PDF documents and may contain parsing errors.
+<h2 id="datasets" style="margin-top:2rem;">Datasets</h2>
+<p>This site integrates four primary data sources:</p>
+
+<div style="display:flex; flex-direction:column; gap:1.25rem; margin-top:1rem;">
+
+  <div style="padding:1rem 1.25rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--un-light);">
+    <div style="font-weight:700; margin-bottom:0.3rem;">UN Verbatim Records</div>
+    <div style="font-size:0.88rem; line-height:1.7; color:var(--text);">
+      Meeting transcripts (procès-verbaux) published by the United Nations as official meeting records.
+      Sourced from the
+      <a href="https://docs.un.org" target="_blank" rel="noopener">UN Document System (docs.un.org)</a>
+      and the UN Official Document System (ODS). Documents are in the public domain.
+      PDF extraction may introduce parsing errors; quality indicators are shown on each meeting page.
+    </div>
+  </div>
+
+  <div style="padding:1rem 1.25rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--un-light);">
+    <div style="font-weight:700; margin-bottom:0.3rem;">UN General Assembly Voting Data &amp; Ideal Points (Voeten / BSV2017)</div>
+    <div style="font-size:0.88rem; line-height:1.7; color:var(--text);">
+      Recorded vote positions for all UNGA resolutions, plus estimated ideal points derived via item-response theory.
+      The ideal-point estimates used on this site are the <em>bsv2017_mcmc</em> posterior means from:
+      <br>
+      Bailey, Michael A., Anton Strezhnev, and Erik Voeten.
+      &#8220;Estimating Dynamic State Preferences from United Nations Voting Data.&#8221;
+      <em>Journal of Conflict Resolution</em> 61, no. 2 (2017): 430–456.
+      <a href="https://doi.org/10.1177/0022002715595700" target="_blank" rel="noopener">doi:10.1177/0022002715595700</a>
+      <br>
+      Voting data and replication files:
+      <a href="https://doi.org/10.7910/DVN/LEJUQZ" target="_blank" rel="noopener">Harvard Dataverse</a> ·
+      <a href="https://erikvoeten.com" target="_blank" rel="noopener">erikvoeten.com</a>
+      <br>
+      Voeten topic/issue codes (Middle East, Nuclear/Arms, Colonialism, Human Rights, Economic Development, Disarmament)
+      are from the same dataset codebook.
+    </div>
+  </div>
+
+  <div style="padding:1rem 1.25rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--un-light);">
+    <div style="font-weight:700; margin-bottom:0.3rem;">UNBench — SC Resolution Text &amp; Sponsorship</div>
+    <div style="font-size:0.88rem; line-height:1.7; color:var(--text);">
+      Security Council resolution draft texts and co-sponsorship data from:
+      <br>
+      Liao, Yilun, Shengjie Cao, Xu Cao, et al.
+      &#8220;UNBench: A Comprehensive Benchmark for Evaluating LLMs in United Nations Security Council Negotiations.&#8221;
+      2024.
+      <a href="https://github.com/yilunliao/unbench" target="_blank" rel="noopener">github.com/yilunliao/unbench</a>
+    </div>
+  </div>
+
+  <div style="padding:1rem 1.25rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--un-light);">
+    <div style="font-weight:700; margin-bottom:0.3rem;">SC Veto Data (DPPA)</div>
+    <div style="font-size:0.88rem; line-height:1.7; color:var(--text);">
+      Security Council veto records from the
+      <a href="https://www.un.org/securitycouncil/content/veto" target="_blank" rel="noopener">UN Department of Political and Peacebuilding Affairs (DPPA)</a>.
+    </div>
+  </div>
+
+</div>
+
+<h2 style="margin-top:2rem;">How to cite</h2>
+<p style="font-size:0.92rem; line-height:1.7;">
+  To cite this site or a specific page, use the <em>Cite this page</em> link at the bottom of any resolution, meeting, country, or speaker page.
+  For the underlying datasets, please cite the original sources above.
+</p>
+<p style="font-size:0.88rem; font-family:Georgia, serif; padding:0.75rem 1rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius); line-height:1.7;">
+  UN Project. &#8220;UN Project.&#8221; <em>UN Project</em>, https://un-project.org. Accessed <span class="cite-date"></span>.
 </p>
 
 <h2 style="margin-top:2rem;">Source code &amp; API</h2>

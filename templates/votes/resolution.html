@@ -74,7 +74,10 @@
     {% endif %}
     {% with issue_labels=resolution.issue_labels %}{% if issue_labels %}
     <tr style="border-bottom:1px solid var(--border);">
-      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted); vertical-align:top;">Voeten Topics</th>
+      <th style="padding:0.45rem 0.75rem; text-align:left; color:var(--muted); vertical-align:top;">
+        Voeten Topics
+        <a href="/about/#datasets" title="About this dataset" style="font-size:0.72rem; font-weight:400; color:var(--muted); margin-left:0.25rem; text-decoration:none;">ⓘ</a>
+      </th>
       <td style="padding:0.45rem 0.75rem;">
         <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
           {% for code, short in issue_labels %}
@@ -236,7 +239,7 @@
 <details style="margin-bottom:2rem;">
   <summary style="cursor:pointer; font-size:0.95rem; font-weight:600; color:var(--un-blue); user-select:none; padding:0.5rem 0;">
     Draft resolution text
-    <span class="meta" style="font-size:0.78rem; font-weight:400; margin-left:0.5rem;">UNBench dataset (Liang et al.)</span>
+    <a href="https://github.com/yilunliao/unbench" target="_blank" rel="noopener" class="meta" style="font-size:0.78rem; font-weight:400; margin-left:0.5rem;">UNBench dataset (Liang et al.) ↗</a>
   </summary>
   <div style="margin-top:0.75rem; padding:1rem 1.25rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius); font-size:0.9rem; line-height:1.75; white-space:pre-wrap; font-family:Georgia, serif; max-height:600px; overflow-y:auto;">{{ resolution.draft_text }}</div>
 </details>
@@ -324,5 +327,7 @@
   </ul>
 </div>
 {% endif %}
+
+{% include "partials/cite_this.html" with cite_title=resolution|stringformat:"s" %}
 
 {% endblock %}

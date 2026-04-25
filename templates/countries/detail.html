@@ -345,7 +345,8 @@
     <div class="chart-box" style="margin-top:1.25rem; margin-bottom:0.5rem;">
       <h3>Voting alignment over time
         <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
-          ideal point (re-centred) — 0 = global average · positive = more Western-aligned
+          ideal point (re-centred) — 0 = global average · positive = more Western-aligned ·
+          <a href="/about/#datasets" style="color:var(--muted);">BSV2017</a>
         </small>
       </h3>
       <div id="ideal-point-chart"></div>
@@ -561,6 +562,8 @@
 {% endif %}
 </div><!-- /tab-sponsored -->
 {% endif %}
+
+{% include "partials/cite_this.html" with cite_title=country.display_name %}
 
 {% endblock %}
 
