@@ -118,6 +118,9 @@
     {% elif speaker.organization %}
     <div class="meta" style="margin-top:0.5rem;">{{ speaker.organization }}</div>
     {% endif %}
+    {% if speaker.role and speaker.role != 'NA' %}
+    <div class="meta" style="margin-top:0.25rem;">{{ speaker.role }}</div>
+    {% endif %}
   </div>
 </div>
 
