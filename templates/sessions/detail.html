@@ -111,15 +111,18 @@
 }
 .item-list li:last-child { border-bottom: none; }
 .item-list .item-title {
-  flex: 1;
+  flex: 0 1 auto;
+  max-width: 65%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text);
 }
 .item-list .bar {
-  width: 80px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 20px;
+  max-width: 80px;
   height: 6px;
   background: var(--border);
   border-radius: 3px;
