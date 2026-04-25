@@ -174,6 +174,46 @@
   /* Quartile colours: Q4=most Western (blue) … Q1=non-aligned (red) */
   var Q_COLOR = { 1: '#e63946', 2: '#f4a261', 3: '#7ab8d9', 4: '#1a6fa8' };
 
+  /*
+   * Current polygon → historical iso3 codes that also cover that territory.
+   * When a polygon has no data, we fall back to any predecessor that does.
+   */
+  var OVERLAPS = {
+    'DEU': ['DEU','DDR','GER'],
+    'RUS': ['RUS','SUN'], 'BLR': ['BLR','BYS','SUN'], 'UKR': ['UKR','SUN'],
+    'ARM': ['ARM','SUN'], 'AZE': ['AZE','SUN'], 'EST': ['EST','SUN'],
+    'GEO': ['GEO','SUN'], 'KAZ': ['KAZ','SUN'], 'KGZ': ['KGZ','SUN'],
+    'LVA': ['LVA','SUN'], 'LTU': ['LTU','SUN'], 'MDA': ['MDA','SUN'],
+    'TJK': ['TJK','SUN'], 'TKM': ['TKM','SUN'], 'UZB': ['UZB','SUN'],
+    'CZE': ['CZE','CSK'], 'SVK': ['SVK','CSK'],
+    'SRB': ['SRB','SCG','YUG'], 'HRV': ['HRV','YUG'], 'BIH': ['BIH','YUG'],
+    'SVN': ['SVN','YUG'], 'MNE': ['MNE','SCG','YUG'], 'MKD': ['MKD','YUG'],
+    'YEM': ['YEM','YMD'],
+    'TZA': ['TZA','EAT','EAZ'],
+    'BFA': ['BFA','HVO'],
+    'EGY': ['EGY','UAR'], 'SYR': ['SYR','UAR'],
+  };
+
+  /*
+   * For a polygon (current iso3), return {data, via} using the first
+   * predecessor in OVERLAPS that has data for the current year, or null.
+   */
+  function effectiveData(iso3) {
+    if (!iso3) return null;
+    var d = currentData[iso3];
+    if (d) return { data: d, via: iso3 };
+    var preds = OVERLAPS[iso3];
+    if (preds) {
+      for (var i = 0; i < preds.length; i++) {
+        var hist = preds[i];
+        if (hist !== iso3 && currentData[hist]) {
+          return { data: currentData[hist], via: hist };
+        }
+      }
+    }
+    return null;
+  }
+
   /* ── Map setup ─────────────────────────────────────────────── */
   var wrap = document.getElementById('bm-wrap');
   var W = wrap.clientWidth || 900;
@@ -238,9 +278,8 @@
   var currentData = {};
 
   function fill(iso3) {
-    var d = currentData[iso3];
-    if (!d) return '#e8e8e8';
-    return Q_COLOR[d.q] || '#ccc';
+    var e = effectiveData(iso3);
+    return e ? (Q_COLOR[e.data.q] || '#ccc') : '#e8e8e8';
   }
 
   function updateColors() {
@@ -268,8 +307,12 @@
             var iso3 = N2A[+d.id];
             if (!iso3) return;
             d3.select(this).attr('stroke', '#444').attr('stroke-width', 1.2);
-            var c = currentData[iso3];
-            showTip(event, iso3, c ? c.name : null, c ? c.ip : null, c ? c.q : null);
+            var e = effectiveData(iso3);
+            if (e) {
+              showTip(event, iso3, e.data.name, e.data.ip, e.data.q);
+            } else {
+              showTip(event, iso3, iso3, null, null);
+            }
           })
           .on('mousemove', function (event) { moveTip(event); })
           .on('mouseout', function () {
