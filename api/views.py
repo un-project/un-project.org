@@ -1560,3 +1560,33 @@ def ideal_points_yearly_mean(request):
     resp = JsonResponse({'means': means})
     resp['Cache-Control'] = 'public, max-age=86400'
     return resp
+
+
+def ideal_points_bloc_map(request):
+    year_raw = request.GET.get('year', '')
+    with connection.cursor() as cur:
+        if year_raw.isdigit():
+            year = int(year_raw)
+        else:
+            cur.execute('SELECT MAX(year) FROM canonical_ideal_points')
+            year = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT ip.iso3,
+                   COALESCE(c.short_name, c.name) AS name,
+                   ip.ideal_point,
+                   NTILE(4) OVER (ORDER BY ip.ideal_point) AS quartile
+            FROM canonical_ideal_points ip
+            LEFT JOIN countries c ON c.iso3 = ip.iso3
+            WHERE ip.year = %s AND ip.ideal_point IS NOT NULL
+            ORDER BY ip.iso3
+        """, [year])
+        rows = cur.fetchall()
+
+    countries = [
+        {'iso3': r[0], 'name': r[1] or r[0], 'ip': round(float(r[2]), 3), 'q': r[3]}
+        for r in rows
+    ]
+    resp = JsonResponse({'year': year, 'countries': countries})
+    resp['Cache-Control'] = 'public, max-age=3600'
+    return resp

@@ -1087,6 +1087,27 @@ def cohesion_heatmap(request):
     })
 
 
+def ideal_points_bloc_map(request):
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT year FROM canonical_ideal_points
+            WHERE ideal_point IS NOT NULL
+            ORDER BY year
+        """)
+        years = [r[0] for r in cur.fetchall()]
+
+    return render(request, 'votes/ip_bloc_map.html', {
+        'years_json': json.dumps(years),
+        'year_min': years[0] if years else 1946,
+        'year_max': years[-1] if years else 2020,
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Bloc Map', 'url': None},
+        ],
+    })
+
+
 def ideal_points_lines(request):
     with connection.cursor() as cur:
         cur.execute("""

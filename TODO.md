@@ -62,7 +62,7 @@ Tracked tasks and future features for the UN Project web application.
   position to what its ideal point predicts. A high-IP country voting Yes on a resolution the
   USA voted No on is a detectable anomaly. Flag these on resolution pages as "surprising vote".
 
-- [ ] **Bloc visualisation per year** — group countries by ideal point quartile per session,
+- [x] **Bloc visualisation per year** — group countries by ideal point quartile per session,
   overlay on a world map. Shows the Western bloc vs. G77/non-aligned movement shifting over
   time. Depends on canonical ideal point source.
 

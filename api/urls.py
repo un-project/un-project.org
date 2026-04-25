@@ -43,4 +43,6 @@ urlpatterns = [
     path('vote-predict/', views.vote_predict, name='vote_predict'),
     # Ideal-point yearly mean
     path('ideal-points/yearly-mean/', views.ideal_points_yearly_mean, name='ideal_points_yearly_mean'),
+    # Bloc map data (quartiles per year)
+    path('ideal-points/bloc-map/', views.ideal_points_bloc_map, name='ideal_points_bloc_map'),
 ]
