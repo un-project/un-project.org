@@ -147,6 +147,18 @@
     {% else %}
     <p class="meta">No speech data available.</p>
     {% endif %}
+
+    {% if related_items %}
+    <p class="section-title" style="margin-top:1.5rem;">Related agenda items</p>
+    <ul style="list-style:none; margin:0; padding:0;">
+      {% for item in related_items %}
+      <li style="padding:0.35rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+        <a href="/meeting/agenda/{{ item.canonical_pk }}/" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ item.title }}">{{ item.title }}</a>
+        <span style="color:var(--muted); font-size:0.78rem;">{{ item.meeting_count }} meeting{{ item.meeting_count|pluralize }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
   </div>
 
 </div>

@@ -1,3 +1,5 @@
+import difflib
+
 from django.core.cache import cache
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
@@ -295,6 +297,36 @@ def agenda_list(request):
     })
 
 
+def _all_agenda_titles():
+    cached = cache.get('all_agenda_titles')
+    if cached is not None:
+        return cached
+    items = list(
+        DocumentItem.objects
+        .filter(item_type=DocumentItem.ITEM_TYPE_AGENDA)
+        .values('title')
+        .annotate(meeting_count=Count('document_id', distinct=True), canonical_pk=Min('id'))
+        .filter(meeting_count__gte=2)
+        .order_by('-meeting_count')
+    )
+    cache.set('all_agenda_titles', items, 12 * 3600)
+    return items
+
+
+def _related_agenda_items(title, exclude_pk, threshold=0.72, limit=5):
+    title_norm = title.lower().strip()
+    related = []
+    for item in _all_agenda_titles():
+        if item['canonical_pk'] == exclude_pk:
+            continue
+        t_norm = item['title'].lower().strip()
+        ratio = difflib.SequenceMatcher(None, title_norm, t_norm).ratio()
+        if ratio >= threshold:
+            related.append({**item, 'similarity': ratio})
+    related.sort(key=lambda x: -x['similarity'])
+    return related[:limit]
+
+
 def agenda_detail(request, pk):
     canonical = get_object_or_404(DocumentItem, pk=pk, item_type=DocumentItem.ITEM_TYPE_AGENDA)
     title = canonical.title
@@ -317,6 +349,7 @@ def agenda_detail(request, pk):
     )
 
     sessions = sorted({m.session for m in meetings})
+    related_items = _related_agenda_items(title, pk)
 
     return render(request, 'meetings/agenda_detail.html', {
         'title': title,
@@ -324,4 +357,5 @@ def agenda_detail(request, pk):
         'meetings': meetings,
         'countries': countries,
         'sessions': sessions,
+        'related_items': related_items,
     })

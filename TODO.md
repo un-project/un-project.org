@@ -25,7 +25,7 @@ Tracked tasks and future features for the UN Project web application.
 - [x] **Session overview page** — a single page summarising a GA/SC session: key resolutions,
   most-active countries, top agenda items.
 
-- [ ] **Related agenda items** — mark agenda items as related (e.g. successor items that were
+- [x] **Related agenda items** — mark agenda items as related (e.g. successor items that were
   renamed across sessions).
 
 ## Quick wins (data already in DB)
