@@ -30,7 +30,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Quick wins (data already in DB)
 
-- [ ] **Key votes page** — list resolutions with the closest margins (≤ 5 vote difference) or
+- [x] **Key votes page** — list resolutions with the closest margins (≤ 5 vote difference) or
   where P5 members split. Purely SQL over existing `country_votes` data. High research value.
 
 - [x] **Ideal point timeline on country page** — `country_ideal_points` is populated; add a

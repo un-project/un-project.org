@@ -25,4 +25,5 @@ urlpatterns = [
     path('cosponsor-network/', views.cosponsor_network, name='cosponsor_network'),
     path('blocs/', views.voting_blocs_page, name='blocs'),
     path('bubble/', views.bubble_chart, name='bubble'),
+    path('key/', views.key_votes, name='key_votes'),
 ]

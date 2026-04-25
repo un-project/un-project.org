@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Key Votes{% endblock %}
+
+{% load query_tags %}
+
+{% block extra_head %}
+<style>
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+.tab-bar a {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+.tab-bar a:hover { color: var(--un-blue); }
+.tab-bar a.active { color: var(--un-blue); border-bottom-color: var(--un-blue); font-weight: 700; }
+
+.kv-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+}
+.kv-filters .sep { color: var(--muted); padding: 0 0.2rem; }
+.kv-pill {
+  padding: 0.22rem 0.65rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  background: #fff;
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+.kv-pill:hover { border-color: var(--un-blue); color: var(--un-blue); }
+.kv-pill.active { background: var(--un-blue); color: #fff; border-color: var(--un-blue); font-weight: 600; }
+
+.kv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.kv-table th {
+  text-align: left;
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  border-bottom: 2px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.kv-table td {
+  padding: 0.45rem 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.kv-table tr:last-child td { border-bottom: none; }
+.kv-table tr:hover td { background: var(--hover-bg, #f8f9fa); }
+
+.vote-yes    { color: #2d7a2d; font-weight: 600; }
+.vote-no     { color: #b33a3a; font-weight: 600; }
+.vote-abstain { color: #8a6200; }
+
+.margin-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+.margin-badge.tight { background: #f8d7da; color: #842029; border-color: #f5c2c7; }
+
+.p5-badges { display: flex; gap: 3px; }
+.p5-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.45rem;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.p5-badge.yes     { background: #d4edda; color: #155724; }
+.p5-badge.no      { background: #f8d7da; color: #721c24; }
+.p5-badge.abstain { background: #fff3cd; color: #856404; }
+.p5-badge.absent  { background: #e9ecef; color: #adb5bd; }
+
+.p5-header-row { display: flex; gap: 3px; }
+.p5-header-cell {
+  width: 1.7rem;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1 style="margin-bottom:0.25rem;">Key Votes</h1>
+<p class="meta" style="margin-bottom:1rem;">
+  Closest recorded-vote margins and splits among the five permanent Security Council members.
+</p>
+
+{# ── Mode tabs ─────────────────────────────────────────────────── #}
+<div class="tab-bar">
+  <a href="?mode=closest{% if body %}&body={{ body }}{% endif %}"
+     class="{% if mode == 'closest' %}active{% endif %}">Closest margins</a>
+  <a href="?mode=p5split{% if body %}&body={{ body }}{% endif %}"
+     class="{% if mode == 'p5split' %}active{% endif %}">P5 splits</a>
+</div>
+
+{% if mode == 'closest' %}
+
+{# ── Filters ───────────────────────────────────────────────────── #}
+<div class="kv-filters">
+  <span class="sep">Body:</span>
+  <a class="kv-pill {% if not body %}active{% endif %}" href="?mode=closest&margin={{ threshold }}">All</a>
+  <a class="kv-pill {% if body == 'GA' %}active{% endif %}" href="?mode=closest&body=GA&margin={{ threshold }}">GA</a>
+  <a class="kv-pill {% if body == 'SC' %}active{% endif %}" href="?mode=closest&body=SC&margin={{ threshold }}">SC</a>
+  <span class="sep">Margin ≤</span>
+  {% for m in margin_choices %}
+  <a class="kv-pill {% if threshold == m %}active{% endif %}"
+     href="?mode=closest&margin={{ m }}{% if body %}&body={{ body }}{% endif %}">{{ m }}</a>
+  {% endfor %}
+</div>
+
+<p class="meta" style="margin-bottom:1rem;">
+  {{ votes|length }} resolution{{ votes|length|pluralize }} adopted by a margin of {{ threshold }} vote{{ threshold|pluralize }} or fewer.
+</p>
+
+{% if votes %}
+<div style="overflow-x:auto;">
+<table class="kv-table">
+  <thead>
+    <tr>
+      <th>Resolution</th>
+      <th>Title</th>
+      <th>Year</th>
+      <th style="text-align:center;">Yes</th>
+      <th style="text-align:center;">No</th>
+      <th style="text-align:center;">Abstain</th>
+      <th style="text-align:center;">Margin</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in votes %}
+    <tr>
+      <td style="white-space:nowrap;">
+        <a href="{{ v.resolution.get_absolute_url }}"><strong>{{ v.resolution }}</strong></a>
+        <span class="badge badge-{{ v.document.body|lower }}" style="margin-left:0.25rem; font-size:0.72rem;">{{ v.document.body }}</span>
+      </td>
+      <td style="color:var(--muted); max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ v.resolution.title }}">
+        {{ v.resolution.title|default:""|truncatechars:80 }}
+      </td>
+      <td style="color:var(--muted);">{% if v.document.date %}{{ v.document.date|date:"Y" }}{% endif %}</td>
+      <td style="text-align:center;" class="vote-yes">{{ v.yes_count }}</td>
+      <td style="text-align:center;" class="vote-no">{{ v.no_count }}</td>
+      <td style="text-align:center;" class="vote-abstain">{{ v.abstain_count }}</td>
+      <td style="text-align:center;">
+        <span class="margin-badge {% if v.margin <= 3 %}tight{% endif %}">+{{ v.margin }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="meta">No recorded votes found with margin ≤ {{ threshold }}{% if body %} in the {{ body }}{% endif %}.</p>
+{% endif %}
+
+{% else %}
+
+{# ── P5 splits ─────────────────────────────────────────────────── #}
+<div class="kv-filters">
+  <span class="sep">Body:</span>
+  <a class="kv-pill {% if not body %}active{% endif %}" href="?mode=p5split{% if year %}&year={{ year }}{% endif %}">All</a>
+  <a class="kv-pill {% if body == 'GA' %}active{% endif %}" href="?mode=p5split&body=GA{% if year %}&year={{ year }}{% endif %}">GA</a>
+  <a class="kv-pill {% if body == 'SC' %}active{% endif %}" href="?mode=p5split&body=SC{% if year %}&year={{ year }}{% endif %}">SC</a>
+  <span class="sep">Year:</span>
+  <a class="kv-pill {% if not year %}active{% endif %}" href="?mode=p5split{% if body %}&body={{ body }}{% endif %}">All</a>
+  {% for y in year_choices|slice:":25" %}
+  <a class="kv-pill {% if year == y %}active{% endif %}"
+     href="?mode=p5split&year={{ y }}{% if body %}&body={{ body }}{% endif %}">{{ y }}</a>
+  {% endfor %}
+</div>
+
+<p class="meta" style="margin-bottom:1rem;">
+  Votes where at least one P5 member voted Yes and at least one voted No.
+  {% if page_obj.paginator.count %}Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}.{% endif %}
+</p>
+
+{% if rows %}
+<div style="overflow-x:auto;">
+<table class="kv-table">
+  <thead>
+    <tr>
+      <th>Resolution</th>
+      <th>Title</th>
+      <th>Date</th>
+      <th style="text-align:center;">Yes</th>
+      <th style="text-align:center;">No</th>
+      <th style="text-align:center;">Abstain</th>
+      <th>
+        <div class="p5-header-row">
+          {% for m in p5_members %}<div class="p5-header-cell" title="{{ m.name }}">{{ m.iso3 }}</div>{% endfor %}
+        </div>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    {% with v=row.vote p=row.p5 %}
+    <tr>
+      <td style="white-space:nowrap;">
+        <a href="{{ v.resolution.get_absolute_url }}"><strong>{{ v.resolution }}</strong></a>
+        <span class="badge badge-{{ v.document.body|lower }}" style="margin-left:0.25rem; font-size:0.72rem;">{{ v.document.body }}</span>
+      </td>
+      <td style="color:var(--muted); max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ v.resolution.title }}">
+        {{ v.resolution.title|default:""|truncatechars:70 }}
+      </td>
+      <td style="white-space:nowrap; color:var(--muted);">
+        {% if v.document.date %}{{ v.document.date|date:"Y-m-d" }}{% endif %}
+      </td>
+      <td style="text-align:center;" class="vote-yes">{{ v.yes_count }}</td>
+      <td style="text-align:center;" class="vote-no">{{ v.no_count }}</td>
+      <td style="text-align:center;" class="vote-abstain">{{ v.abstain_count }}</td>
+      <td>
+        <div class="p5-badges">
+          {% for m in p5_members %}
+          {% with pos=p|get_item:m.iso3 %}
+          <span class="p5-badge {% if pos == 'yes' %}yes{% elif pos == 'no' %}no{% elif pos == 'abstain' %}abstain{% else %}absent{% endif %}"
+                title="{{ m.name }}: {{ pos|default:'—' }}">
+            {% if pos == 'yes' %}Y{% elif pos == 'no' %}N{% elif pos == 'abstain' %}A{% else %}—{% endif %}
+          </span>
+          {% endwith %}
+          {% endfor %}
+        </div>
+      </td>
+    </tr>
+    {% endwith %}
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% include "partials/pagination.html" with page_obj=page_obj %}
+{% else %}
+<p class="meta">No P5 splits found{% if body %} in the {{ body }}{% endif %}{% if year %} for {{ year }}{% endif %}.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

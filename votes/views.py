@@ -5,7 +5,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import Http404, JsonResponse
-from django.db.models import Count, F, Min, Max
+from django.db.models import Count, ExpressionWrapper, F, IntegerField, Min, Max, Q
 
 from django.db import connection
 
@@ -1523,4 +1523,104 @@ def cosponsor_network(request):
             {'label': 'Voting Analysis', 'url': '/votes/'},
             {'label': 'Co-sponsorship Network', 'url': None},
         ],
+    })
+
+
+def key_votes(request):
+    mode = request.GET.get('mode', 'closest')
+    body = request.GET.get('body', '')
+    year = request.GET.get('year', '')
+
+    crumbs = [
+        {'label': 'Home', 'url': '/'},
+        {'label': 'Voting Analysis', 'url': '/votes/'},
+        {'label': 'Key Votes', 'url': None},
+    ]
+
+    if mode == 'p5split':
+        qs = (
+            Vote.objects
+            .filter(vote_scope='whole_resolution', vote_type='recorded')
+            .annotate(
+                p5_yes=Count('country_votes', filter=Q(
+                    country_votes__country__iso3__in=P5_ISO3,
+                    country_votes__vote_position='yes',
+                )),
+                p5_no=Count('country_votes', filter=Q(
+                    country_votes__country__iso3__in=P5_ISO3,
+                    country_votes__vote_position='no',
+                )),
+            )
+            .filter(p5_yes__gte=1, p5_no__gte=1)
+            .select_related('resolution', 'document')
+            .order_by('-document__date')
+        )
+        if body in ('GA', 'SC'):
+            qs = qs.filter(document__body=body)
+        if year and year.isdigit():
+            qs = qs.filter(document__date__year=int(year))
+
+        paginator = Paginator(qs, 50)
+        page_obj = paginator.get_page(request.GET.get('page'))
+        vote_ids = [v.pk for v in page_obj]
+
+        p5_cvotes = (
+            CountryVote.objects
+            .filter(vote_id__in=vote_ids, country__iso3__in=P5_ISO3)
+            .select_related('country')
+        )
+        p5_by_vote = defaultdict(dict)
+        for cv in p5_cvotes:
+            p5_by_vote[cv.vote_id][cv.country.iso3] = cv.vote_position
+
+        rows = [{'vote': v, 'p5': p5_by_vote.get(v.pk, {})} for v in page_obj]
+
+        year_choices = [
+            str(y) for y in
+            Vote.objects
+            .filter(vote_scope='whole_resolution', vote_type='recorded')
+            .exclude(document__date__isnull=True)
+            .values_list('document__date__year', flat=True)
+            .distinct()
+            .order_by('-document__date__year')
+        ]
+
+        return render(request, 'votes/key_votes.html', {
+            'mode': mode,
+            'body': body,
+            'year': year,
+            'rows': rows,
+            'page_obj': page_obj,
+            'p5_members': P5,
+            'year_choices': year_choices,
+            'crumbs': crumbs,
+        })
+
+    # mode == 'closest'
+    threshold_str = request.GET.get('margin', '10')
+    threshold = max(1, min(int(threshold_str) if threshold_str.isdigit() else 10, 50))
+
+    qs = (
+        Vote.objects
+        .filter(
+            vote_type='recorded', vote_scope='whole_resolution',
+            yes_count__isnull=False, no_count__isnull=False, no_count__gt=0,
+        )
+        .annotate(margin=ExpressionWrapper(F('yes_count') - F('no_count'), output_field=IntegerField()))
+        .filter(margin__lte=threshold)
+        .select_related('resolution', 'document')
+        .order_by('margin', '-document__date')
+    )
+    if body in ('GA', 'SC'):
+        qs = qs.filter(document__body=body)
+
+    votes = list(qs)
+
+    return render(request, 'votes/key_votes.html', {
+        'mode': mode,
+        'body': body,
+        'threshold': threshold,
+        'margin_choices': [5, 10, 20, 50],
+        'votes': votes,
+        'crumbs': crumbs,
     })
