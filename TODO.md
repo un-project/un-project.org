@@ -47,7 +47,7 @@ Tracked tasks and future features for the UN Project web application.
   points drifting apart over time. Good homepage or "About the data" visual that immediately
   explains the site's value proposition.
 
-- [ ] **"This meeting at a glance"** — collapsible summary on meeting detail: N speeches,
+- [x] **"This meeting at a glance"** — collapsible summary on meeting detail: N speeches,
   N countries represented, resolutions adopted, adjournment time from stage directions.
 
 ## Medium effort

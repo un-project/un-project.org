@@ -55,6 +55,38 @@
   {% endif %}
 </div>
 
+{# ── At a glance ───────────────────────────────────────────────── #}
+<details class="glance" style="margin-bottom:1.25rem; border:1px solid var(--border); border-radius:6px; background:#fafafa;">
+  <summary style="cursor:pointer; padding:0.6rem 1rem; font-weight:600; font-size:0.88rem; list-style:none; display:flex; align-items:center; gap:0.5rem; user-select:none;">
+    <span style="color:var(--muted); font-size:0.75rem; transition:transform 0.15s;" class="glance-arrow">▶</span>
+    This meeting at a glance
+  </summary>
+  <div style="padding:0.75rem 1rem 0.9rem; border-top:1px solid var(--border);">
+    <div style="display:flex; gap:2rem; flex-wrap:wrap; margin-bottom:{% if glance_resolutions %}0.9rem{% else %}0{% endif %};">
+      <div>
+        <div style="font-size:1.3rem; font-weight:700; color:var(--un-blue); line-height:1.1;">{{ glance_speech_count }}</div>
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted);">Speech{{ glance_speech_count|pluralize:"es" }}</div>
+      </div>
+      <div>
+        <div style="font-size:1.3rem; font-weight:700; color:var(--un-blue); line-height:1.1;">{{ glance_country_count }}</div>
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted);">Countr{{ glance_country_count|pluralize:"y,ies" }}</div>
+      </div>
+      <div>
+        <div style="font-size:1.3rem; font-weight:700; color:var(--un-blue); line-height:1.1;">{{ glance_resolutions|length }}</div>
+        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted);">Resolution{{ glance_resolutions|length|pluralize }}</div>
+      </div>
+    </div>
+    {% if glance_resolutions %}
+    <div style="font-size:0.85rem; color:var(--muted);">
+      Resolution{{ glance_resolutions|length|pluralize }}:
+      {% for res in glance_resolutions %}
+      <a href="{{ res.get_absolute_url }}" style="white-space:nowrap;">{{ res }}</a>{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</details>
+
 <div id="transcript-search-bar" class="transcript-search-floating">
   <input type="search" id="transcript-search" placeholder="Search speeches…" autocomplete="off">
   <span id="transcript-search-count"></span>
@@ -348,6 +380,16 @@
   window.addEventListener('hashchange', function () {
     if (window.location.hash) scrollToHash(window.location.hash);
   });
+})();
+
+// Rotate glance arrow on open/close
+(function () {
+  var details = document.querySelector('details.glance');
+  if (!details) return;
+  var arrow = details.querySelector('.glance-arrow');
+  function sync() { arrow.style.transform = details.open ? 'rotate(90deg)' : ''; }
+  details.addEventListener('toggle', sync);
+  sync();
 })();
 </script>
 {% endblock %}

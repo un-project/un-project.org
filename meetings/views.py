@@ -145,6 +145,10 @@ def meeting_detail(request, slug):
         else:
             seen_fps[key] = s.pk
 
+    # At-a-glance stats — computed from already-loaded data, no extra queries
+    glance_country_count = len({s.speaker.country_id for s in speeches if s.speaker.country_id})
+    glance_resolutions = [v.resolution for v in votes if v.vote_scope == 'whole_resolution']
+
     body_label = document.body_display
     crumbs = [
         {'label': 'Home', 'url': f'/?body={document.body}'},
@@ -159,6 +163,9 @@ def meeting_detail(request, slug):
         'unattributed_count': unattributed_count,
         'duplicate_ids': duplicate_ids,
         'duplicate_count': len(duplicate_ids),
+        'glance_speech_count': len(speeches),
+        'glance_country_count': glance_country_count,
+        'glance_resolutions': glance_resolutions,
         'crumbs': crumbs,
     })
 
