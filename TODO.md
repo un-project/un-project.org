@@ -91,6 +91,6 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Sentiment / position analysis** — classify speeches as supportive, critical, or
   neutral toward a resolution using the Claude API.
 
-- [ ] **Explanation-of-vote tagging** — tag speeches given immediately before/after a vote as
+- [x] **Explanation-of-vote tagging** — tag speeches given immediately before/after a vote as
   `explanation_of_vote` (requires extractor work). Surface them as a dedicated section on the
   resolution detail page — the most policy-relevant content around any vote.

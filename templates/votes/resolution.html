@@ -202,6 +202,33 @@
   </div>
   {% endif %}
   {% endwith %}
+
+  {% with eov=eov_by_vote|get_item:vote.pk %}
+  {% if eov %}
+  <details style="margin-top:1rem;">
+    <summary style="cursor:pointer; font-size:0.88rem; font-weight:600; color:var(--un-blue); user-select:none; padding:0.3rem 0;">
+      Speeches following this vote ({{ eov|length }})
+      <span class="meta" style="font-size:0.78rem; font-weight:400; margin-left:0.4rem;">may include explanations of vote</span>
+    </summary>
+    <div style="margin-top:0.6rem; display:flex; flex-direction:column; gap:0.75rem;">
+      {% for s in eov %}
+      <div style="padding:0.6rem 0.75rem; background:var(--un-light); border:1px solid var(--border); border-radius:var(--radius); font-size:0.88rem;">
+        <div style="font-weight:600; margin-bottom:0.3rem;">
+          {% if s.iso3 %}
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="" style="height:12px; border-radius:1px; margin-right:4px; vertical-align:middle;">
+          {% endif %}
+          {{ s.speaker_name }}{% if s.country_name and s.country_name != s.speaker_name %} <span class="meta" style="font-weight:400;">({{ s.country_name }})</span>{% endif %}
+        </div>
+        <div style="color:var(--text); line-height:1.55;">{{ s.text|truncatechars:400 }}</div>
+        <div style="margin-top:0.3rem;">
+          <a href="{{ vote.document.get_absolute_url }}#speech-{{ s.speech_id }}" class="meta" style="font-size:0.78rem;">View full speech →</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+  {% endwith %}
 </div>
 {% endfor %}
 

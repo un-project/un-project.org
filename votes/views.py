@@ -358,6 +358,59 @@ def resolution_detail(request, slug):
 
     anomalous_count = sum(len(s) for s in anomalous_by_vote.values())
 
+    # Post-vote speeches: speeches in the same item after each vote (up to next vote)
+    # These typically include explanations of vote.
+    eov_by_vote = {}  # vote_pk -> list of speech dicts
+
+    item_vote_positions = defaultdict(list)  # item_id -> [(position, vote_pk)]
+    for vote in votes:
+        if vote.item_id:
+            item_vote_positions[vote.item_id].append((vote.position_in_item, vote.pk))
+
+    if item_vote_positions:
+        for item_id in item_vote_positions:
+            item_vote_positions[item_id].sort()
+
+        vote_bounds = {}  # vote_pk -> (item_id, lower_pos, upper_pos)
+        for item_id, sorted_pv in item_vote_positions.items():
+            for i, (pos, vpk) in enumerate(sorted_pv):
+                upper = sorted_pv[i + 1][0] if i + 1 < len(sorted_pv) else 999999
+                vote_bounds[vpk] = (item_id, pos, upper)
+
+        all_item_ids = list(item_vote_positions.keys())
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT s.id, s.item_id, s.position_in_item, s.text,
+                       sp.name, c.iso3, COALESCE(c.short_name, c.name)
+                FROM speeches s
+                JOIN speakers sp ON sp.id = s.speaker_id
+                LEFT JOIN countries c ON c.id = sp.country_id
+                WHERE s.item_id = ANY(%s)
+                ORDER BY s.item_id, s.position_in_item
+            """, [all_item_ids])
+            speech_rows = cur.fetchall()
+
+        speeches_by_item = defaultdict(list)
+        for row in speech_rows:
+            speeches_by_item[row[1]].append(row)
+
+        MAX_EOV = 20
+        for vpk, (item_id, lower, upper) in vote_bounds.items():
+            eov = []
+            for row in speeches_by_item[item_id]:
+                if lower < row[2] < upper:
+                    eov.append({
+                        'speech_id':   row[0],
+                        'text':        row[3],
+                        'speaker_name': row[4],
+                        'iso3':        row[5],
+                        'country_name': row[6],
+                    })
+                    if len(eov) >= MAX_EOV:
+                        break
+            if eov:
+                eov_by_vote[vpk] = eov
+
     return render(request, 'votes/resolution.html', {
         'resolution': resolution,
         'votes':      votes,
@@ -365,6 +418,7 @@ def resolution_detail(request, slug):
         'P5':         P5,
         'anomalous_by_vote': anomalous_by_vote,
         'anomalous_count':   anomalous_count,
+        'eov_by_vote':       eov_by_vote,
         'outgoing': outgoing,
         'outgoing_total': outgoing_total,
         'incoming': incoming,
