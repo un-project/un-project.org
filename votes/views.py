@@ -201,6 +201,40 @@ def resolution_list(request):
     })
 
 
+def _find_anomalous(triples, min_separation=0.5, threshold=1.0):
+    """
+    Given [(country_pk, 'yes'|'no', ideal_point), ...], return a set of
+    country PKs whose vote is inconsistent with their ideal point.
+
+    "Inconsistent" = the country's IP puts it clearly on the opposite side
+    of the Yes/No split point (by more than `threshold` IP units).
+    """
+    yes_ips = [ip for _, pos, ip in triples if pos == 'yes']
+    no_ips  = [ip for _, pos, ip in triples if pos == 'no']
+    if not yes_ips or not no_ips:
+        return set()
+    avg_yes = sum(yes_ips) / len(yes_ips)
+    avg_no  = sum(no_ips)  / len(no_ips)
+    if abs(avg_yes - avg_no) < min_separation:
+        return set()
+    split = (avg_yes + avg_no) / 2
+    anomalous = set()
+    for pk, pos, ip in triples:
+        if avg_yes > avg_no:
+            # High IP = expected Yes side
+            if pos == 'no'  and ip > split + threshold:
+                anomalous.add(pk)
+            elif pos == 'yes' and ip < split - threshold:
+                anomalous.add(pk)
+        else:
+            # High IP = expected No side
+            if pos == 'yes' and ip > split + threshold:
+                anomalous.add(pk)
+            elif pos == 'no'  and ip < split - threshold:
+                anomalous.add(pk)
+    return anomalous
+
+
 def resolution_detail(request, slug):
     resolution = None
     for r in Resolution.objects.all():
@@ -279,11 +313,50 @@ def resolution_detail(request, slug):
             if cv.country and cv.country.iso3 in P5_ISO3:
                 p5_votes[cv.country.iso3] = cv.vote_position
 
+    # Anomalous vote detection — one batch query per distinct year
+    needed_iso3s = {}   # year -> set of iso3
+    for vote in votes:
+        if not vote.document.date:
+            continue
+        yr = vote.document.date.year
+        needed_iso3s.setdefault(yr, set())
+        for cv in vote.country_votes.all():
+            if cv.country and cv.country.iso3:
+                needed_iso3s[yr].add(cv.country.iso3)
+
+    ip_table = {}  # (iso3, year) -> ideal_point
+    with connection.cursor() as cur:
+        for yr, iso3_set in needed_iso3s.items():
+            cur.execute("""
+                SELECT iso3, ideal_point
+                FROM canonical_ideal_points_norm
+                WHERE year = %s AND iso3 = ANY(%s) AND ideal_point IS NOT NULL
+            """, [yr, list(iso3_set)])
+            for row in cur.fetchall():
+                ip_table[(row[0], yr)] = float(row[1])
+
+    anomalous_by_vote = {}  # vote_pk -> set of country PKs
+    for vote in votes:
+        if not vote.document.date:
+            continue
+        yr = vote.document.date.year
+        triples = []
+        for cv in vote.country_votes.all():
+            if cv.country and cv.country.iso3 and cv.vote_position in ('yes', 'no'):
+                ip = ip_table.get((cv.country.iso3, yr))
+                if ip is not None:
+                    triples.append((cv.country.pk, cv.vote_position, ip))
+        anomalous_by_vote[vote.pk] = _find_anomalous(triples)
+
+    anomalous_count = sum(len(s) for s in anomalous_by_vote.values())
+
     return render(request, 'votes/resolution.html', {
         'resolution': resolution,
         'votes':      votes,
         'p5_votes':   p5_votes,
         'P5':         P5,
+        'anomalous_by_vote': anomalous_by_vote,
+        'anomalous_count':   anomalous_count,
         'outgoing': outgoing,
         'outgoing_total': outgoing_total,
         'incoming': incoming,

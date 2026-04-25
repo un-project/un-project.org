@@ -153,7 +153,7 @@
 
 {% for vote in votes %}
 <div style="margin-bottom:2rem;">
-  <h2 style="font-size:1rem; margin-bottom:0.75rem;">
+  <h2 style="font-size:1rem; margin-bottom:0.4rem;">
     Vote
     {% if vote.vote_scope == 'paragraph' %}on paragraph {{ vote.paragraph_number }}
     {% elif vote.vote_scope == 'amendment' %}on amendment
@@ -162,6 +162,14 @@
     &mdash; <a href="{{ vote.document.get_absolute_url }}" class="meta">{{ vote.document.symbol }}</a>
     {% if vote.document.date %}<span class="meta">{{ vote.document.date|date:"N j, Y" }}</span>{% endif %}
   </h2>
+
+  {% with vote_anomalous=anomalous_by_vote|get_item:vote.pk %}
+  {% if vote_anomalous %}
+  <p class="meta" style="font-size:0.78rem; margin:0 0 0.6rem;">
+    <span style="background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:3px; padding:0.05rem 0.4rem; font-weight:600; font-size:0.75rem;">⚠</span>
+    {{ vote_anomalous|length }} surprising vote{{ vote_anomalous|length|pluralize }} — countr{{ vote_anomalous|length|pluralize:"y,ies" }} whose ideal point predicts the opposite position.
+  </p>
+  {% endif %}
 
   {% if vote.country_votes.all %}
   {% regroup vote.country_votes.all|dictsort:"vote_position" by vote_position as position_groups %}
@@ -182,6 +190,10 @@
           <img src="{{ cv.country.flag_url }}" alt="" style="height:12px; vertical-align:middle; margin-right:3px;">
           {% endif %}
           <a href="{{ cv.country.get_absolute_url }}">{{ cv.country.display_name }}</a>
+          {% if cv.country.pk in vote_anomalous %}
+          <span title="This country's ideal point predicts the opposite vote position."
+                style="display:inline-block; padding:0.05rem 0.3rem; border-radius:3px; font-size:0.68rem; font-weight:700; background:#fff3cd; color:#856404; border:1px solid #ffc107; margin-left:0.2rem; vertical-align:middle;">⚠</span>
+          {% endif %}
         </li>
         {% endfor %}
       </ul>
@@ -189,6 +201,7 @@
     {% endfor %}
   </div>
   {% endif %}
+  {% endwith %}
 </div>
 {% endfor %}
 

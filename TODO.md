@@ -58,7 +58,7 @@ Tracked tasks and future features for the UN Project web application.
   `bsv2017_mcmc > voeten_bsv2017 > computed_irt`, or add an `is_canonical BOOLEAN` column
   populated by the extractor. Required before mixing sources in any chart.
 
-- [ ] **Anomalous vote flagging** — for each recorded vote, compare the country's actual
+- [x] **Anomalous vote flagging** — for each recorded vote, compare the country's actual
   position to what its ideal point predicts. A high-IP country voting Yes on a resolution the
   USA voted No on is a detectable anomaly. Flag these on resolution pages as "surprising vote".
 
