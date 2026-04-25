@@ -72,10 +72,10 @@ def _render_country_detail(request, country):
         with connection.cursor() as cur:
             cur.execute(
                 '''SELECT ip.year, ip.ideal_point, ip.se, m.mean_ip
-                   FROM canonical_ideal_points ip
+                   FROM canonical_ideal_points_norm ip
                    JOIN (
                        SELECT year, AVG(ideal_point) AS mean_ip
-                       FROM canonical_ideal_points
+                       FROM canonical_ideal_points_norm
                        WHERE ideal_point IS NOT NULL
                        GROUP BY year
                    ) m ON m.year = ip.year

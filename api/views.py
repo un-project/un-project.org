@@ -982,7 +982,7 @@ def country_ideal_points(request, iso3):
     get_object_or_404(Country, iso3=iso3)
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT year, ideal_point, se FROM canonical_ideal_points WHERE iso3 = %s ORDER BY year",
+            "SELECT year, ideal_point, se FROM canonical_ideal_points_norm WHERE iso3 = %s ORDER BY year",
             [iso3],
         )
         rows = cursor.fetchall()
@@ -1006,14 +1006,14 @@ def country_neighbours(request, iso3):
         cursor.execute(
             """
             WITH mean AS (
-                SELECT AVG(ideal_point) AS m FROM canonical_ideal_points WHERE year = %s
+                SELECT AVG(ideal_point) AS m FROM canonical_ideal_points_norm WHERE year = %s
             ),
             target AS (
-                SELECT ideal_point FROM canonical_ideal_points WHERE iso3 = %s AND year = %s
+                SELECT ideal_point FROM canonical_ideal_points_norm WHERE iso3 = %s AND year = %s
             )
             SELECT ip.iso3, c.name, ip.ideal_point - mean.m AS centred_ip,
                    ABS(ip.ideal_point - t.ideal_point) AS dist
-            FROM canonical_ideal_points ip
+            FROM canonical_ideal_points_norm ip
             JOIN countries c ON c.iso3 = ip.iso3
             CROSS JOIN mean
             JOIN target t ON true
@@ -1435,7 +1435,7 @@ def bubble_chart_data(request):
             JOIN majority m ON m.id = cv.vote_id
             JOIN votes v ON v.id = cv.vote_id
             JOIN documents d ON v.document_id = d.id
-            LEFT JOIN canonical_ideal_points ip
+            LEFT JOIN canonical_ideal_points_norm ip
                    ON ip.iso3 = c.iso3 AND ip.year = %s
             WHERE date_part('year', d.date) = %s
               AND c.iso3 IS NOT NULL
@@ -1486,11 +1486,11 @@ def vote_predict(request):
             """
             SELECT ip.iso3, COALESCE(c.short_name, c.name),
                    ip.ideal_point - m.mean_ip AS centred
-            FROM canonical_ideal_points ip
+            FROM canonical_ideal_points_norm ip
             JOIN countries c ON c.iso3 = ip.iso3
             JOIN (
                 SELECT year, AVG(ideal_point) AS mean_ip
-                FROM canonical_ideal_points WHERE ideal_point IS NOT NULL GROUP BY year
+                FROM canonical_ideal_points_norm WHERE ideal_point IS NOT NULL GROUP BY year
             ) m ON m.year = ip.year
             WHERE ip.year = %s AND ip.ideal_point IS NOT NULL
             ORDER BY centred DESC
@@ -1550,7 +1550,7 @@ def ideal_points_yearly_mean(request):
     with connection.cursor() as cur:
         cur.execute("""
             SELECT year, AVG(ideal_point)
-            FROM canonical_ideal_points
+            FROM canonical_ideal_points_norm
             WHERE ideal_point IS NOT NULL
             GROUP BY year
             ORDER BY year
@@ -1571,29 +1571,16 @@ def ideal_points_bloc_map(request):
             cur.execute('SELECT MAX(year) FROM canonical_ideal_points')
             year = cur.fetchone()[0]
 
-        # The BSV ideal-point scale flips polarity in early years (pre-~1969).
-        # Normalise by the sign of the USA's ideal point so that high values
-        # always mean Western-aligned, regardless of year.
         cur.execute("""
-            WITH us_sign AS (
-                SELECT COALESCE(
-                    CASE WHEN MAX(CASE WHEN iso3 = 'USA' THEN ideal_point END) >= 0
-                         THEN 1 ELSE -1 END,
-                    1
-                ) AS sgn
-                FROM canonical_ideal_points
-                WHERE year = %s
-            )
             SELECT ip.iso3,
                    COALESCE(c.short_name, c.name) AS name,
-                   ip.ideal_point * us.sgn AS norm_ip,
-                   NTILE(4) OVER (ORDER BY ip.ideal_point * us.sgn) AS quartile
-            FROM canonical_ideal_points ip
+                   ip.ideal_point,
+                   NTILE(4) OVER (ORDER BY ip.ideal_point) AS quartile
+            FROM canonical_ideal_points_norm ip
             LEFT JOIN countries c ON c.iso3 = ip.iso3
-            CROSS JOIN us_sign us
             WHERE ip.year = %s AND ip.ideal_point IS NOT NULL
             ORDER BY ip.iso3
-        """, [year, year])
+        """, [year])
         rows = cur.fetchall()
 
     countries = [

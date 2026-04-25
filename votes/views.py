@@ -1027,7 +1027,7 @@ def cohesion_heatmap(request):
         # Ideal points: mean per country for ordering
         cur.execute("""
             SELECT ip.iso3, AVG(ip.ideal_point) AS mean_ip
-            FROM canonical_ideal_points ip
+            FROM canonical_ideal_points_norm ip
             WHERE ip.ideal_point IS NOT NULL
             GROUP BY ip.iso3
         """)
@@ -1133,7 +1133,7 @@ def ideal_points_timeline(request):
         cur.execute("""
             SELECT ip.iso3, ip.year, ip.ideal_point,
                    COALESCE(c.short_name, c.name) AS label
-            FROM canonical_ideal_points ip
+            FROM canonical_ideal_points_norm ip
             LEFT JOIN countries c ON c.iso3 = ip.iso3
             WHERE ip.ideal_point IS NOT NULL
             ORDER BY ip.iso3, ip.year
@@ -1217,10 +1217,10 @@ def p5_divergence(request):
             """
             SELECT ip.iso3, ip.year,
                    ip.ideal_point - m.mean_ip AS centred
-            FROM canonical_ideal_points ip
+            FROM canonical_ideal_points_norm ip
             JOIN (
                 SELECT year, AVG(ideal_point) AS mean_ip
-                FROM canonical_ideal_points
+                FROM canonical_ideal_points_norm
                 WHERE ideal_point IS NOT NULL
                 GROUP BY year
             ) m ON m.year = ip.year
