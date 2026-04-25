@@ -1571,16 +1571,29 @@ def ideal_points_bloc_map(request):
             cur.execute('SELECT MAX(year) FROM canonical_ideal_points')
             year = cur.fetchone()[0]
 
+        # The BSV ideal-point scale flips polarity in early years (pre-~1969).
+        # Normalise by the sign of the USA's ideal point so that high values
+        # always mean Western-aligned, regardless of year.
         cur.execute("""
+            WITH us_sign AS (
+                SELECT COALESCE(
+                    CASE WHEN MAX(CASE WHEN iso3 = 'USA' THEN ideal_point END) >= 0
+                         THEN 1 ELSE -1 END,
+                    1
+                ) AS sgn
+                FROM canonical_ideal_points
+                WHERE year = %s
+            )
             SELECT ip.iso3,
                    COALESCE(c.short_name, c.name) AS name,
-                   ip.ideal_point,
-                   NTILE(4) OVER (ORDER BY ip.ideal_point) AS quartile
+                   ip.ideal_point * us.sgn AS norm_ip,
+                   NTILE(4) OVER (ORDER BY ip.ideal_point * us.sgn) AS quartile
             FROM canonical_ideal_points ip
             LEFT JOIN countries c ON c.iso3 = ip.iso3
+            CROSS JOIN us_sign us
             WHERE ip.year = %s AND ip.ideal_point IS NOT NULL
             ORDER BY ip.iso3
-        """, [year])
+        """, [year, year])
         rows = cur.fetchall()
 
     countries = [
