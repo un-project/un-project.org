@@ -1022,10 +1022,66 @@ def _compute_similarity(request, country):
 def country_votes_page(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     votes_api_url = f'/votes/api/{iso3}/'
+
+    # Ideal point time series (re-centred by yearly global mean)
+    ideal_points_json = '[]'
+    with connection.cursor() as cur:
+        cur.execute(
+            '''SELECT ip.year, ip.ideal_point, ip.se, m.mean_ip
+               FROM canonical_ideal_points_norm ip
+               JOIN (
+                   SELECT year, AVG(ideal_point) AS mean_ip
+                   FROM canonical_ideal_points_norm
+                   WHERE ideal_point IS NOT NULL
+                   GROUP BY year
+               ) m ON m.year = ip.year
+               WHERE ip.iso3 = %s
+               ORDER BY ip.year''',
+            [iso3],
+        )
+        rows = cur.fetchall()
+        if rows:
+            ideal_points_json = json.dumps([
+                {
+                    'year':  row[0],
+                    'point': round(float(row[1]) - float(row[3]), 4),
+                    'se':    round(float(row[2]), 4) if row[2] is not None else None,
+                }
+                for row in rows
+            ])
+
+    # Most/least aligned countries (weighted avg over country_alignment_series)
+    _alignment_sql = """
+        SELECT c.iso3, COALESCE(c.short_name, c.name) AS label,
+               SUM(cas.agreement_rate * cas.n_votes) / SUM(cas.n_votes) AS rate
+        FROM country_alignment_series cas
+        JOIN countries c ON (
+            CASE WHEN cas.country_id_a = %s THEN cas.country_id_b
+                 ELSE cas.country_id_a END = c.id
+        )
+        WHERE (cas.country_id_a = %s OR cas.country_id_b = %s)
+          AND cas.n_votes >= 5
+          AND c.iso3 IS NOT NULL
+        GROUP BY c.iso3, c.short_name, c.name
+        HAVING SUM(cas.n_votes) >= 50
+        ORDER BY rate {order}
+        LIMIT 5
+    """
+    similar_most = []
+    similar_least = []
+    with connection.cursor() as cur:
+        cur.execute(_alignment_sql.format(order='DESC'), [country.pk, country.pk, country.pk])
+        similar_most = [{'iso3': r[0], 'name': r[1], 'rate': round(r[2] * 100, 1)} for r in cur.fetchall()]
+        cur.execute(_alignment_sql.format(order='ASC'), [country.pk, country.pk, country.pk])
+        similar_least = [{'iso3': r[0], 'name': r[1], 'rate': round(r[2] * 100, 1)} for r in cur.fetchall()]
+
     return render(request, 'votes/country_votes.html', {
         'country': country,
         'votes_api_url': votes_api_url,
         'issue_codes_json': ISSUE_CODES_JSON,
+        'ideal_points_json': ideal_points_json,
+        'similar_most': similar_most,
+        'similar_least': similar_least,
         'crumbs': [
             {'label': 'Home', 'url': '/'},
             {'label': 'Countries', 'url': '/country/'},

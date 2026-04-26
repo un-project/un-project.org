@@ -111,7 +111,7 @@
   {% endif %}
   <h1 style="margin:0;">{{ country.display_name }} — Voting Analysis</h1>
 </div>
-<p class="meta" style="margin-bottom:1.25rem;">
+<p class="meta" style="margin-bottom:1rem;">
   <a href="/country/{{ country.iso3 }}/">← Country page</a>
   &ensp;·&ensp;
   <a href="/votes/compare/?a={{ country.iso3 }}">Compare with another country ↗</a>
@@ -119,6 +119,19 @@
   <a href="/votes/map/#{{ country.iso3 }}">Similarity map ↗</a>
 </p>
 
+<style>
+.cv-tab-nav { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:1.5rem; }
+.cv-tab-link { padding:0.5rem 1rem; font-size:0.92rem; color:var(--muted); text-decoration:none; border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; background:none; border-top:none; border-left:none; border-right:none; }
+.cv-tab-link:hover { color:var(--un-blue); }
+.cv-tab-link.active { color:var(--un-blue); border-bottom-color:var(--un-blue); font-weight:600; }
+</style>
+
+<nav class="cv-tab-nav">
+  <button class="cv-tab-link active" data-cvtab="voting">Voting</button>
+  <button class="cv-tab-link" data-cvtab="alignment">Voting Alignment</button>
+</nav>
+
+<div id="cvtab-voting">
 <div class="speaker-layout">
 
   <aside class="speaker-sidebar">
@@ -201,6 +214,88 @@
   </main>
 
 </div>
+</div><!-- /cvtab-voting -->
+
+<div id="cvtab-alignment" style="display:none;">
+
+  <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.5rem;">
+    Voting alignment is computed from UN General Assembly roll-call votes (1946–present).
+    <strong>Agreement rates</strong> count the share of resolutions where both countries cast the same vote (Yes/No/Abstain), weighted by the inverse square root of the number of countries voting, to down-weight near-unanimous resolutions.
+    <strong>Ideal points</strong> are estimated using a Bayesian item-response model (<a href="https://doi.org/10.1177/0022002715595700" target="_blank" rel="noopener">Voeten 2013</a>) that places each country on a left–right policy dimension each session.
+    <strong>Issue-area breakdowns</strong> use the topic codes assigned by the UN Bibliographic Information System.
+  </p>
+
+  {% if similar_most or similar_least %}
+  <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+    {% if similar_most %}
+    <div class="chart-box" style="flex:1; min-width:220px;">
+      <h3>Most aligned <span style="font-weight:400; text-transform:none; font-size:0.78rem; color:var(--muted);">all-time</span></h3>
+      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem;">
+        {% for s in similar_most %}
+        <li style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;" onerror="this.style.display='none'">
+          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}" style="flex:1; color:inherit;">{{ s.name }}</a>
+          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if similar_least %}
+    <div class="chart-box" style="flex:1; min-width:220px;">
+      <h3>Least aligned <span style="font-weight:400; text-transform:none; font-size:0.78rem; color:var(--muted);">all-time</span></h3>
+      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem;">
+        {% for s in similar_least %}
+        <li style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;" onerror="this.style.display='none'">
+          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}" style="flex:1; color:inherit;">{{ s.name }}</a>
+          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if ideal_points_json != '[]' %}
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Voting alignment over time
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        ideal point (re-centred) — 0 = global average · positive = more Western-aligned ·
+        <a href="/about/#datasets" style="color:var(--muted);">BSV2017</a>
+      </small>
+    </h3>
+    <div id="al-ip-chart"><span class="meta">Loading…</span></div>
+  </div>
+
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Closest neighbours
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        countries with the most similar voting alignment in a given year
+      </small>
+    </h3>
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+      <label for="al-nb-year" style="font-size:0.85rem; color:var(--muted);">Year:</label>
+      <select id="al-nb-year" style="font-size:0.85rem;"></select>
+    </div>
+    <div id="al-nb-list" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
+    <p id="al-nb-empty" class="meta" style="display:none;">No data for this year.</p>
+  </div>
+  {% endif %}
+
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Issue-area voting alignment
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        % yes votes by issue category · 5-year rolling average
+      </small>
+    </h3>
+    <div id="al-ia-chart"></div>
+    <div id="al-ia-legend" style="display:flex; flex-wrap:wrap; gap:0.45rem 1.1rem; margin-top:0.6rem; font-size:0.8rem;"></div>
+  </div>
+
+</div><!-- /cvtab-alignment -->
+
 {% endblock %}
 
 {% block extra_js %}
@@ -441,6 +536,177 @@
   };
 
   window._initVotingTab('');
+}());
+</script>
+
+<script>
+/* ── Voting Alignment tab (country_votes page) ─────────────────────── */
+(function () {
+  var ISO3 = '{{ country.iso3 }}';
+  var alLoaded = false;
+
+  /* ── Tab switching ───────────────────────────────────────────────── */
+  document.querySelectorAll('.cv-tab-link').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.cv-tab-link').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var tab = btn.dataset.cvtab;
+      document.getElementById('cvtab-voting').style.display    = tab === 'voting'    ? '' : 'none';
+      document.getElementById('cvtab-alignment').style.display = tab === 'alignment' ? '' : 'none';
+      if (tab === 'alignment' && !alLoaded) { alLoaded = true; initAlignment(); }
+    });
+  });
+
+  /* ── Alignment tab init ──────────────────────────────────────────── */
+  var RAW = {{ ideal_points_json|safe }};
+
+  function initAlignment() {
+    if (RAW.length) {
+      renderIpChart(RAW);
+      populateNeighboursDropdown(RAW);
+    }
+    fetch('/api/countries/' + ISO3 + '/issue-alignment/?smooth=5')
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderIaChart(d.series); })
+      .catch(function () {});
+  }
+
+  /* ── Ideal point chart ───────────────────────────────────────────── */
+  function renderIpChart(RAW) {
+    var container = document.getElementById('al-ip-chart');
+    if (!container || !window.d3) return;
+    container.innerHTML = '';
+    var W = container.clientWidth || 600;
+    var ml = 42, mr = 16, mt = 10, mb = 30, iW = W - ml - mr, iH = 150;
+    var x = d3.scaleLinear().domain(d3.extent(RAW, function (d) { return d.year; })).range([0, iW]);
+    var absMax = Math.ceil(Math.max(d3.max(RAW, function (d) { return Math.abs(d.point); }), 1) * 1.15);
+    var y = d3.scaleLinear().domain([-absMax, absMax]).range([iH, 0]);
+    var svg = d3.select(container).append('svg').attr('width', W).attr('height', iH + mt + mb);
+    var g = svg.append('g').attr('transform', 'translate(' + ml + ',' + mt + ')');
+    g.append('rect').attr('width', iW).attr('height', iH).attr('fill', 'var(--hover-bg,#f8f9fa)').attr('rx', 3);
+    g.append('line').attr('x1', 0).attr('x2', iW).attr('y1', y(0)).attr('y2', y(0))
+      .attr('stroke', 'var(--un-blue,#1a6fa8)').attr('stroke-width', 1).attr('stroke-dasharray', '4,3').attr('opacity', 0.55);
+    g.append('text').attr('x', iW - 3).attr('y', y(0) - 4).attr('text-anchor', 'end')
+      .attr('font-size', '0.65rem').attr('fill', 'var(--un-blue,#1a6fa8)').attr('opacity', 0.7).text('avg');
+    var bandData = RAW.filter(function (d) { return d.se !== null && d.se < 2; });
+    if (bandData.length > 1) {
+      g.append('path').datum(bandData)
+        .attr('d', d3.area().x(function (d) { return x(d.year); }).y0(function (d) { return y(d.point - d.se); }).y1(function (d) { return y(d.point + d.se); }).curve(d3.curveMonotoneX))
+        .attr('fill', 'var(--un-blue,#1a6fa8)').attr('opacity', 0.12);
+    }
+    g.append('path').datum(RAW)
+      .attr('d', d3.line().x(function (d) { return x(d.year); }).y(function (d) { return y(d.point); }).curve(d3.curveMonotoneX))
+      .attr('fill', 'none').attr('stroke', 'var(--un-blue,#1a6fa8)').attr('stroke-width', 1.8);
+    var xMin = d3.min(RAW, function (d) { return d.year; });
+    g.append('g').attr('transform', 'translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(d3.range(Math.ceil(xMin / 10) * 10, 2030, 10)).tickFormat(d3.format('d')).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); }).selectAll('text').style('font-size', '0.7rem').style('fill', 'var(--muted)');
+    g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); }).selectAll('text').style('font-size', '0.7rem').style('fill', 'var(--muted)');
+    var tip = d3.select(container).style('position', 'relative').append('div')
+      .style('position', 'absolute').style('pointer-events', 'none').style('background', 'rgba(0,0,0,0.78)').style('color', '#fff')
+      .style('font-size', '0.8rem').style('padding', '0.2rem 0.5rem').style('border-radius', '4px').style('display', 'none').style('white-space', 'nowrap');
+    var yearMap = {}; RAW.forEach(function (d) { yearMap[d.year] = d; });
+    g.append('rect').attr('width', iW).attr('height', iH).attr('fill', 'none').attr('pointer-events', 'all')
+      .on('mousemove', function (event) {
+        var yr = Math.round(x.invert(d3.pointer(event)[0])), d = yearMap[yr];
+        if (!d) return;
+        tip.style('display', 'block').text(yr + ': ' + (d.point >= 0 ? '+' : '') + d.point.toFixed(3))
+          .style('left', (ml + x(yr) + 8) + 'px').style('top', (mt + y(d.point) - 24) + 'px');
+      }).on('mouseleave', function () { tip.style('display', 'none'); });
+  }
+
+  /* ── Closest neighbours ──────────────────────────────────────────── */
+  function populateNeighboursDropdown(RAW) {
+    var yearSel = document.getElementById('al-nb-year');
+    if (!yearSel) return;
+    var years = RAW.map(function (d) { return d.year; }).sort(function (a, b) { return b - a; });
+    years.forEach(function (yr) {
+      var opt = document.createElement('option'); opt.value = yr; opt.textContent = yr; yearSel.appendChild(opt);
+    });
+    yearSel.addEventListener('change', function () { loadNeighbours(parseInt(yearSel.value)); });
+    loadNeighbours(parseInt(yearSel.value));
+  }
+
+  function loadNeighbours(year) {
+    var list = document.getElementById('al-nb-list'), empty = document.getElementById('al-nb-empty');
+    list.innerHTML = '<span class="meta">Loading…</span>'; empty.style.display = 'none';
+    fetch('/api/countries/' + ISO3 + '/neighbours/?year=' + year + '&n=10')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        list.innerHTML = '';
+        if (!data.neighbours || !data.neighbours.length) { empty.style.display = ''; return; }
+        data.neighbours.forEach(function (nb) {
+          var row = document.createElement('div');
+          row.style.cssText = 'display:grid;grid-template-columns:26px 1fr 84px 52px;align-items:center;column-gap:0.5rem;font-size:0.87rem;';
+          var flag = document.createElement('img');
+          flag.src = '/static/flags/' + nb.iso3 + '.svg'; flag.alt = nb.iso3;
+          flag.style.cssText = 'width:22px;height:15px;object-fit:cover;border:1px solid #ddd;';
+          flag.onerror = function () { flag.style.display = 'none'; };
+          var name = document.createElement('a');
+          name.href = '/country/' + nb.iso3 + '/'; name.textContent = nb.name;
+          name.style.cssText = 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;text-decoration:none;';
+          var maxBar = 80, absMax = 3;
+          var px = Math.min(Math.abs(nb.centred_ip) / absMax * maxBar, maxBar);
+          var colour = nb.centred_ip >= 0 ? 'var(--un-blue,#1a6fa8)' : '#c0392b';
+          var barEl = document.createElement('span');
+          barEl.style.cssText = 'display:inline-block;height:8px;width:' + px + 'px;background:' + colour + ';opacity:0.55;border-radius:2px;vertical-align:middle;';
+          var val = document.createElement('span');
+          val.style.cssText = 'color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;';
+          val.textContent = (nb.centred_ip >= 0 ? '+' : '') + nb.centred_ip.toFixed(3);
+          row.appendChild(flag); row.appendChild(name); row.appendChild(barEl); row.appendChild(val);
+          list.appendChild(row);
+        });
+      }).catch(function () { list.innerHTML = '<span class="meta">Failed to load.</span>'; });
+  }
+
+  /* ── Issue-area chart ────────────────────────────────────────────── */
+  function renderIaChart(series) {
+    var container = document.getElementById('al-ia-chart');
+    if (!container || !window.d3 || !series) return;
+    var AREAS = [
+      {code:'all', label:'All votes',       color:'#888'},
+      {code:'me',  label:'Middle East',     color:'#c0392b'},
+      {code:'nu',  label:'Nuclear weapons', color:'#2980b9'},
+      {code:'hr',  label:'Human rights',    color:'#8e44ad'},
+      {code:'co',  label:'Colonialism',     color:'#d35400'},
+      {code:'di',  label:'Disarmament',     color:'#27ae60'},
+      {code:'ec',  label:'Economic dev.',   color:'#f39c12'},
+    ];
+    var allPts = (series['all'] || []).filter(function (d) { return d.pct !== null; });
+    if (!allPts.length) return;
+    var W0 = container.clientWidth || 640, ml = 38, mr = 12, mt = 8, mb = 28, iW = W0 - ml - mr, iH = 160;
+    var xExt = d3.extent(allPts, function (d) { return d.year; });
+    var x = d3.scaleLinear().domain(xExt).range([0, iW]);
+    var y = d3.scaleLinear().domain([0, 100]).range([iH, 0]);
+    var svg = d3.select(container).append('svg').attr('width', W0).attr('height', iH + mt + mb);
+    var g = svg.append('g').attr('transform', 'translate(' + ml + ',' + mt + ')');
+    g.append('rect').attr('width', iW).attr('height', iH).attr('fill', 'var(--hover-bg,#f8f9fa)').attr('rx', 3);
+    g.append('line').attr('x1',0).attr('x2',iW).attr('y1',y(50)).attr('y2',y(50)).attr('stroke','#ccc').attr('stroke-width',1).attr('stroke-dasharray','4 3');
+    var lineGen = d3.line().defined(function (d) { return d.pct !== null; }).x(function (d) { return x(d.year); }).y(function (d) { return y(d.pct); }).curve(d3.curveMonotoneX);
+    AREAS.forEach(function (a) {
+      var pts = series[a.code];
+      if (!pts || !pts.some(function (d) { return d.pct !== null; })) return;
+      g.append('path').datum(pts).attr('fill','none').attr('stroke',a.color)
+        .attr('stroke-width', a.code === 'all' ? 1.6 : 1.4).attr('stroke-dasharray', a.code === 'all' ? '5 3' : null)
+        .attr('opacity', a.code === 'all' ? 0.6 : 0.85).attr('d', lineGen);
+    });
+    g.append('g').attr('transform','translate(0,' + iH + ')')
+      .call(d3.axisBottom(x).tickValues(d3.range(Math.ceil(xExt[0]/10)*10,2030,10)).tickFormat(d3.format('d')).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); }).selectAll('text').style('font-size','0.68rem').style('fill','var(--muted)');
+    g.append('g').call(d3.axisLeft(y).tickValues([0,50,100]).tickFormat(function (d) { return d+'%'; }).tickSize(3))
+      .call(function (a) { a.select('.domain').remove(); }).selectAll('text').style('font-size','0.68rem').style('fill','var(--muted)');
+    var leg = document.getElementById('al-ia-legend');
+    if (leg) {
+      leg.innerHTML = AREAS.map(function (a) {
+        var hasPts = (series[a.code]||[]).some(function (d) { return d.pct !== null; });
+        if (!hasPts) return '';
+        var dash = a.code === 'all' ? 'border-top:2px dashed ' + a.color + ';' : 'border-top:2px solid ' + a.color + ';';
+        return '<span style="display:inline-flex;align-items:center;gap:0.3rem;"><span style="width:18px;height:0;' + dash + 'flex-shrink:0;"></span>' + a.label + '</span>';
+      }).join('');
+    }
+  }
+
 }());
 </script>
 {% endblock %}

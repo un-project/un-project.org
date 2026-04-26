@@ -210,6 +210,7 @@
 
 <nav class="tab-nav">
   {% if country.iso3 %}<a href="#voting" class="tab-link" data-tab="voting">Voting</a>{% endif %}
+  {% if country.iso3 %}<a href="#alignment" class="tab-link" data-tab="alignment">Voting Alignment</a>{% endif %}
   <a href="#speeches" class="tab-link" data-tab="speeches">Speeches</a>
   <a href="#representatives" class="tab-link" data-tab="representatives">Representatives</a>
   {% if debate_entries %}<a href="#debate" class="tab-link" data-tab="debate">General Debate</a>{% endif %}
@@ -252,41 +253,6 @@
       <div id="cv-issue-list"></div>
     </div>
 
-    {% if similar_most or similar_least %}
-    <div class="sidebar-box">
-      <h3>Similar countries <span style="font-size:0.7rem; font-weight:400; color:var(--muted);">all-time</span></h3>
-      {% if similar_most %}
-      <p style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); margin:0 0 0.35rem;">Most aligned</p>
-      <ul style="list-style:none; margin:0 0 0.75rem; padding:0; display:flex; flex-direction:column; gap:0.3rem;">
-        {% for s in similar_most %}
-        <li style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem;">
-          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}"
-               style="width:20px; height:13px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;"
-               onerror="this.style.display='none'">
-          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}"
-             style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit;">{{ s.name }}</a>
-          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      {% if similar_least %}
-      <p style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); margin:0 0 0.35rem;">Least aligned</p>
-      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.3rem;">
-        {% for s in similar_least %}
-        <li style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem;">
-          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}"
-               style="width:20px; height:13px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;"
-               onerror="this.style.display='none'">
-          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}"
-             style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit;">{{ s.name }}</a>
-          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-    </div>
-    {% endif %}
   </aside>
 
   <main>
@@ -341,47 +307,92 @@
       </div>
     </div>
 
-    {% if ideal_points_json != '[]' %}
-    <div class="chart-box" style="margin-top:1.25rem; margin-bottom:0.5rem;">
-      <h3>Voting alignment over time
-        <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
-          ideal point (re-centred) — 0 = global average · positive = more Western-aligned ·
-          <a href="/about/#datasets" style="color:var(--muted);">BSV2017</a>
-        </small>
-      </h3>
-      <div id="ideal-point-chart"></div>
-    </div>
-
-    <div class="chart-box" style="margin-top:0.75rem; margin-bottom:0.5rem;">
-      <h3>Closest neighbours
-        <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
-          countries with the most similar voting alignment in a given year
-        </small>
-      </h3>
-      <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
-        <label for="nb-year-select" style="font-size:0.85rem; color:var(--muted);">Year:</label>
-        <select id="nb-year-select" style="font-size:0.85rem;"></select>
-      </div>
-      <div id="nb-list" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
-      <p id="nb-empty" class="meta" style="display:none;">No data for this year.</p>
-    </div>
-    {% endif %}
-
-    {% if country.iso3 %}
-    <div class="chart-box" style="margin-top:0.75rem; margin-bottom:0.5rem;">
-      <h3>Issue-area voting alignment
-        <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
-          % yes votes by issue category · 5-year rolling average
-        </small>
-      </h3>
-      <div id="ia-chart"></div>
-      <div id="ia-legend" style="display:flex; flex-wrap:wrap; gap:0.45rem 1.1rem; margin-top:0.6rem; font-size:0.8rem;"></div>
-    </div>
-    {% endif %}
   </main>
 
 </div>
 </div><!-- /tab-voting -->
+{% endif %}
+
+{% if country.iso3 %}
+<div id="tab-alignment" class="tab-panel">
+
+  <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.5rem;">
+    Voting alignment is computed from UN General Assembly roll-call votes (1946–present).
+    <strong>Agreement rates</strong> count the share of resolutions where both countries cast the same vote (Yes/No/Abstain), weighted by the inverse square root of the number of countries voting, to down-weight near-unanimous resolutions.
+    <strong>Ideal points</strong> are estimated using a Bayesian item-response model (<a href="https://doi.org/10.1177/0022002715595700" target="_blank" rel="noopener">Voeten 2013</a>) that places each country on a left–right policy dimension each session.
+    <strong>Issue-area breakdowns</strong> use the topic codes assigned by the UN Bibliographic Information System.
+  </p>
+
+  {% if similar_most or similar_least %}
+  <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+    {% if similar_most %}
+    <div class="chart-box" style="flex:1; min-width:220px;">
+      <h3>Most aligned <span style="font-weight:400; text-transform:none; font-size:0.78rem; color:var(--muted);">all-time</span></h3>
+      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem;">
+        {% for s in similar_most %}
+        <li style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;" onerror="this.style.display='none'">
+          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}" style="flex:1; color:inherit;">{{ s.name }}</a>
+          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if similar_least %}
+    <div class="chart-box" style="flex:1; min-width:220px;">
+      <h3>Least aligned <span style="font-weight:400; text-transform:none; font-size:0.78rem; color:var(--muted);">all-time</span></h3>
+      <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem;">
+        {% for s in similar_least %}
+        <li style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;" onerror="this.style.display='none'">
+          <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}" style="flex:1; color:inherit;">{{ s.name }}</a>
+          <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if ideal_points_json != '[]' %}
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Voting alignment over time
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        ideal point (re-centred) — 0 = global average · positive = more Western-aligned ·
+        <a href="/about/#datasets" style="color:var(--muted);">BSV2017</a>
+      </small>
+    </h3>
+    <div id="ideal-point-chart"></div>
+  </div>
+
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Closest neighbours
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        countries with the most similar voting alignment in a given year
+      </small>
+    </h3>
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+      <label for="nb-year-select" style="font-size:0.85rem; color:var(--muted);">Year:</label>
+      <select id="nb-year-select" style="font-size:0.85rem;"></select>
+    </div>
+    <div id="nb-list" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
+    <p id="nb-empty" class="meta" style="display:none;">No data for this year.</p>
+  </div>
+  {% endif %}
+
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Issue-area voting alignment
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        % yes votes by issue category · 5-year rolling average
+      </small>
+    </h3>
+    <div id="ia-chart"></div>
+    <div id="ia-legend" style="display:flex; flex-wrap:wrap; gap:0.45rem 1.1rem; margin-top:0.6rem; font-size:0.8rem;"></div>
+  </div>
+
+</div><!-- /tab-alignment -->
 {% endif %}
 
 <div id="tab-speeches" class="tab-panel">
@@ -813,10 +824,10 @@
   var RAW = {{ ideal_points_json|safe }};
   if (!RAW.length) return;
 
-  /* Render once when the voting tab first opens */
+  /* Render once when the alignment tab first opens */
   var rendered = false;
-  var origInit = window._initVotingTab;
-  window._initVotingTab = function () {
+  var origInit = window._initAlignmentTab;
+  window._initAlignmentTab = function () {
     if (!rendered) { rendered = true; renderIdealChart(); }
     if (origInit) origInit.apply(this, arguments);
   };
@@ -969,18 +980,18 @@
         }
         data.neighbours.forEach(function (nb) {
           var row = document.createElement('div');
-          row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-size:0.87rem;';
+          row.style.cssText = 'display:grid; grid-template-columns:26px 1fr 170px 56px; align-items:center; column-gap:0.5rem; font-size:0.87rem;';
 
           var flag = document.createElement('img');
           flag.src = '/static/flags/' + nb.iso3 + '.svg';
           flag.alt = nb.iso3;
-          flag.style.cssText = 'width:22px; height:15px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;';
+          flag.style.cssText = 'width:22px; height:15px; object-fit:cover; border:1px solid #ddd;';
           flag.onerror = function () { flag.style.display = 'none'; };
 
           var name = document.createElement('a');
           name.href = '/country/' + nb.iso3 + '/';
           name.textContent = nb.name;
-          name.style.cssText = 'min-width:160px; color:inherit; text-decoration:none;';
+          name.style.cssText = 'min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; text-decoration:none;';
           name.onmouseenter = function () { name.style.textDecoration = 'underline'; };
           name.onmouseleave = function () { name.style.textDecoration = 'none'; };
 
@@ -1004,7 +1015,7 @@
           mid.appendChild(rightSpacer);
 
           var val = document.createElement('span');
-          val.style.cssText = 'color:var(--muted); min-width:50px; text-align:right; font-variant-numeric:tabular-nums;';
+          val.style.cssText = 'color:var(--muted); text-align:right; font-variant-numeric:tabular-nums;';
           val.textContent = (nb.centred_ip >= 0 ? '+' : '') + nb.centred_ip.toFixed(3);
 
           row.appendChild(flag);
@@ -1021,10 +1032,10 @@
 
   yearSel.addEventListener('change', function () { load(parseInt(yearSel.value)); });
 
-  /* Load on tab open, just like the ideal-point chart */
+  /* Load on alignment tab open */
   var nbLoaded = false;
-  var origInit2 = window._initVotingTab;
-  window._initVotingTab = function () {
+  var origInit2 = window._initAlignmentTab;
+  window._initAlignmentTab = function () {
     if (!nbLoaded) { nbLoaded = true; load(parseInt(yearSel.value)); }
     if (origInit2) origInit2.apply(this, arguments);
   };
@@ -1050,8 +1061,8 @@
   ];
 
   var rendered = false;
-  var origInit3 = window._initVotingTab;
-  window._initVotingTab = function () {
+  var origInit3 = window._initAlignmentTab;
+  window._initAlignmentTab = function () {
     if (!rendered) { rendered = true; loadAndRender(); }
     if (origInit3) origInit3.apply(this, arguments);
   };
@@ -1775,6 +1786,7 @@
 (function () {
   var TABS = [
     {% if country.iso3 %}'voting',{% endif %}
+    {% if country.iso3 %}'alignment',{% endif %}
     'speeches',
     'representatives',
     {% if debate_entries %}'debate',{% endif %}
@@ -1796,9 +1808,10 @@
 
     if (!initialized[name]) {
       initialized[name] = true;
-      if (name === 'voting'          && window._initVotingTab)   window._initVotingTab();
-      if (name === 'speeches'        && window._initSpeechesTab) window._initSpeechesTab();
-      if (name === 'representatives' && window._initRepsTab)     window._initRepsTab();
+      if (name === 'voting'          && window._initVotingTab)     window._initVotingTab();
+      if (name === 'alignment'       && window._initAlignmentTab) window._initAlignmentTab();
+      if (name === 'speeches'        && window._initSpeechesTab)  window._initSpeechesTab();
+      if (name === 'representatives' && window._initRepsTab)      window._initRepsTab();
     }
 
     history.replaceState(null, '', location.pathname + '#' + name);
