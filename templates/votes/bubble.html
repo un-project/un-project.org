@@ -106,8 +106,8 @@
 <div id="bubble-meta">Loading data…</div>
 
 <div class="bubble-legend">
-  <span><span class="dot" style="background:#2166ac;"></span> Liberal / Western-aligned (ideal point ≈ +3)</span>
-  <span><span class="dot" style="background:#d6604d;"></span> Opposing / Non-Western (ideal point ≈ −6)</span>
+  <span><span class="dot" style="background:#2166ac;"></span> Liberal / Western-aligned (ideal point ≈ +3.5)</span>
+  <span><span class="dot" style="background:#d6604d;"></span> Opposing / Non-Western (ideal point ≈ −3.5)</span>
   <span style="margin-left:0.5rem;">Bubble size = votes cast in that year</span>
 </div>
 {% endblock %}
@@ -127,12 +127,14 @@ var svg = d3.select('#bubble-svg');
 var g   = svg.append('g').attr('transform', 'translate(' + M.left + ',' + M.top + ')');
 
 /* ── Scales ────────────────────────────────────────────────────── */
-var xSc = d3.scaleLinear().domain([-6.5, 3]).range([0, W]);
+// Ideal points in canonical_ideal_points_norm span roughly [-3.3, +3.2]
+// across all years; use a symmetric ±3.5 domain with comfortable padding.
+var xSc = d3.scaleLinear().domain([-3.5, 3.5]).range([0, W]);
 var ySc = d3.scaleLinear().domain([0, 100]).range([H, 0]);
 // area ∝ votes; cap radius at 32px
 var rSc = d3.scaleSqrt().domain([0, 300]).clamp(true).range([3, 32]);
-// RdBu diverging: blue=high ideal point (Western), red=low (opposing)
-var cSc = d3.scaleDiverging(d3.interpolateRdBu).domain([-6.5, 0, 3]);
+// RdBu diverging: red=negative (opposing), blue=positive (Western-aligned)
+var cSc = d3.scaleDiverging(d3.interpolateRdBu).domain([-3.5, 0, 3.5]);
 
 /* ── Axes ──────────────────────────────────────────────────────── */
 var xAxis = g.append('g')
@@ -153,7 +155,7 @@ g.append('text')
     .attr('x', W / 2).attr('y', H + 42)
     .attr('text-anchor', 'middle')
     .attr('font-size', '11px').attr('fill', '#666')
-    .text('← Liberal / Western-aligned    Ideal Point    Opposing / Non-Western →');
+    .text('← Opposing / Non-Western    Ideal Point    Liberal / Western-aligned →');
 
 g.append('text')
     .attr('transform', 'rotate(-90)')
