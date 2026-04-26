@@ -45,7 +45,7 @@ Tracked tasks and future features for the UN Project web application.
 
 ## Voting analysis
 
-- [ ] **Voting consistency score** — for each country, compute the variance of its ideal
+- [x] **Voting consistency score** — for each country, compute the variance of its ideal
   point over time as a "consistency" metric; display on the country Voting Alignment
   tab alongside the timeline.
 

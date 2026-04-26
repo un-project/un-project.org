@@ -364,6 +364,13 @@
         <a href="/about/#datasets" style="color:var(--muted);">BSV2017</a>
       </small>
     </h3>
+    {% if consistency_stats %}
+    <p class="meta" style="margin:0 0 0.6rem; font-size:0.82rem;">
+      Position consistency: more stable than
+      <strong>{{ consistency_stats.pct }}%</strong> of countries
+      <span style="color:var(--muted);">(std dev {{ consistency_stats.stddev }}, ranked among {{ consistency_stats.n }} countries)</span>
+    </p>
+    {% endif %}
     <div id="ideal-point-chart"></div>
   </div>
 

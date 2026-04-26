@@ -1097,6 +1097,7 @@ def country_votes_page(request, iso3):
 
     # Ideal point time series (re-centred by yearly global mean)
     ideal_points_json = '[]'
+    consistency_stats = None
     with connection.cursor() as cur:
         cur.execute(
             '''SELECT ip.year, ip.ideal_point, ip.se, m.mean_ip
@@ -1121,6 +1122,37 @@ def country_votes_page(request, iso3):
                 }
                 for row in rows
             ])
+
+        cur.execute("""
+            WITH cs AS (
+                SELECT ip.iso3,
+                       STDDEV(ip.ideal_point - m.mean_ip) AS stddev_ip
+                FROM canonical_ideal_points_norm ip
+                JOIN (
+                    SELECT year, AVG(ideal_point) AS mean_ip
+                    FROM canonical_ideal_points_norm
+                    WHERE ideal_point IS NOT NULL
+                    GROUP BY year
+                ) m ON m.year = ip.year
+                WHERE ip.ideal_point IS NOT NULL
+                GROUP BY ip.iso3
+                HAVING COUNT(*) >= 10
+            ),
+            ranked AS (
+                SELECT iso3, stddev_ip,
+                       ROUND(PERCENT_RANK() OVER (ORDER BY stddev_ip DESC) * 100)::int AS pct,
+                       COUNT(*) OVER () AS n
+                FROM cs
+            )
+            SELECT stddev_ip, pct, n FROM ranked WHERE iso3 = %s
+        """, [iso3])
+        row = cur.fetchone()
+    if row:
+        consistency_stats = {
+            'stddev': round(float(row[0]), 2),
+            'pct':    int(row[1]),
+            'n':      int(row[2]),
+        }
 
     # Most/least aligned countries (weighted avg over country_alignment_series)
     _alignment_sql = """
@@ -1152,6 +1184,7 @@ def country_votes_page(request, iso3):
         'votes_api_url': votes_api_url,
         'issue_codes_json': ISSUE_CODES_JSON,
         'ideal_points_json': ideal_points_json,
+        'consistency_stats': consistency_stats,
         'similar_most': similar_most,
         'similar_least': similar_least,
         'crumbs': [

@@ -68,6 +68,7 @@ def _render_country_detail(request, country):
     # Ideal point time series — re-centred by yearly global mean so 0 = world
     # average that year (removes the IRT anchor effect where USA is pinned at 0).
     ideal_points_json = '[]'
+    consistency_stats = None
     if country.iso3:
         with connection.cursor() as cur:
             cur.execute(
@@ -91,6 +92,38 @@ def _render_country_detail(request, country):
                 }
                 for row in cur.fetchall()
             ])
+
+            # Consistency: std dev of re-centred ideal point + global percentile
+            cur.execute("""
+                WITH cs AS (
+                    SELECT ip.iso3,
+                           STDDEV(ip.ideal_point - m.mean_ip) AS stddev_ip
+                    FROM canonical_ideal_points_norm ip
+                    JOIN (
+                        SELECT year, AVG(ideal_point) AS mean_ip
+                        FROM canonical_ideal_points_norm
+                        WHERE ideal_point IS NOT NULL
+                        GROUP BY year
+                    ) m ON m.year = ip.year
+                    WHERE ip.ideal_point IS NOT NULL
+                    GROUP BY ip.iso3
+                    HAVING COUNT(*) >= 10
+                ),
+                ranked AS (
+                    SELECT iso3, stddev_ip,
+                           ROUND(PERCENT_RANK() OVER (ORDER BY stddev_ip DESC) * 100)::int AS pct,
+                           COUNT(*) OVER () AS n
+                    FROM cs
+                )
+                SELECT stddev_ip, pct, n FROM ranked WHERE iso3 = %s
+            """, [country.iso3])
+            row = cur.fetchone()
+        if row:
+            consistency_stats = {
+                'stddev': round(float(row[0]), 2),
+                'pct':    int(row[1]),
+                'n':      int(row[2]),
+            }
 
     issue_codes_json = _json.dumps([
         {'code': c, 'short': s, 'long': l} for c, s, l in ISSUE_CODES
@@ -177,6 +210,7 @@ def _render_country_detail(request, country):
         'historical_info':      HISTORICAL_INFO.get(country.iso3),
         'similar_most':         similar_most,
         'similar_least':        similar_least,
+        'consistency_stats':    consistency_stats,
     })
 
 
