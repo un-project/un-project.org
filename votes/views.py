@@ -913,7 +913,7 @@ def country_votes_json(request, iso3):
             'abstain_count': row['vote__abstain_count'],
             'document': doc_symbol,
             'document_url': f'/meeting/{_doc_slug(doc_symbol)}/',
-            'resolution_url': f'/votes/resolutions/{res_symbol.replace("/", "-").replace(".", "-")}/',
+            'resolution_url': f'/votes/resolution/{res_symbol.replace("/", "-").replace(".", "-")}/',
         })
 
     payload = {'country': country.name, 'iso3': iso3, 'votes': records}
