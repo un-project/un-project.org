@@ -52,7 +52,7 @@
 
     /* Compute how this country voted relative to the majority */
     function towardMajority(mp, position) {
-        if (position === 'absent' || mp === null) return null;
+        if (position === 'absent' || position === 'non_voting' || mp === null) return null;
         if (position === mp) return 'agree';
         if (position === 'abstain') return 'abstain';
         return 'against';
@@ -399,7 +399,7 @@
             /* Votes with no tally data (yes/no/abstain counts all NULL) —
                majority alignment cannot be determined for these. */
             var noTallyYG = makeYearGroup(function (d) {
-                return d.toward_majority === null && d.position !== 'absent';
+                return d.toward_majority === null && d.position !== 'absent' && d.position !== 'non_voting';
             });
 
             var majYearChart = dc.barChart(containerSel + ' #toward-majority-year-chart', GROUP);
