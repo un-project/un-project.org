@@ -36,7 +36,7 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Related resolutions** — on the resolution detail page, suggest thematically similar
   resolutions using the existing `resolution_citations` graph or UNBIS topic codes.
 
-- [ ] **Speaker autocomplete in search** — the speaker dropdown in the search form is a
+- [x] **Speaker autocomplete in search** — the speaker dropdown in the search form is a
   plain `<select>`; replace with the existing `data-search-url` live-search widget
   for consistency and usability.
 

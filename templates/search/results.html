@@ -24,6 +24,15 @@
     });
     window.location = '/search/?' + params.toString();
   });
+
+  // When country changes, clear any speaker selection (stale cross-country filter)
+  var countryEl = form.elements['country'];
+  var speakerEl = form.elements['speaker'];
+  if (countryEl && speakerEl) {
+    countryEl.addEventListener('change', function () {
+      if (speakerEl.tomselect) speakerEl.tomselect.clear();
+    });
+  }
 }());
 </script>
 {% endblock %}
@@ -55,10 +64,13 @@
         <option value="{{ c.pk }}" data-iso3="{{ c.iso3|default:'' }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
         {% endfor %}
       </select>
-      <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country" style="flex:1;">
+      <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country"
+              placeholder="All speakers" style="flex:1;">
         <option value="">All speakers</option>
         {% if selected_speaker %}
-        <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>
+        <option value="{{ selected_speaker.pk }}" selected
+                data-country_iso3="{{ selected_speaker.country.iso3|default:'' }}"
+                data-detail="{% if selected_speaker.country %}{{ selected_speaker.country.display_name }}{% elif selected_speaker.organization %}{{ selected_speaker.organization }}{% endif %}">{{ selected_speaker.name }}</option>
         {% endif %}
       </select>
     </div>
