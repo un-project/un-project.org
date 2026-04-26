@@ -152,6 +152,38 @@ CREATE TABLE IF NOT EXISTS public.speech_search_index (
     text        text,
     search_vector text
 );
+
+CREATE OR REPLACE VIEW public.canonical_ideal_points AS
+SELECT DISTINCT ON (country_id, year)
+    id, country_id, iso3, year, ideal_point, se, source
+FROM public.country_ideal_points
+WHERE ideal_point IS NOT NULL
+ORDER BY
+    country_id,
+    year,
+    CASE source
+        WHEN 'bsv2017_mcmc'   THEN 1
+        WHEN 'voeten_bsv2017' THEN 2
+        WHEN 'computed_irt'   THEN 3
+        ELSE 4
+    END;
+
+CREATE OR REPLACE VIEW public.canonical_ideal_points_norm AS
+WITH us_signs AS (
+    SELECT year,
+           CASE WHEN ideal_point >= 0 THEN 1.0 ELSE -1.0 END AS sgn
+    FROM public.canonical_ideal_points
+    WHERE iso3 = 'USA'
+)
+SELECT cip.id,
+       cip.country_id,
+       cip.iso3,
+       cip.year,
+       cip.ideal_point * COALESCE(s.sgn, 1.0) AS ideal_point,
+       cip.se,
+       cip.source
+FROM public.canonical_ideal_points cip
+LEFT JOIN us_signs s ON s.year = cip.year;
 """
 
 
