@@ -31,46 +31,46 @@
 {% block content %}
 <h1>Search</h1>
 
-<form class="filters" method="get" action="/search/">
-  <input type="search" name="q" value="{{ query }}"
-    placeholder="Search speeches and resolutions…" style="flex:1; min-width:200px;">
-
-  <select id="type-select" name="type">
-    <option value="">Speeches &amp; resolutions</option>
-    <option value="speech"     {% if current_type == "speech"     %}selected{% endif %}>Speeches only</option>
-    <option value="resolution" {% if current_type == "resolution" %}selected{% endif %}>Resolutions only</option>
-  </select>
-
-  <select name="body">
-    <option value="">All bodies</option>
-    <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
-    <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
-  </select>
-
-  <span id="speech-only-filters" style="display:contents;">
-    <select name="country" data-searchable>
-      <option value="">All countries</option>
-      {% for c in countries %}
-      <option value="{{ c.pk }}" data-iso3="{{ c.iso3|default:'' }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-      {% endfor %}
+<form class="filters search-form-structured" method="get" action="/search/">
+  <div class="sf-row">
+    <input type="search" name="q" value="{{ query }}"
+      placeholder="Search speeches and resolutions…" style="flex:1;">
+    <select id="type-select" name="type">
+      <option value="">Speeches &amp; resolutions</option>
+      <option value="speech"     {% if current_type == "speech"     %}selected{% endif %}>Speeches only</option>
+      <option value="resolution" {% if current_type == "resolution" %}selected{% endif %}>Resolutions only</option>
     </select>
-
-    <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country">
-      <option value="">All speakers</option>
-      {% if selected_speaker %}
-      <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>
-      {% endif %}
+    <select name="body">
+      <option value="">All bodies</option>
+      <option value="GA" {% if current_body == "GA" %}selected{% endif %}>General Assembly</option>
+      <option value="SC" {% if current_body == "SC" %}selected{% endif %}>Security Council</option>
     </select>
-  </span>
+  </div>
 
-  <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.88rem; color:var(--muted);">
-    From <input type="date" name="date_from" value="{{ date_from }}" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:var(--radius); font-size:0.88rem;">
-  </label>
-  <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.88rem; color:var(--muted);">
-    To <input type="date" name="date_to" value="{{ date_to }}" style="padding:0.3rem 0.5rem; border:1px solid var(--border); border-radius:var(--radius); font-size:0.88rem;">
-  </label>
+  <div id="speech-only-filters" class="sf-rows">
+    <div class="sf-row">
+      <select name="country" data-searchable style="flex:1;">
+        <option value="">All countries</option>
+        {% for c in countries %}
+        <option value="{{ c.pk }}" data-iso3="{{ c.iso3|default:'' }}" {% if current_country == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="speaker" data-search-url="/api/speakers/search/" data-country-select="country" style="flex:1;">
+        <option value="">All speakers</option>
+        {% if selected_speaker %}
+        <option value="{{ selected_speaker.pk }}" selected>{{ selected_speaker.name }}{% if selected_speaker.country %} ({{ selected_speaker.country.display_name }}){% elif selected_speaker.organization %} ({{ selected_speaker.organization }}){% endif %}</option>
+        {% endif %}
+      </select>
+    </div>
+    <div class="sf-row">
+      <label class="sf-date-label">From <input type="date" name="date_from" value="{{ date_from }}"></label>
+      <label class="sf-date-label">To <input type="date" name="date_to" value="{{ date_to }}"></label>
+    </div>
+  </div>
 
-  <button type="submit">Search</button>
+  <div class="sf-row">
+    <button type="submit">Search</button>
+  </div>
 </form>
 
 {% if query %}
