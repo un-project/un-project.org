@@ -84,7 +84,6 @@
   function colorFor(rate) {
     if (rate === null) return '#e8e8e8';
     var t = rate / 100;
-    // 0 → grey (#b0b0b0), 0.5 → yellow-green (#a8c060), 1 → dark green (#155724)
     var r, g, b;
     if (t < 0.5) {
       var s = t * 2;
@@ -111,12 +110,9 @@
   }
 
   // ── Build symmetric rate lookup ──────────────────────────────────
-  // rates[a][b] = {rate, shared}
   var rates = {};
   for (var i = 0; i < N; i++) rates[i] = {};
-  // diagonal
   for (var i = 0; i < N; i++) rates[i][i] = {rate: 100, shared: null};
-
   cells.forEach(function (c) {
     rates[c.a][c.b] = {rate: c.rate, shared: c.shared};
     rates[c.b][c.a] = {rate: c.rate, shared: c.shared};
@@ -128,44 +124,14 @@
 
   var tooltip = document.getElementById('ch-tooltip');
 
-  // ── Column (top) labels — rotated ───────────────────────────────
-  countries.forEach(function (c) {
-    var x = LABEL_LEFT + c.idx * CELL + CELL / 2;
-    var label = c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name;
-    svg.append('text')
-      .attr('transform', 'translate(' + x + ',' + (LABEL_TOP - 4) + ') rotate(-65)')
-      .attr('text-anchor', 'start')
-      .attr('font-size', '8px')
-      .attr('fill', '#444')
-      .text(label);
-  });
-
-  // ── Row (left) labels ────────────────────────────────────────────
-  countries.forEach(function (c) {
-    var y = LABEL_TOP + c.idx * CELL + CELL / 2 + 3;
-    var label = c.name.length > 16 ? c.name.slice(0, 15) + '…' : c.name;
-    svg.append('a')
-      .attr('href', '/country/' + c.iso3 + '/')
-      .append('text')
-        .attr('x', LABEL_LEFT - 3)
-        .attr('y', y)
-        .attr('text-anchor', 'end')
-        .attr('font-size', '8px')
-        .attr('fill', 'var(--un-blue)')
-        .style('cursor', 'pointer')
-        .text(label);
-  });
-
-  // ── Cells ────────────────────────────────────────────────────────
+  // ── 1. Cells (drawn first so highlights/labels sit on top) ───────
   for (var ai = 0; ai < N; ai++) {
     for (var bi = 0; bi < N; bi++) {
       var cell = rates[ai] && rates[ai][bi];
       var rate   = cell ? cell.rate   : null;
       var shared = cell ? cell.shared : null;
       var isDiag = ai === bi;
-
-      var ca = countries[ai];
-      var cb = countries[bi];
+      var ca = countries[ai], cb = countries[bi];
 
       (function (ai, bi, rate, shared, ca, cb, isDiag) {
         var rect = svg.append('rect')
@@ -178,6 +144,13 @@
         if (!isDiag) {
           rect.style('cursor', rate !== null ? 'pointer' : 'default')
             .on('mouseover', function (event) {
+              // crosshair
+              rowHL.attr('y', LABEL_TOP + ai * CELL).style('display', null);
+              colHL.attr('x', LABEL_LEFT + bi * CELL).style('display', null);
+              // label highlight
+              if (rowLabelEls[ai]) d3.select(rowLabelEls[ai]).attr('font-weight', '700').attr('fill', '#000');
+              if (colLabelEls[bi]) d3.select(colLabelEls[bi]).attr('font-weight', '700').attr('fill', '#000');
+              // tooltip
               tooltip.style.display = 'block';
               if (rate !== null) {
                 var col = rate >= 70 ? '#155724' : rate >= 40 ? '#856404' : '#721c24';
@@ -195,23 +168,72 @@
               tooltip.style.left = (event.clientX + 14) + 'px';
               tooltip.style.top  = (event.clientY - 10) + 'px';
             })
-            .on('mouseout', function () { tooltip.style.display = 'none'; })
+            .on('mouseout', function () {
+              rowHL.style('display', 'none');
+              colHL.style('display', 'none');
+              if (rowLabelEls[ai]) d3.select(rowLabelEls[ai]).attr('font-weight', 'normal').attr('fill', 'var(--un-blue)');
+              if (colLabelEls[bi]) d3.select(colLabelEls[bi]).attr('font-weight', 'normal').attr('fill', '#555');
+              tooltip.style.display = 'none';
+            })
             .on('click', function () {
-              if (rate !== null && ca.iso3 && cb.iso3) {
-                window.location = '/votes/compare/?a_type=country&a=' + ca.iso3
-                  + '&b_type=country&b=' + cb.iso3;
-              }
+              if (rate !== null && ca.iso3 && cb.iso3)
+                window.location = '/votes/compare/?a_type=country&a=' + ca.iso3 + '&b_type=country&b=' + cb.iso3;
             });
         }
       }(ai, bi, rate, shared, ca, cb, isDiag));
     }
   }
 
-  // ── Diagonal white line for clarity ─────────────────────────────
+  // ── 2. Crosshair highlight overlays (above cells, below labels) ──
+  var rowHL = svg.append('rect')
+    .attr('pointer-events', 'none')
+    .attr('x', 0).attr('width', W).attr('height', CELL)
+    .attr('fill', 'rgba(0,0,0,0.10)')
+    .style('display', 'none');
+
+  var colHL = svg.append('rect')
+    .attr('pointer-events', 'none')
+    .attr('y', 0).attr('height', H).attr('width', CELL)
+    .attr('fill', 'rgba(0,0,0,0.10)')
+    .style('display', 'none');
+
+  // ── 3. Diagonal white line ────────────────────────────────────────
   svg.append('line')
     .attr('x1', LABEL_LEFT).attr('y1', LABEL_TOP)
     .attr('x2', LABEL_LEFT + N * CELL).attr('y2', LABEL_TOP + N * CELL)
     .attr('stroke', '#ccc').attr('stroke-width', 0.5);
+
+  // ── 4. Labels (on top so they stay readable over crosshair) ──────
+  var colLabelEls = {};
+  countries.forEach(function (c) {
+    var x = LABEL_LEFT + c.idx * CELL + CELL / 2;
+    var label = c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name;
+    var el = svg.append('text')
+      .attr('transform', 'translate(' + x + ',' + (LABEL_TOP - 4) + ') rotate(-65)')
+      .attr('text-anchor', 'start')
+      .attr('font-size', '8px')
+      .attr('fill', '#555');
+    el.append('title').text(c.name);
+    el.append('tspan').text(label);
+    colLabelEls[c.idx] = el.node();
+  });
+
+  var rowLabelEls = {};
+  countries.forEach(function (c) {
+    var y = LABEL_TOP + c.idx * CELL + CELL / 2 + 3;
+    var label = c.name.length > 16 ? c.name.slice(0, 15) + '…' : c.name;
+    var a = svg.append('a').attr('href', '/country/' + c.iso3 + '/');
+    var el = a.append('text')
+      .attr('x', LABEL_LEFT - 3)
+      .attr('y', y)
+      .attr('text-anchor', 'end')
+      .attr('font-size', '8px')
+      .attr('fill', 'var(--un-blue)')
+      .style('cursor', 'pointer');
+    el.append('title').text(c.name);
+    el.append('tspan').text(label);
+    rowLabelEls[c.idx] = el.node();
+  });
 
 }());
 </script>
