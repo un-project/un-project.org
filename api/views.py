@@ -1439,6 +1439,7 @@ def bubble_chart_data(request):
                    ON ip.iso3 = c.iso3 AND ip.year = %s
             WHERE date_part('year', d.date) = %s
               AND c.iso3 IS NOT NULL
+              AND cv.vote_position IN ('yes', 'no', 'abstain')
             GROUP BY c.id, c.iso3, c.short_name, c.name, ip.ideal_point
             HAVING COUNT(cv.id) >= 5
             ORDER BY c.iso3
