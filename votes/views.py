@@ -852,6 +852,78 @@ def voting_blocs_page(request):
     })
 
 
+def bloc_timeline(request):
+    cached = cache.get('bloc_timeline_data')
+    if cached is None:
+        all_iso3s = list({iso3 for bloc in COALITIONS for iso3 in bloc['iso3']})
+
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    EXTRACT(YEAR FROM d.date)::int AS year,
+                    c.iso3,
+                    cv.vote_position,
+                    COUNT(*) AS n
+                FROM country_votes cv
+                JOIN countries c ON c.id = cv.country_id
+                JOIN votes v ON v.id = cv.vote_id
+                JOIN documents d ON d.id = v.document_id
+                WHERE c.iso3 = ANY(%s)
+                  AND cv.vote_position IN ('yes', 'no', 'abstain')
+                  AND EXTRACT(YEAR FROM d.date) > 1900
+                GROUP BY year, c.iso3, cv.vote_position
+                ORDER BY year
+            """, [all_iso3s])
+            rows = cur.fetchall()
+
+        by_iso3_year = {}
+        for year, iso3, pos, n in rows:
+            by_iso3_year.setdefault((iso3, year), {})[pos] = n
+
+        all_years = sorted({r[0] for r in rows})
+
+        blocs_out = []
+        for bloc in COALITIONS:
+            iso3_set = set(bloc['iso3'])
+            series = []
+            for year in all_years:
+                yes = no = abstain = 0
+                for iso3 in iso3_set:
+                    counts = by_iso3_year.get((iso3, year), {})
+                    yes     += counts.get('yes', 0)
+                    no      += counts.get('no', 0)
+                    abstain += counts.get('abstain', 0)
+                total = yes + no + abstain
+                if total < 10:
+                    continue
+                series.append({
+                    'year':    year,
+                    'yes':     round(100 * yes / total),
+                    'no':      round(100 * no / total),
+                    'abstain': round(100 * abstain / total),
+                    'n':       total,
+                })
+            blocs_out.append({
+                'slug':  bloc.get('slug', ''),
+                'name':  bloc['name'],
+                'label': bloc['label'],
+                'series': series,
+            })
+
+        cached = blocs_out
+        cache.set('bloc_timeline_data', cached, 4 * 3600)
+
+    return render(request, 'votes/bloc_timeline.html', {
+        'timeline_json': json.dumps(cached),
+        'crumbs': [
+            {'label': 'Home', 'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Voting Blocs', 'url': '/votes/blocs/'},
+            {'label': 'Trends Over Time', 'url': None},
+        ],
+    })
+
+
 def _doc_slug(symbol):
     import re
     s = symbol.replace('/', '-').replace('.', '-')

@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Voting Bloc Trends Over Time{% endblock %}
+
+{% block extra_head %}
+<style>
+#bt-wrap {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: visible;
+}
+#bt-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.bt-line { fill: none; stroke-width: 2px; transition: opacity 0.15s; }
+.bt-line.faded { opacity: 0.08; }
+.bt-crosshair { stroke: #bbb; stroke-width: 1px; stroke-dasharray: 3 3; pointer-events: none; }
+#bt-tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+  display: none;
+  z-index: 200;
+  line-height: 1.8;
+  min-width: 200px;
+  max-width: 300px;
+}
+#bt-controls {
+  margin-bottom: 1rem;
+}
+.bt-group {
+  margin-bottom: 0.6rem;
+}
+.bt-group-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.bt-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+}
+.bt-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.83rem;
+  cursor: pointer;
+  user-select: none;
+}
+.bt-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.bt-check input { margin: 0; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>Voting Bloc Trends Over Time</h1>
+<p class="meta" style="margin-bottom:1.25rem;">
+  How each named political group's <strong>Yes vote share</strong> has shifted across UN General
+  Assembly history. Toggle blocs below to compare. Hover the chart for exact values.
+</p>
+
+<div id="bt-controls"></div>
+
+<div id="bt-wrap">
+  <svg id="bt-svg" viewBox="0 0 860 420" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>
+  <div id="bt-tooltip"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+'use strict';
+
+var DATA = {{ timeline_json|safe }};
+
+/* ── Colour map ──────────────────────────────────────────────────── */
+var COLORS = {
+  'p5':                  '#546E7A',
+  'g77':                 '#2E7D32',
+  'nam':                 '#7CB342',
+  'brics-plus':          '#E53935',
+  'brics':               '#EF9A9A',
+  'nato':                '#1565C0',
+  'eu':                  '#1976D2',
+  'osce':                '#78909C',
+  'council-of-europe':   '#3949AB',
+  'african-group':       '#EF6C00',
+  'arab-group':          '#00897B',
+  'asia-pacific-group':  '#AD1457',
+  'grulac':              '#00838F',
+  'weog':                '#0D47A1',
+  'eaeg':                '#B71C1C',
+  'g20':                 '#7B1FA2',
+  'opec':                '#F57F17',
+  'asean':               '#1A237E',
+  'oic':                 '#33691E',
+  'ibsa':                '#6A1B9A',
+  'basic':               '#880E4F',
+  'caricom':             '#00ACC1',
+  'pacific-islands':     '#00796B',
+};
+
+/* ── Default visible blocs ───────────────────────────────────────── */
+var DEFAULT_ON = new Set(['g77', 'nam', 'nato', 'eu', 'arab-group', 'african-group', 'grulac', 'weog']);
+
+/* ── Groups for the checkbox panel ──────────────────────────────── */
+var GROUPS = [
+  { title: 'Major blocs',   slugs: ['g77', 'nam', 'p5', 'brics', 'brics-plus', 'g20'] },
+  { title: 'Western',       slugs: ['nato', 'eu', 'weog', 'osce', 'council-of-europe'] },
+  { title: 'UN regions',    slugs: ['african-group', 'arab-group', 'asia-pacific-group', 'grulac', 'eaeg'] },
+  { title: 'Other',         slugs: ['asean', 'oic', 'opec', 'caricom', 'pacific-islands', 'ibsa', 'basic'] },
+];
+
+/* ── Index data by slug ──────────────────────────────────────────── */
+var bySlug = {};
+DATA.forEach(function(d){ bySlug[d.slug] = d; });
+
+/* ── Visible set (reactive) ──────────────────────────────────────── */
+var visible = new Set(DEFAULT_ON);
+
+/* ── Layout ──────────────────────────────────────────────────────── */
+var M = {top: 24, right: 20, bottom: 44, left: 48};
+var VW = 860, VH = 420;
+var W = VW - M.left - M.right;
+var H = VH - M.top  - M.bottom;
+
+var svg = d3.select('#bt-svg');
+var g   = svg.append('g').attr('transform', 'translate(' + M.left + ',' + M.top + ')');
+
+/* ── Scales ──────────────────────────────────────────────────────── */
+var allYears = [];
+DATA.forEach(function(d){ d.series.forEach(function(p){ allYears.push(p.year); }); });
+var yMin = d3.min(allYears), yMax = d3.max(allYears);
+
+var xSc = d3.scaleLinear().domain([yMin, yMax + 1]).range([0, W]);
+var ySc = d3.scaleLinear().domain([0, 100]).range([H, 0]);
+
+/* ── Grid / axes ─────────────────────────────────────────────────── */
+var xAxisG = g.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + H + ')')
+    .call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(12));
+xAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
+xAxisG.select('.domain').attr('stroke', '#ccc');
+xAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+
+var yAxisG = g.append('g').attr('class', 'y-axis')
+    .call(d3.axisLeft(ySc).tickSize(-W).ticks(5).tickFormat(function(d){ return d + '%'; }));
+yAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
+yAxisG.select('.domain').attr('stroke', '#ccc');
+yAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+
+/* ── Axis labels ─────────────────────────────────────────────────── */
+g.append('text').attr('x', W/2).attr('y', H + 38)
+    .attr('text-anchor','middle').attr('font-size','12px').attr('fill','#555').text('Year');
+g.append('text').attr('transform','rotate(-90)').attr('x',-(H/2)).attr('y',-36)
+    .attr('text-anchor','middle').attr('font-size','12px').attr('fill','#555').text('Yes vote share (%)');
+
+/* ── 50% reference line ──────────────────────────────────────────── */
+g.append('line')
+    .attr('x1', 0).attr('x2', W)
+    .attr('y1', ySc(50)).attr('y2', ySc(50))
+    .attr('stroke', '#ccc').attr('stroke-width', 1).attr('stroke-dasharray', '5 3');
+g.append('text')
+    .attr('x', W + 3).attr('y', ySc(50) + 4)
+    .attr('font-size', '10px').attr('fill', '#aaa').text('50%');
+
+/* ── Historical event annotations ───────────────────────────────── */
+var EVENTS = [
+    {year: 1960, label: 'Year of Africa'},
+    {year: 1974, label: 'NIEO'},
+    {year: 1991, label: 'USSR dissolved'},
+    {year: 2003, label: 'Iraq War'},
+];
+EVENTS.forEach(function(ev){
+    var x0 = xSc(ev.year);
+    g.append('line')
+        .attr('x1', x0).attr('x2', x0).attr('y1', 0).attr('y2', H)
+        .attr('stroke', '#d0d0d0').attr('stroke-width', 1)
+        .attr('stroke-dasharray', '2 4').attr('pointer-events', 'none');
+    g.append('text')
+        .attr('x', x0 + 3).attr('y', 11)
+        .attr('font-size', '9px').attr('fill', '#bbb')
+        .attr('pointer-events', 'none')
+        .text(ev.label);
+});
+
+/* ── Line generator ──────────────────────────────────────────────── */
+var lineGen = d3.line()
+    .x(function(d){ return xSc(d.year); })
+    .y(function(d){ return ySc(d.yes); })
+    .curve(d3.curveMonotoneX);
+
+/* ── Draw lines ──────────────────────────────────────────────────── */
+var lineEls = {};
+DATA.forEach(function(d){
+    var color = COLORS[d.slug] || '#999';
+    var path = g.append('path')
+        .datum(d.series)
+        .attr('class', 'bt-line')
+        .attr('data-slug', d.slug)
+        .attr('stroke', color)
+        .attr('d', lineGen);
+    lineEls[d.slug] = path;
+});
+
+function applyVisibility() {
+    DATA.forEach(function(d){
+        if (lineEls[d.slug]) {
+            lineEls[d.slug]
+                .classed('faded', !visible.has(d.slug))
+                .attr('stroke-width', visible.has(d.slug) ? 2 : 1);
+        }
+    });
+}
+applyVisibility();
+
+/* ── Crosshair ───────────────────────────────────────────────────── */
+var crosshair = g.append('line').attr('class','bt-crosshair')
+    .attr('y1',0).attr('y2',H).style('display','none');
+
+/* ── Tooltip ─────────────────────────────────────────────────────── */
+var tip = document.getElementById('bt-tooltip');
+
+g.append('rect')
+    .attr('width', W).attr('height', H)
+    .attr('fill', 'none').attr('pointer-events', 'all')
+    .on('mousemove', function(event){
+        var mx   = d3.pointer(event, g.node())[0];
+        var year = Math.round(xSc.invert(mx));
+        crosshair.style('display', null).attr('x1', xSc(year)).attr('x2', xSc(year));
+
+        var lines = DATA
+            .filter(function(d){ return visible.has(d.slug); })
+            .map(function(d){
+                var pt = d.series.find(function(p){ return p.year === year; });
+                return pt ? {name: d.name, color: COLORS[d.slug]||'#999', yes: pt.yes, n: pt.n} : null;
+            })
+            .filter(Boolean)
+            .sort(function(a,b){ return b.yes - a.yes; });
+
+        if (!lines.length) { tip.style.display = 'none'; return; }
+
+        tip.innerHTML = '<strong style="font-size:0.88rem;">' + year + '</strong><br>'
+            + lines.map(function(d){
+                return '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;'
+                    + 'background:' + d.color + ';margin-right:5px;vertical-align:middle;"></span>'
+                    + esc(d.name) + ': <strong>' + d.yes + '%</strong>'
+                    + ' <span style="color:var(--muted);font-size:0.77em;">(' + d.n + ')</span>';
+            }).join('<br>');
+        tip.style.display = 'block';
+        tip.style.left = (event.clientX + 16) + 'px';
+        tip.style.top  = (event.clientY - 10) + 'px';
+    })
+    .on('mouseleave', function(){
+        crosshair.style('display','none');
+        tip.style.display = 'none';
+    });
+
+/* ── Checkbox controls ───────────────────────────────────────────── */
+var panel = document.getElementById('bt-controls');
+GROUPS.forEach(function(grp){
+    var slugsInData = grp.slugs.filter(function(s){ return bySlug[s]; });
+    if (!slugsInData.length) return;
+
+    var div = document.createElement('div');
+    div.className = 'bt-group';
+    div.innerHTML = '<div class="bt-group-title">' + esc(grp.title) + '</div>'
+        + '<div class="bt-checks">'
+        + slugsInData.map(function(slug){
+            var d = bySlug[slug];
+            var color = COLORS[slug] || '#999';
+            var checked = DEFAULT_ON.has(slug) ? ' checked' : '';
+            return '<label class="bt-check">'
+                + '<input type="checkbox" value="' + esc(slug) + '"' + checked + '>'
+                + '<span class="bt-swatch" style="background:' + color + ';"></span>'
+                + esc(d.name)
+                + '</label>';
+        }).join('')
+        + '</div>';
+    panel.appendChild(div);
+});
+
+panel.addEventListener('change', function(e){
+    if (e.target.type !== 'checkbox') return;
+    var slug = e.target.value;
+    if (e.target.checked) visible.add(slug); else visible.delete(slug);
+    applyVisibility();
+});
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+}());
+</script>
+{% endblock %}

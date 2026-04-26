@@ -25,6 +25,7 @@ urlpatterns = [
     path('vetoes/', views.veto_list, name='veto_list'),
     path('cosponsor-network/', views.cosponsor_network, name='cosponsor_network'),
     path('blocs/', views.voting_blocs_page, name='blocs'),
+    path('blocs/timeline/', views.bloc_timeline, name='bloc_timeline'),
     path('bubble/', views.bubble_chart, name='bubble'),
     path('key/', views.key_votes, name='key_votes'),
 ]

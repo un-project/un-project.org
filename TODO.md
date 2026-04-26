@@ -52,7 +52,7 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **P5 alignment matrix** — dedicated page showing pairwise agreement rates among the
   five permanent SC members across all years, as a small annotated heatmap.
 
-- [ ] **Voting bloc timeline** — animate or facet the existing blocs page by year so users
+- [x] **Voting bloc timeline** — animate or facet the existing blocs page by year so users
   can watch bloc membership shift (e.g. Non-Aligned Movement growth, post-Cold War
   realignment).
 
