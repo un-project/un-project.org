@@ -1,3 +1,5 @@
+import os
+
 from .settings import *  # noqa: F401, F403
 
 # Use a fast password hasher in tests
@@ -13,6 +15,19 @@ STORAGES = {
     },
 }
 MIDDLEWARE = [m for m in MIDDLEWARE if 'whitenoise' not in m.lower()]  # noqa: F405
+
+# Tests run against the Docker postgres (mapped to 5433 locally).
+# myuser is superuser there so it can create/drop test_unproject.
+# Override with DB_PORT env var if your setup differs.
+DATABASES['default']['PORT'] = os.environ.get('DB_PORT', '5433')  # noqa: F405
+
+# Use in-memory cache in tests — DatabaseCache requires DB access on every
+# cache.clear() call which breaks tests that lack the django_db mark.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 # Skip all project-app migrations: every model is unmanaged so migrations don't
 # create tables. Some migrations contain RunSQL that references tables which
