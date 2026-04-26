@@ -97,6 +97,13 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
+    }
+}
+
 # Pagination
 MEETINGS_PER_PAGE = 25
 SPEECHES_PER_PAGE = 20

@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc cron \
+    libpq-dev gcc cron postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 appuser

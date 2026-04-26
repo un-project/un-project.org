@@ -11,6 +11,7 @@
 #   4. Deduplicate country rows
 #   5. Populate missing ISO codes / flags
 #   6. Refresh the full-text search index
+#   7. NOTIFY un_data_updated so the listener container clears the app cache
 #
 # Environment variables (inherited from Docker / .env):
 #   DATABASE_URL  — postgresql://user:pass@host:port/dbname
@@ -85,6 +86,11 @@ cd /app && DB_HOST="${DB_HOST:-db}" python scripts/populate_iso_and_flags.py
 
 log "Step 6: refresh search index"
 cd /app && python manage.py refresh_search_index --full
+
+# ── 7. Notify listener process that new data is available ────────────────────
+
+log "Step 7: notify listener"
+psql "$DATABASE_URL" -c "NOTIFY un_data_updated, 'speeches';"
 
 log "Ingestion complete."
 rm -rf "$WORK_DIR"
