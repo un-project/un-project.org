@@ -206,6 +206,12 @@
     <div class="label">SC Sponsored</div>
   </div>
   {% endif %}
+  {% if network_latest %}
+  <div class="stat-box" title="Co-sponsorship network PageRank percentile in {{ network_latest.year }} (lower = more influential)">
+    <div class="num" style="font-size:1.2rem;">Top&nbsp;{{ network_latest.top_pct }}%</div>
+    <div class="label">Co-sponsor influence<br><span style="font-size:0.7rem; color:var(--muted);">{{ network_latest.year }}</span></div>
+  </div>
+  {% endif %}
 </div>
 
 <nav class="tab-nav">
@@ -353,6 +359,27 @@
       </ul>
     </div>
     {% endif %}
+  </div>
+  {% endif %}
+
+  {% if network_sparkline_json != '[]' %}
+  <div class="chart-box" style="margin-bottom:1.25rem;">
+    <h3>Co-sponsorship network influence
+      <small style="font-size:0.72rem; font-weight:400; text-transform:none; color:var(--muted);">
+        PageRank in the SC co-sponsorship graph per year ·
+        <a href="/votes/cosponsor-influence/" style="color:var(--muted);">view full rankings</a>
+      </small>
+    </h3>
+    {% if network_latest %}
+    <p class="meta" style="margin:0 0 0.5rem; font-size:0.82rem;">
+      {{ network_latest.year }}: top <strong>{{ network_latest.top_pct }}%</strong> by influence
+      · <strong>{{ network_latest.n_edges }}</strong> co-sponsoring partners
+      {% if network_latest.betweenness > 0 %}
+      · betweenness <strong>{{ network_latest.betweenness }}</strong>
+      {% endif %}
+    </p>
+    {% endif %}
+    <div id="network-sparkline" style="height:60px;"></div>
   </div>
   {% endif %}
 
@@ -1844,6 +1871,103 @@
   var hash    = location.hash.replace('#', '');
   var initial = TABS.indexOf(hash) !== -1 ? hash : TABS[0];
   showTab(initial);
+}());
+</script>
+{% endif %}
+
+{% if network_sparkline_json != '[]' %}
+<script>
+(function () {
+  var data = {{ network_sparkline_json|safe }};
+  var el   = document.getElementById('network-sparkline');
+  if (!el || !data.length) return;
+
+  var W = el.offsetWidth || 500, H = 60;
+  var pad = {top: 4, right: 8, bottom: 18, left: 34};
+  var iW = W - pad.left - pad.right;
+  var iH = H - pad.top  - pad.bottom;
+
+  var xMin = data[0][0], xMax = data[data.length - 1][0];
+  var yMin = 0, yMax = d3.max(data, function (d) { return d[1]; });
+
+  var xSc = d3.scaleLinear().domain([xMin, xMax]).range([0, iW]);
+  var ySc = d3.scaleLinear().domain([0, yMax * 1.1]).range([iH, 0]);
+
+  var svg = d3.select(el).append('svg')
+    .attr('width', W).attr('height', H);
+  var g = svg.append('g').attr('transform', 'translate(' + pad.left + ',' + pad.top + ')');
+
+  /* area fill */
+  var area = d3.area()
+    .x(function (d) { return xSc(d[0]); })
+    .y0(iH).y1(function (d) { return ySc(d[1]); })
+    .curve(d3.curveMonotoneX);
+
+  g.append('path').datum(data)
+    .attr('fill', '#1a6fa820')
+    .attr('d', area);
+
+  /* line */
+  var line = d3.line()
+    .x(function (d) { return xSc(d[0]); })
+    .y(function (d) { return ySc(d[1]); })
+    .curve(d3.curveMonotoneX);
+
+  g.append('path').datum(data)
+    .attr('fill', 'none')
+    .attr('stroke', '#1a6fa8')
+    .attr('stroke-width', 1.5)
+    .attr('d', line);
+
+  /* x axis: years */
+  var tickStep = data.length > 20 ? 10 : 5;
+  var tickYears = data.map(function (d) { return d[0]; })
+    .filter(function (y) { return y % tickStep === 0; });
+  g.append('g')
+    .attr('transform', 'translate(0,' + iH + ')')
+    .call(d3.axisBottom(xSc).tickValues(tickYears).tickFormat(d3.format('d')).tickSize(3))
+    .selectAll('text').style('font-size', '9px');
+  g.select('.domain').attr('stroke', '#ccc');
+
+  /* y axis: one tick at max */
+  g.append('g')
+    .call(d3.axisLeft(ySc).ticks(3).tickFormat(d3.format('.3f')).tickSize(3))
+    .selectAll('text').style('font-size', '9px');
+
+  /* tooltip crosshair */
+  var bisect = d3.bisector(function (d) { return d[0]; }).left;
+  var crosshair = g.append('line')
+    .attr('stroke', '#aaa').attr('stroke-width', 1)
+    .attr('stroke-dasharray', '3,3').attr('y1', 0).attr('y2', iH)
+    .style('display', 'none');
+  var dot = g.append('circle').attr('r', 3).attr('fill', '#1a6fa8').style('display', 'none');
+  var tipEl = d3.select(el).append('div')
+    .style('position', 'absolute').style('background', '#fff')
+    .style('border', '1px solid var(--border)').style('border-radius', '4px')
+    .style('padding', '2px 6px').style('font-size', '0.75rem')
+    .style('pointer-events', 'none').style('display', 'none');
+  d3.select(el).style('position', 'relative');
+
+  svg.append('rect')
+    .attr('fill', 'none').attr('pointer-events', 'all')
+    .attr('width', W).attr('height', H)
+    .on('mousemove', function (event) {
+      var mx = d3.pointer(event)[0] - pad.left;
+      var yr = xSc.invert(mx);
+      var i  = bisect(data, yr);
+      var d  = (i < data.length) ? data[i] : data[data.length - 1];
+      crosshair.attr('x1', xSc(d[0]) + pad.left).attr('x2', xSc(d[0]) + pad.left).style('display', null);
+      dot.attr('cx', xSc(d[0])).attr('cy', ySc(d[1])).style('display', null);
+      tipEl.style('display', 'block')
+        .style('left', (event.offsetX + 10) + 'px')
+        .style('top',  (event.offsetY - 20) + 'px')
+        .text(d[0] + ': ' + d[1].toFixed(5));
+    })
+    .on('mouseleave', function () {
+      crosshair.style('display', 'none');
+      dot.style('display', 'none');
+      tipEl.style('display', 'none');
+    });
 }());
 </script>
 {% endif %}

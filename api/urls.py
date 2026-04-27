@@ -39,6 +39,8 @@ urlpatterns = [
     path('voting-blocs/', views.voting_blocs, name='voting_blocs'),
     # Bubble chart
     path('bubble-chart/', views.bubble_chart_data, name='bubble_chart_data'),
+    # Co-sponsorship network centrality
+    path('network-stats/', views.network_stats, name='network_stats'),
     # Vote prediction
     path('vote-predict/', views.vote_predict, name='vote_predict'),
     # Ideal-point yearly mean

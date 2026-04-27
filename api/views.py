@@ -1429,7 +1429,8 @@ def bubble_chart_data(request):
                 ROUND(
                     AVG(CASE WHEN cv.vote_position::text = m.majority_pos THEN 100.0 ELSE 0.0 END)::numeric,
                     1
-                ) AS majority_pct
+                ) AS majority_pct,
+                ns.pagerank
             FROM countries c
             JOIN country_votes cv ON cv.country_id = c.id
             JOIN majority m ON m.id = cv.vote_id
@@ -1437,13 +1438,15 @@ def bubble_chart_data(request):
             JOIN documents d ON v.document_id = d.id
             LEFT JOIN canonical_ideal_points_norm ip
                    ON ip.iso3 = c.iso3 AND ip.year = %s
+            LEFT JOIN country_network_stats ns
+                   ON ns.country_id = c.id AND ns.year = %s
             WHERE date_part('year', d.date) = %s
               AND c.iso3 IS NOT NULL
               AND cv.vote_position IN ('yes', 'no', 'abstain')
-            GROUP BY c.id, c.iso3, c.short_name, c.name, ip.ideal_point
+            GROUP BY c.id, c.iso3, c.short_name, c.name, ip.ideal_point, ns.pagerank
             HAVING COUNT(cv.id) >= 5
             ORDER BY c.iso3
-        """, [yr, yr])
+        """, [yr, yr, yr])
         rows = cur.fetchall()
 
     countries = [
@@ -1453,12 +1456,57 @@ def bubble_chart_data(request):
             'ip':           round(float(row[2]), 3) if row[2] is not None else None,
             'n':            row[3],
             'majority_pct': float(row[4]),
+            'pagerank':     round(float(row[5]), 5) if row[5] is not None else None,
         }
         for row in rows
     ]
     resp = JsonResponse({'year': yr, 'countries': countries})
     resp['Cache-Control'] = 'no-store'
     return resp
+
+
+# ── Co-sponsorship network centrality ──────────────────────────────────────────
+
+def network_stats(request):
+    """Per-year PageRank and betweenness for all countries in country_network_stats.
+
+    No year param → return available years list.
+    ?year=YYYY    → return ranked list for that year.
+    """
+    with connection.cursor() as cur:
+        year_raw = request.GET.get('year', '')
+        if not year_raw or not year_raw.isdigit():
+            cur.execute(
+                "SELECT DISTINCT year FROM country_network_stats ORDER BY year DESC"
+            )
+            return JsonResponse({'years': [r[0] for r in cur.fetchall()]})
+
+        yr = int(year_raw)
+        cur.execute("""
+            SELECT c.iso3, COALESCE(c.short_name, c.name),
+                   ns.pagerank, ns.betweenness, ns.n_edges,
+                   RANK() OVER (ORDER BY ns.pagerank    DESC)::int,
+                   RANK() OVER (ORDER BY ns.betweenness DESC)::int
+            FROM country_network_stats ns
+            JOIN countries c ON c.id = ns.country_id
+            WHERE ns.year = %s AND c.iso3 IS NOT NULL
+            ORDER BY ns.pagerank DESC
+        """, [yr])
+        rows = cur.fetchall()
+
+    countries = [
+        {
+            'iso3':        r[0],
+            'name':        r[1],
+            'pagerank':    round(float(r[2]), 5),
+            'betweenness': round(float(r[3]), 6),
+            'n_edges':     r[4],
+            'pr_rank':     r[5],
+            'bt_rank':     r[6],
+        }
+        for r in rows
+    ]
+    return JsonResponse({'year': yr, 'countries': countries})
 
 
 # ── Ideal-point yearly mean (for re-centring) ──────────────────────────────────

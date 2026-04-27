@@ -175,6 +175,37 @@ def _render_country_detail(request, country):
                 for r in cur.fetchall()
             ]
 
+    # Co-sponsorship network centrality
+    network_latest = None
+    network_sparkline_json = '[]'
+    with connection.cursor() as cur:
+        cur.execute("""
+            WITH ranked AS (
+                SELECT country_id, year, pagerank, betweenness, n_edges,
+                       100 - ROUND(PERCENT_RANK() OVER (
+                           PARTITION BY year ORDER BY pagerank
+                       ) * 100)::int AS top_pct
+                FROM country_network_stats
+            )
+            SELECT year, pagerank, betweenness, n_edges, top_pct
+            FROM ranked
+            WHERE country_id = %s
+            ORDER BY year
+        """, [country.pk])
+        ns_rows = cur.fetchall()
+    if ns_rows:
+        network_sparkline_json = json.dumps(
+            [[r[0], round(float(r[1]), 5)] for r in ns_rows]
+        )
+        last = ns_rows[-1]
+        network_latest = {
+            'year':        last[0],
+            'pagerank':    round(float(last[1]), 5),
+            'betweenness': round(float(last[2]), 6),
+            'n_edges':     last[3],
+            'top_pct':     int(last[4]),
+        }
+
     # Top topics for this country (all-time, by aggregated weight across all speeches)
     country_topics = list(
         SpeechTopic.objects
@@ -218,10 +249,12 @@ def _render_country_detail(request, country):
         'debate_entries':       debate_entries,
         'debate_wc_url':        debate_wc_url,
         'historical_info':      HISTORICAL_INFO.get(country.iso3),
-        'similar_most':         similar_most,
-        'similar_least':        similar_least,
-        'consistency_stats':    consistency_stats,
-        'country_topics':       country_topics,
+        'similar_most':            similar_most,
+        'similar_least':           similar_least,
+        'consistency_stats':       consistency_stats,
+        'country_topics':          country_topics,
+        'network_latest':          network_latest,
+        'network_sparkline_json':  network_sparkline_json,
     })
 
 

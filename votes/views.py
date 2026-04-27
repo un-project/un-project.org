@@ -1852,6 +1852,24 @@ def cosponsor_network(request):
     })
 
 
+def cosponsor_influence(request):
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT MIN(year), MAX(year) FROM country_network_stats"
+        )
+        row = cur.fetchone()
+    year_min, year_max = (row[0] or 1973, row[1] or 2024)
+    return render(request, 'votes/cosponsor_influence.html', {
+        'year_min': year_min,
+        'year_max': year_max,
+        'crumbs': [
+            {'label': 'Home',            'url': '/'},
+            {'label': 'Voting Analysis', 'url': '/votes/'},
+            {'label': 'Co-sponsorship Influence', 'url': None},
+        ],
+    })
+
+
 def key_votes(request):
     mode = request.GET.get('mode', 'closest')
     body = request.GET.get('body', '')

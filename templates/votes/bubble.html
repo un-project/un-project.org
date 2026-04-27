@@ -85,12 +85,16 @@
 {% include "partials/breadcrumb.html" with crumbs=crumbs %}
 
 <h1>Animated Voting Bubble Chart</h1>
-<p class="meta" style="margin-bottom:1rem;">
+<p class="meta" style="margin-bottom:0.75rem;">
   Each bubble is a UN member state. <strong>X&nbsp;axis:</strong> liberal↔opposing ideological alignment
   (Voeten IRT ideal point). <strong>Y&nbsp;axis:</strong> share of votes cast with the majority position.
-  <strong>Size:</strong> number of recorded votes. Press Play to watch the world from 1946 to today.
-  Click any bubble to open the country profile.
+  Press Play to watch the world from 1946 to today. Click any bubble to open the country profile.
 </p>
+<div style="margin-bottom:0.75rem; font-size:0.85rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+  <span style="color:var(--muted);">Bubble size:</span>
+  <label style="cursor:pointer;"><input type="radio" name="bubble-size" value="votes" checked style="margin-right:0.3rem;">Votes cast</label>
+  <label style="cursor:pointer;"><input type="radio" name="bubble-size" value="pagerank" style="margin-right:0.3rem;">Co-sponsorship influence (PageRank)</label>
+</div>
 
 <div id="bubble-wrap">
   <svg id="bubble-svg" viewBox="0 0 860 500" preserveAspectRatio="xMidYMid meet"></svg>
@@ -108,7 +112,7 @@
 <div class="bubble-legend">
   <span><span class="dot" style="background:#2166ac;"></span> Liberal / Western-aligned (ideal point ≈ +3.5)</span>
   <span><span class="dot" style="background:#d6604d;"></span> Opposing / Non-Western (ideal point ≈ −3.5)</span>
-  <span style="margin-left:0.5rem;">Bubble size = votes cast in that year</span>
+  <span id="bubble-size-legend" style="margin-left:0.5rem;">Bubble size = votes cast in that year</span>
 </div>
 {% endblock %}
 
@@ -132,9 +136,26 @@ var g   = svg.append('g').attr('transform', 'translate(' + M.left + ',' + M.top 
 var xSc = d3.scaleLinear().domain([-3.5, 3.5]).range([0, W]);
 var ySc = d3.scaleLinear().domain([0, 100]).range([H, 0]);
 // area ∝ votes; cap radius at 32px
-var rSc = d3.scaleSqrt().domain([0, 300]).clamp(true).range([3, 32]);
+var rScVotes    = d3.scaleSqrt().domain([0, 300]).clamp(true).range([3, 32]);
+var rScPagerank = d3.scaleSqrt().domain([0, 0.12]).clamp(true).range([3, 32]);
+var rSc = rScVotes;  /* active scale — toggled by radio */
 // RdBu diverging: red=negative (opposing), blue=positive (Western-aligned)
 var cSc = d3.scaleDiverging(d3.interpolateRdBu).domain([-3.5, 0, 3.5]);
+
+/* ── Size mode ─────────────────────────────────────────────────── */
+var sizeMode = 'votes';  /* 'votes' | 'pagerank' */
+var sizeLegend = document.getElementById('bubble-size-legend');
+
+document.querySelectorAll('input[name="bubble-size"]').forEach(function (inp) {
+    inp.addEventListener('change', function () {
+        sizeMode = this.value;
+        rSc = sizeMode === 'pagerank' ? rScPagerank : rScVotes;
+        sizeLegend.textContent = sizeMode === 'pagerank'
+            ? 'Bubble size = PageRank (SC co-sponsorship influence)'
+            : 'Bubble size = votes cast in that year';
+        if (cache[years[curIdx]]) draw(cache[years[curIdx]], years[curIdx], false);
+    });
+});
 
 /* ── Axes ──────────────────────────────────────────────────────── */
 var xAxis = g.append('g')
@@ -181,10 +202,12 @@ function showTip(event, d) {
         ? '<img src="/static/flags/' + d.iso3 + '.svg" style="height:12px;margin-right:4px;border-radius:1px;vertical-align:middle;">'
         : '';
     var ipStr = d.ip !== null ? d.ip.toFixed(2) : 'n/a';
+    var prStr = d.pagerank != null ? '<br>PageRank: ' + d.pagerank.toFixed(5) : '';
     tip.innerHTML = flag + '<strong>' + esc(d.name) + '</strong><br>'
         + 'Ideal point: ' + ipStr + '<br>'
         + 'With majority: ' + d.majority_pct.toFixed(1) + '%<br>'
-        + 'Votes cast: ' + d.n;
+        + 'Votes cast: ' + d.n
+        + prStr;
     tip.style.display = 'block';
     moveTip(event);
 }
@@ -202,8 +225,11 @@ function esc(s) {
 function draw(countries, year, animate) {
     yearWatermark.text(year);
 
-    var withIP = countries.filter(function(d){ return d.ip !== null && d.majority_pct != null; });
-    var noIP   = countries.filter(function(d){ return d.ip === null; });
+    var withIP = countries.filter(function(d){
+        return d.ip !== null && d.majority_pct != null
+            && (sizeMode !== 'pagerank' || d.pagerank != null);
+    });
+    var noIP = countries.filter(function(d){ return d.ip === null; });
 
     var meta = document.getElementById('bubble-meta');
     meta.textContent = withIP.length + ' countries with position data'
@@ -233,19 +259,26 @@ function draw(countries, year, animate) {
         .on('mouseout',  hideTip)
         .on('click', function(event, d){ window.location = '/country/' + d.iso3 + '/'; });
 
+    var sizeVal = sizeMode === 'pagerank'
+        ? function(d){ return rSc(d.pagerank || 0); }
+        : function(d){ return rSc(d.n); };
+
     /* Update + enter merged */
     entered.merge(sel)
         .transition(t)
         .attr('cx', function(d){ return xSc(d.ip); })
         .attr('cy', function(d){ return ySc(d.majority_pct); })
-        .attr('r',  function(d){ return rSc(d.n); })
+        .attr('r',  sizeVal)
         .attr('fill', function(d){ return cSc(d.ip); });
 
     /* Exit */
     sel.exit().transition(t).attr('r', 0).remove();
 
     /* Raise large bubbles so small ones stay clickable on top */
-    g.selectAll('circle.bub').sort(function(a, b){ return b.n - a.n; });
+    var sortKey = sizeMode === 'pagerank'
+        ? function(a, b){ return (b.pagerank || 0) - (a.pagerank || 0); }
+        : function(a, b){ return b.n - a.n; };
+    g.selectAll('circle.bub').sort(sortKey);
 
     /* ── P5 labels ───────────────────────────────────────────────── */
     var P5 = {USA: 'USA', GBR: 'UK', FRA: 'France', RUS: 'Russia', CHN: 'China', SUN: 'USSR'};

@@ -82,6 +82,28 @@
 </div>
 <p class="meta" style="margin-top:0.5rem; font-size:0.78rem;">Scroll to zoom · drag to pan · click a node to open the country page</p>
 
+<div style="margin-top:1.75rem;">
+  <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+    <h2 style="margin:0; font-size:1rem;">Centrality Rankings</h2>
+    <label style="font-size:0.85rem; color:var(--muted);">Year:
+      <select id="rank-year-sel" style="font-size:0.85rem; margin-left:0.3rem;"></select>
+    </label>
+    <a href="/votes/cosponsor-influence/" style="font-size:0.82rem; margin-left:auto;">Full animated rankings ↗</a>
+  </div>
+
+  <div style="display:flex; gap:1.25rem; flex-wrap:wrap;">
+    <div style="flex:1; min-width:260px;">
+      <h3 style="font-size:0.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:0 0 0.5rem;">Top 10 by PageRank — overall influence</h3>
+      <div id="rank-pr-list"></div>
+    </div>
+    <div style="flex:1; min-width:260px;">
+      <h3 style="font-size:0.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin:0 0 0.5rem;">Top 10 by Betweenness — brokerage</h3>
+      <div id="rank-bt-list"></div>
+    </div>
+  </div>
+  <p id="rank-meta" style="font-size:0.78rem; color:var(--muted); margin-top:0.5rem;"></p>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -236,6 +258,70 @@
       });
     });
   }
+}());
+</script>
+
+<script>
+/* ── Centrality rankings panel ──────────────────────────────────── */
+(function () {
+  var yearSel  = document.getElementById('rank-year-sel');
+  var prList   = document.getElementById('rank-pr-list');
+  var btList   = document.getElementById('rank-bt-list');
+  var metaEl   = document.getElementById('rank-meta');
+  var rankCache = {};
+
+  function renderList(container, items, valueKey, color) {
+    var maxVal = items.length ? items[0][valueKey] : 1;
+    container.innerHTML = '';
+    items.forEach(function (c, i) {
+      var pct = maxVal > 0 ? (c[valueKey] / maxVal * 100) : 0;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:0.45rem; margin-bottom:4px; font-size:0.82rem;';
+      row.innerHTML =
+        '<span style="min-width:18px; color:var(--muted); text-align:right;">' + (i+1) + '</span>'
+        + (c.iso3 ? '<img src="/static/flags/' + c.iso3 + '.svg" style="width:18px;height:12px;object-fit:cover;border:1px solid #ddd;border-radius:1px;" onerror="this.style.display=\'none\'">' : '')
+        + '<a href="/country/' + c.iso3 + '/" style="flex:1; color:inherit; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">' + c.name + '</a>'
+        + '<div style="width:80px; background:#f0f4f8; border-radius:3px; height:10px; overflow:hidden;">'
+        + '<div style="width:' + pct + '%; height:100%; background:' + color + '; border-radius:3px;"></div></div>'
+        + '<span style="min-width:44px; text-align:right; color:var(--muted); font-size:0.75rem;">' + c[valueKey].toFixed(4) + '</span>';
+      container.appendChild(row);
+    });
+  }
+
+  function loadRankings(yr) {
+    if (rankCache[yr]) { applyRankings(rankCache[yr], yr); return; }
+    fetch('/api/network-stats/?year=' + yr)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        rankCache[yr] = d.countries || [];
+        applyRankings(rankCache[yr], yr);
+      });
+  }
+
+  function applyRankings(countries, yr) {
+    var byBt = countries.slice().sort(function (a, b) { return b.betweenness - a.betweenness; });
+    renderList(prList, countries.slice(0, 10), 'pagerank',    '#1a6fa8');
+    renderList(btList, byBt.slice(0, 10),      'betweenness', '#27ae60');
+    metaEl.textContent = countries.length + ' countries with data in ' + yr;
+  }
+
+  /* populate year selector */
+  fetch('/api/network-stats/')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var years = d.years || [];
+      years.forEach(function (y) {
+        var opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        yearSel.appendChild(opt);
+      });
+      if (years.length) {
+        yearSel.value = years[0];
+        loadRankings(years[0]);
+      }
+    });
+
+  yearSel.addEventListener('change', function () { loadRankings(parseInt(this.value, 10)); });
 }());
 </script>
 {% endblock %}

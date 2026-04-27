@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Co-sponsorship Influence Rankings{% endblock %}
+
+{% block extra_head %}
+<style>
+#ci-wrap {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+#ci-left  { flex: 3; min-width: 320px; }
+#ci-right { flex: 1; min-width: 220px; }
+
+#ci-chart-wrap {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem 0.6rem;
+  margin-bottom: 1.25rem;
+}
+#ci-chart-wrap h2 { margin: 0 0 0.6rem; font-size: 0.85rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+#bt-chart-wrap {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem 0.6rem;
+}
+#bt-chart-wrap h2 { margin: 0 0 0.6rem; font-size: 0.85rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.ci-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+}
+.ci-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 140px;
+  max-width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ci-bar-label img { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; border: 1px solid #ddd; flex-shrink: 0; }
+.ci-bar-track {
+  flex: 1;
+  background: #f0f4f8;
+  border-radius: 3px;
+  height: 14px;
+  overflow: hidden;
+}
+.ci-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.55s ease;
+}
+.ci-bar-val {
+  min-width: 44px;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+}
+
+#ci-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+}
+#ci-controls label { color: var(--muted); }
+#ci-year-display {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--un-blue);
+  min-width: 3rem;
+}
+
+.ci-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.ci-table th {
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+.ci-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+.ci-table tr:last-child td { border-bottom: none; }
+.ci-flag { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; border: 1px solid #ddd; vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "partials/breadcrumb.html" with crumbs=crumbs %}
+
+<h1>SC Co-sponsorship Influence Rankings</h1>
+<p class="meta" style="margin-bottom:1.25rem;">
+  Per-year network centrality of countries in the Security Council co-sponsorship graph.
+  <strong>PageRank</strong> measures overall influence — countries that co-sponsor with other highly-connected states rank highest.
+  <strong>Betweenness</strong> measures brokerage — countries that bridge otherwise disconnected sponsoring groups.
+</p>
+
+<div id="ci-controls">
+  <label>Year: <input type="range" id="ci-slider" min="{{ year_min }}" max="{{ year_max }}" value="{{ year_max }}" step="1" style="width:180px;"></label>
+  <span id="ci-year-display">{{ year_max }}</span>
+  <button id="ci-play-btn" style="font-size:0.85rem;">&#9654; Play</button>
+  <span id="ci-meta" style="color:var(--muted); font-size:0.8rem;"></span>
+</div>
+
+<div id="ci-wrap">
+  <div id="ci-left">
+    <div id="ci-chart-wrap">
+      <h2>Top 20 by PageRank <span style="font-weight:400; text-transform:none;">— overall co-sponsorship influence</span></h2>
+      <div id="ci-pr-chart"></div>
+    </div>
+  </div>
+  <div id="ci-right">
+    <div id="bt-chart-wrap">
+      <h2>Top brokers <span style="font-weight:400; text-transform:none;">— betweenness centrality</span></h2>
+      <div id="ci-bt-chart"></div>
+    </div>
+
+    <div style="margin-top:1.25rem;">
+      <div style="background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem;">
+        <h2 style="margin:0 0 0.6rem; font-size:0.85rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Full ranking</h2>
+        <div style="overflow-x:auto;">
+          <table class="ci-table">
+            <thead>
+              <tr><th>#</th><th>Country</th><th>PageRank</th><th>Betweenness</th><th>Co-sponsors</th></tr>
+            </thead>
+            <tbody id="ci-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+'use strict';
+
+var YEAR_MIN = {{ year_min }};
+var YEAR_MAX = {{ year_max }};
+var PR_TOP   = 20;
+var BT_TOP   = 10;
+var PR_COLOR = '#1a6fa8';
+var BT_COLOR = '#27ae60';
+
+var slider    = document.getElementById('ci-slider');
+var yearDisp  = document.getElementById('ci-year-display');
+var playBtn   = document.getElementById('ci-play-btn');
+var metaEl    = document.getElementById('ci-meta');
+var prChart   = document.getElementById('ci-pr-chart');
+var btChart   = document.getElementById('ci-bt-chart');
+var tableBody = document.getElementById('ci-table-body');
+
+var cache   = {};
+var playing = false;
+var timer   = null;
+
+/* ── fetch ──────────────────────────────────────────────────────── */
+function fetchYear(yr, cb) {
+  if (cache[yr]) { cb(cache[yr]); return; }
+  fetch('/api/network-stats/?year=' + yr)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      cache[yr] = d.countries || [];
+      cb(cache[yr]);
+    })
+    .catch(function () { metaEl.textContent = 'Failed to load.'; });
+}
+
+/* ── build a bar row ────────────────────────────────────────────── */
+function barRow(iso3, name, fillPct, valStr, color) {
+  var row = document.createElement('div');
+  row.className = 'ci-bar-row';
+  var flagSrc = iso3 ? '/static/flags/' + iso3 + '.svg' : '';
+  row.innerHTML =
+    '<div class="ci-bar-label">'
+    + (flagSrc ? '<img src="' + flagSrc + '" onerror="this.style.display=\'none\'">' : '')
+    + '<a href="/country/' + iso3 + '/" style="color:inherit; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">'
+    + esc(name) + '</a></div>'
+    + '<div class="ci-bar-track"><div class="ci-bar-fill" style="width:' + fillPct + '%; background:' + color + ';"></div></div>'
+    + '<span class="ci-bar-val">' + valStr + '</span>';
+  return row;
+}
+
+/* ── render ─────────────────────────────────────────────────────── */
+function render(countries, yr) {
+  yearDisp.textContent = yr;
+  metaEl.textContent   = countries.length + ' countries';
+
+  /* PageRank bars */
+  var prTop  = countries.slice(0, PR_TOP);
+  var prMax  = prTop.length ? prTop[0].pagerank : 1;
+  prChart.innerHTML = '';
+  prTop.forEach(function (c) {
+    var pct = prMax > 0 ? (c.pagerank / prMax * 100) : 0;
+    prChart.appendChild(barRow(c.iso3, c.name, pct, c.pagerank.toFixed(4), PR_COLOR));
+  });
+
+  /* Betweenness bars */
+  var btSorted = countries.slice().sort(function (a, b) { return b.betweenness - a.betweenness; });
+  var btTop    = btSorted.slice(0, BT_TOP);
+  var btMax    = btTop.length ? btTop[0].betweenness : 1;
+  btChart.innerHTML = '';
+  btTop.forEach(function (c) {
+    var pct = btMax > 0 ? (c.betweenness / btMax * 100) : 0;
+    btChart.appendChild(barRow(c.iso3, c.name, pct, c.betweenness.toFixed(4), BT_COLOR));
+  });
+
+  /* Full table */
+  tableBody.innerHTML = '';
+  countries.forEach(function (c, i) {
+    var tr = document.createElement('tr');
+    var flagImg = c.iso3
+      ? '<img class="ci-flag" src="/static/flags/' + c.iso3 + '.svg" onerror="this.style.display=\'none\'">'
+      : '';
+    tr.innerHTML =
+      '<td style="color:var(--muted);">' + (i + 1) + '</td>'
+      + '<td><a href="/country/' + c.iso3 + '/" style="display:flex; align-items:center; gap:0.4rem; color:inherit;">'
+      + flagImg + esc(c.name) + '</a></td>'
+      + '<td style="font-variant-numeric:tabular-nums;">' + c.pagerank.toFixed(4) + '</td>'
+      + '<td style="font-variant-numeric:tabular-nums;">' + c.betweenness.toFixed(4) + '</td>'
+      + '<td style="font-variant-numeric:tabular-nums;">' + c.n_edges + '</td>';
+    tableBody.appendChild(tr);
+  });
+}
+
+function loadYear(yr) {
+  slider.value = yr;
+  yearDisp.textContent = yr;
+  fetchYear(yr, function (d) { render(d, yr); });
+  /* prefetch neighbours */
+  [yr - 1, yr + 1].forEach(function (y) {
+    if (y >= YEAR_MIN && y <= YEAR_MAX && !cache[y]) fetchYear(y, function () {});
+  });
+}
+
+/* ── playback ───────────────────────────────────────────────────── */
+function advance() {
+  if (!playing) return;
+  var yr = parseInt(slider.value, 10);
+  if (yr >= YEAR_MAX) { stopPlay(); return; }
+  loadYear(yr + 1);
+  timer = setTimeout(advance, 1400);
+}
+function startPlay() {
+  if (parseInt(slider.value, 10) >= YEAR_MAX) loadYear(YEAR_MIN);
+  playing = true;
+  playBtn.textContent = '⏸ Pause';
+  timer = setTimeout(advance, 1400);
+}
+function stopPlay() {
+  playing = false;
+  playBtn.textContent = '▶ Play';
+  if (timer) { clearTimeout(timer); timer = null; }
+}
+
+playBtn.addEventListener('click', function () { if (playing) stopPlay(); else startPlay(); });
+slider.addEventListener('input', function () {
+  stopPlay();
+  loadYear(parseInt(this.value, 10));
+});
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ── bootstrap ──────────────────────────────────────────────────── */
+loadYear(YEAR_MAX);
+
+}());
+</script>
+{% endblock %}
