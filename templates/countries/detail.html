@@ -433,6 +433,16 @@
       </h3>
       <div id="sp-freq-chart"></div>
     </div>
+    {% if country_topics %}
+    <div class="chart-box" style="margin-bottom:1.25rem;">
+      <h3>Dominant Topics</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        {% for t in country_topics %}
+        <span class="topic-pill" title="{{ t.topic__keywords|join:', ' }}">{{ t.topic__label }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     {% include "partials/wordcloud.html" with wc_title="Keywords in Speeches" %}
     <div id="sp-speeches-list"><p class="meta">Loading…</p></div>
     <div id="sp-speeches-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; font-size:0.85rem; color:var(--muted);"></div>

@@ -3,11 +3,11 @@ import difflib
 from django.core.cache import cache
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
-from django.db.models import Count, Min, Max
+from django.db.models import Count, Min, Max, Sum
 from django.http import Http404
 from django.conf import settings
 from .models import Document, DocumentItem
-from speeches.models import Speech, StageDirection
+from speeches.models import Speech, StageDirection, SpeechTopic
 from votes.models import Vote, Resolution
 
 
@@ -149,6 +149,15 @@ def meeting_detail(request, slug):
     glance_country_count = len({s.speaker.country_id for s in speeches if s.speaker.country_id})
     glance_resolutions = [v.resolution for v in votes if v.vote_scope == 'whole_resolution']
 
+    # Top topics for this meeting (aggregated from per-speech weights)
+    glance_topics = list(
+        SpeechTopic.objects
+        .filter(speech__document=document, topic__model='lda')
+        .values('topic__label', 'topic__keywords')
+        .annotate(total_weight=Sum('weight'))
+        .order_by('-total_weight')[:6]
+    )
+
     body_label = document.body_display
     crumbs = [
         {'label': 'Home', 'url': f'/?body={document.body}'},
@@ -166,6 +175,7 @@ def meeting_detail(request, slug):
         'glance_speech_count': len(speeches),
         'glance_country_count': glance_country_count,
         'glance_resolutions': glance_resolutions,
+        'glance_topics': glance_topics,
         'crumbs': crumbs,
     })
 

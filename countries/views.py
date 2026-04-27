@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db import connection
-from django.db.models import Min, Max, Count, Q, F
+from django.db.models import Min, Max, Count, Q, F, Sum
 from .models import Country
 from .constants import HISTORICAL_ISO3, HISTORICAL_INFO
 from debate.models import GeneralDebateEntry
@@ -12,6 +12,7 @@ from speakers.models import Speaker, SCRepresentative
 from speeches.models import Speech
 import json as _json
 from votes.models import CountryVote, ISSUE_CODES, ResolutionSponsor
+from speeches.models import SpeechTopic
 
 
 def _render_country_detail(request, country):
@@ -174,6 +175,15 @@ def _render_country_detail(request, country):
                 for r in cur.fetchall()
             ]
 
+    # Top topics for this country (all-time, by aggregated weight across all speeches)
+    country_topics = list(
+        SpeechTopic.objects
+        .filter(speech__speaker__country=country, topic__model='lda')
+        .values('topic__label', 'topic__keywords')
+        .annotate(total_weight=Sum('weight'))
+        .order_by('-total_weight')[:8]
+    )
+
     wc_url = f'/api/wordcloud/?country_id={country.pk}'
     debate_wc_url = f'/api/wordcloud/?source=debate&country_id={country.pk}'
     votes_api_url = f'/votes/api/{country.iso3}/' if country.iso3 else ''
@@ -211,6 +221,7 @@ def _render_country_detail(request, country):
         'similar_most':         similar_most,
         'similar_least':        similar_least,
         'consistency_stats':    consistency_stats,
+        'country_topics':       country_topics,
     })
 
 

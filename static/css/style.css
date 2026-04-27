@@ -234,6 +234,17 @@ h3 { font-size: 1.1rem; margin: 1rem 0 0.5rem; }
 .badge-ga { background: #e0f0ff; color: #005a8e; border-color: #aad4f5; }
 .badge-sc { background: #fef3cd; color: #7c5a00; border-color: #f0d87a; }
 
+.topic-pill {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  background: #eef4fb;
+  color: #2a5a8a;
+  border: 1px solid #c5d9ef;
+  cursor: default;
+}
+
 /* ── Filters ─────────────────────────────────────── */
 
 .filters {

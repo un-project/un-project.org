@@ -84,6 +84,16 @@
       {% endfor %}
     </div>
     {% endif %}
+    {% if glance_topics %}
+    <div style="margin-top:0.75rem;">
+      <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:0.35rem;">Topics</div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+        {% for t in glance_topics %}
+        <span class="topic-pill" title="{{ t.topic__keywords|join:', ' }}">{{ t.topic__label }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 </details>
 
