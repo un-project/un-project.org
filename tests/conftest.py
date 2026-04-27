@@ -153,6 +153,35 @@ CREATE TABLE IF NOT EXISTS public.speech_search_index (
     search_vector text
 );
 
+CREATE TABLE IF NOT EXISTS public.topics (
+    id         SERIAL PRIMARY KEY,
+    topic_num  integer NOT NULL,
+    label      text NOT NULL,
+    keywords   text[] NOT NULL,
+    model      varchar(20) NOT NULL,
+    n_topics   integer NOT NULL,
+    created_at timestamp DEFAULT now(),
+    UNIQUE (topic_num, model, n_topics)
+);
+
+CREATE TABLE IF NOT EXISTS public.speech_topics (
+    id        SERIAL PRIMARY KEY,
+    speech_id integer NOT NULL REFERENCES public.speeches(id) ON DELETE CASCADE,
+    topic_id  integer NOT NULL REFERENCES public.topics(id) ON DELETE CASCADE,
+    weight    double precision NOT NULL,
+    UNIQUE (speech_id, topic_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.country_network_stats (
+    id          SERIAL PRIMARY KEY,
+    country_id  integer NOT NULL REFERENCES public.countries(id) ON DELETE CASCADE,
+    year        integer NOT NULL,
+    pagerank    double precision NOT NULL,
+    betweenness double precision NOT NULL,
+    n_edges     integer NOT NULL,
+    UNIQUE (country_id, year)
+);
+
 CREATE OR REPLACE VIEW public.canonical_ideal_points AS
 SELECT DISTINCT ON (country_id, year)
     id, country_id, iso3, year, ideal_point, se, source
