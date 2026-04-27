@@ -157,7 +157,7 @@ def _render_country_detail(request, country):
               AND cas.n_votes >= 5
               AND c.iso3 IS NOT NULL
             GROUP BY c.iso3, c.short_name, c.name
-            HAVING SUM(cas.n_votes) >= 50
+            HAVING SUM(cas.n_votes) >= 50 AND COUNT(*) >= 5
             ORDER BY rate {order}
             LIMIT 5
         """

@@ -996,6 +996,7 @@ def country_votes_json(request, iso3):
 def _compute_similarity(request, country):
     """Compute voting similarity scores for a country. Returns a JsonResponse."""
     MIN_SHARED = 10
+    MIN_YEARS  = 5
 
     year_from = request.GET.get('year_from', '')
     year_to   = request.GET.get('year_to', '')
@@ -1039,6 +1040,12 @@ def _compute_similarity(request, country):
         params.append(category)
 
     where = ' AND '.join(filters)
+    # When no year range is requested require at least MIN_YEARS distinct years to
+    # prevent short-lived states (e.g. Yugoslavia in 2002) from dominating the ranking.
+    year_having = (
+        f" AND COUNT(DISTINCT EXTRACT(YEAR FROM d.date)::int) >= {MIN_YEARS}"
+        if not year_from and not year_to else ""
+    )
     sql = f"""
         SELECT
             cv2.country_id,
@@ -1061,7 +1068,7 @@ def _compute_similarity(request, country):
         {extra_joins}
         WHERE {where}
         GROUP BY cv2.country_id, c.name, c.iso3
-        HAVING COUNT(*) >= {MIN_SHARED}
+        HAVING COUNT(*) >= {MIN_SHARED}{year_having}
         ORDER BY score DESC
     """
 
@@ -1167,7 +1174,7 @@ def country_votes_page(request, iso3):
           AND cas.n_votes >= 5
           AND c.iso3 IS NOT NULL
         GROUP BY c.iso3, c.short_name, c.name
-        HAVING SUM(cas.n_votes) >= 50
+        HAVING SUM(cas.n_votes) >= 50 AND COUNT(*) >= 5
         ORDER BY rate {order}
         LIMIT 5
     """
