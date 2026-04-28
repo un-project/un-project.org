@@ -33,7 +33,7 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **"On this day" widget** — homepage widget showing UN meetings that happened on
   today's date in past years, linking to their transcripts.
 
-- [ ] **Related resolutions** — on the resolution detail page, suggest thematically similar
+- [x] **Related resolutions** — on the resolution detail page, suggest thematically similar
   resolutions using the existing `resolution_citations` graph or UNBIS topic codes.
 
 - [x] **Speaker autocomplete in search** — the speaker dropdown in the search form is a
@@ -67,6 +67,6 @@ Tracked tasks and future features for the UN Project web application.
 - [ ] **Sentiment / position analysis** — classify speeches as supportive, critical, or
   neutral toward a resolution using the Claude API.
 
-- [ ] **Topic modelling** — run BERTopic or LDA over speech text; surface dominant topics
+- [x] **Topic modelling** — run BERTopic or LDA over speech text; surface dominant topics
   per session and per country, linkable from the country and meeting pages.
 

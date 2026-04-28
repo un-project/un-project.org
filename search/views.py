@@ -8,6 +8,13 @@ from .models import SearchIndex
 
 
 @ratelimit(30, key_prefix='rl:search')
+def topic_decades(request):
+    return render(request, 'search/topic_decades.html', {
+        'api_url': '/api/topic-decades/',
+    })
+
+
+@ratelimit(30, key_prefix='rl:search')
 def timeline(request):
     query_str = request.GET.get('q', '').strip()
     body      = request.GET.get('body', '')

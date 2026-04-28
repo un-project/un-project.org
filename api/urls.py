@@ -8,6 +8,7 @@ urlpatterns = [
     path('search/', views.api_search, name='search'),
     path('suggest/', views.suggest, name='suggest'),
     path('topic-timeline/', views.topic_timeline, name='topic_timeline'),
+    path('topic-decades/', views.topic_decades, name='topic_decades'),
     path('wordcloud/', views.wordcloud, name='wordcloud'),
     # Speakers
     path('speakers/', views.speaker_list, name='speaker_list'),

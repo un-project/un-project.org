@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}Topics by Decade{% endblock %}
+
+{% block extra_head %}
+<style>
+  .td-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* ── Streamgraph ──────────────────────────────────────── */
+  #stream-wrap {
+    overflow-x: auto;
+  }
+  #stream-svg {
+    display: block;
+    font-size: 11px;
+  }
+  .stream-axis text { fill: var(--text); font-size: 11px; }
+  .stream-axis path,
+  .stream-axis line { stroke: var(--border); }
+  .stream-area { cursor: pointer; transition: opacity 0.15s; }
+  .stream-area.faded { opacity: 0.15; }
+  .stream-label {
+    font-size: 10px;
+    fill: #fff;
+    pointer-events: none;
+    dominant-baseline: middle;
+    text-anchor: middle;
+  }
+
+  /* ── Tooltip ──────────────────────────────────────────── */
+  #td-tooltip {
+    position: fixed;
+    left: -9999px; top: -9999px;
+    visibility: hidden;
+    background: rgba(0,0,0,0.82);
+    color: #fff;
+    padding: 0.45rem 0.7rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1000;
+    max-width: 280px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  /* ── Legend ───────────────────────────────────────────── */
+  .td-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  .td-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+  }
+  .td-legend-item.faded { opacity: 0.35; }
+  .td-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Decade cards ─────────────────────────────────────── */
+  .decade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .decade-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    background: var(--card-bg, #fff);
+  }
+  .decade-card h3 {
+    margin: 0 0 0.6rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .decade-topic-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+  .decade-rank {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    width: 1rem;
+    flex-shrink: 0;
+  }
+  .decade-bar-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .decade-bar {
+    height: 6px;
+    border-radius: 3px;
+    min-width: 2px;
+  }
+  .decade-topic-label {
+    font-size: 0.78rem;
+    color: var(--text);
+    margin-top: 1px;
+  }
+  .decade-pct {
+    font-size: 0.72rem;
+    color: var(--muted);
+    flex-shrink: 0;
+    width: 2.5rem;
+    text-align: right;
+  }
+
+  #td-loading {
+    color: var(--muted);
+    padding: 2rem 0;
+    text-align: center;
+  }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<h1>Topics by Decade</h1>
+<p class="meta" style="margin-bottom:1.5rem;">
+  How have the UN's most-discussed themes shifted since 1945? Each band in the chart
+  represents one LDA topic, sized by its share of speech content in that decade.
+  Hover for details; click a band or legend entry to highlight it.
+</p>
+
+<div class="td-layout">
+  <div id="td-loading">Loading…</div>
+
+  <div id="td-main" style="display:none">
+    <h2 style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">Topic share across decades</h2>
+    <div id="stream-wrap">
+      <svg id="stream-svg"></svg>
+    </div>
+    <div class="td-legend" id="td-legend" style="margin-top:0.75rem;"></div>
+
+    <h2 style="font-size:1rem;font-weight:600;margin:2rem 0 0.75rem;">Top topics per decade</h2>
+    <div class="decade-grid" id="decade-grid"></div>
+  </div>
+</div>
+
+<div id="td-tooltip"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+  const API_URL = "{{ api_url }}";
+
+  const COLORS = [
+    "#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+    "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf",
+    "#aec7e8","#ffbb78","#98df8a","#ff9896","#c5b0d5",
+  ];
+
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('td-loading').style.display = 'none';
+      document.getElementById('td-main').style.display = '';
+      renderStream(data);
+      renderCards(data);
+    })
+    .catch(() => {
+      document.getElementById('td-loading').textContent = 'Failed to load data.';
+    });
+
+  // ── Streamgraph ──────────────────────────────────────────────────────────────
+
+  function renderStream(data) {
+    const { decades, stream } = data;
+
+    const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+    const totalWidth = Math.max(640, decades.length * 80 + margin.left + margin.right);
+    const height = 300;
+    const width = totalWidth - margin.left - margin.right;
+    const innerH = height - margin.top - margin.bottom;
+
+    // Build stacked data: keys = topic indices
+    const keys = stream.map((_, i) => i);
+    const stackData = decades.map((d, di) => {
+      const obj = { decade: d };
+      stream.forEach((t, ti) => { obj[ti] = t.values[di]; });
+      return obj;
+    });
+
+    const stackGen = d3.stack()
+      .keys(keys)
+      .offset(d3.stackOffsetWiggle)  // streamgraph offset
+      .order(d3.stackOrderInsideOut);
+
+    const series = stackGen(stackData);
+
+    const xScale = d3.scalePoint()
+      .domain(decades)
+      .range([0, width])
+      .padding(0.5);
+
+    const yExtent = [
+      d3.min(series, s => d3.min(s, d => d[0])),
+      d3.max(series, s => d3.max(s, d => d[1])),
+    ];
+    const yScale = d3.scaleLinear().domain(yExtent).range([innerH, 0]);
+
+    const area = d3.area()
+      .x((d, i) => xScale(decades[i]))
+      .y0(d => yScale(d[0]))
+      .y1(d => yScale(d[1]))
+      .curve(d3.curveCatmullRom);
+
+    const svg = d3.select('#stream-svg')
+      .attr('width', totalWidth)
+      .attr('height', height);
+
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // x axis
+    g.append('g')
+      .attr('class', 'stream-axis')
+      .attr('transform', `translate(0,${innerH})`)
+      .call(d3.axisBottom(xScale).tickFormat(d => d + 's'));
+
+    const tooltip = document.getElementById('td-tooltip');
+    let activeIdx = null;
+
+    const areas = g.selectAll('.stream-area')
+      .data(series)
+      .join('path')
+      .attr('class', 'stream-area')
+      // d.key is the original stream index regardless of InsideOut reordering
+      .attr('fill', d => COLORS[+d.key % COLORS.length])
+      .attr('d', area)
+      .on('mousemove', function (event, d) {
+        const t = stream[+d.key];
+        const svgRect = document.getElementById('stream-svg').getBoundingClientRect();
+        const mx = event.clientX - svgRect.left - margin.left;
+        let nearestDi = 0, minDist = Infinity;
+        decades.forEach((dec, di) => {
+          const dist = Math.abs(xScale(dec) - mx);
+          if (dist < minDist) { minDist = dist; nearestDi = di; }
+        });
+        const pct = t.values[nearestDi];
+        tooltip.innerHTML = `<strong>${t.label}</strong><br>
+          ${decades[nearestDi]}s: <b>${pct.toFixed(1)}%</b> of speeches<br>
+          <span style="opacity:.8;font-size:.75rem">${t.keywords.slice(0,5).join(' · ')}</span>`;
+        tooltip.style.left = (event.clientX + 12) + 'px';
+        tooltip.style.top  = (event.clientY - 10) + 'px';
+        tooltip.style.visibility = 'visible';
+      })
+      .on('mouseleave', function () {
+        tooltip.style.visibility = 'hidden';
+      })
+      .on('click', function (event, d) {
+        toggleHighlight(+d.key);
+      });
+
+    function toggleHighlight(idx) {
+      if (activeIdx === idx) {
+        activeIdx = null;
+        areas.classed('faded', false);
+        d3.selectAll('.td-legend-item').classed('faded', false);
+      } else {
+        activeIdx = idx;
+        // Compare d.key (original stream index) not DOM position
+        areas.classed('faded', d => +d.key !== idx);
+        d3.selectAll('.td-legend-item').classed('faded', function () {
+          return +this.dataset.idx !== idx;
+        });
+      }
+    }
+
+    // Legend
+    const legend = document.getElementById('td-legend');
+    stream.forEach((t, i) => {
+      const item = document.createElement('div');
+      item.className = 'td-legend-item';
+      item.dataset.idx = i;
+      item.innerHTML = `<span class="td-swatch" style="background:${COLORS[i % COLORS.length]}"></span>${t.label}`;
+      item.addEventListener('click', () => toggleHighlight(i));
+      legend.appendChild(item);
+    });
+  }
+
+  // ── Decade cards ─────────────────────────────────────────────────────────────
+
+  function renderCards(data) {
+    const { decades, stream, decade_top } = data;
+
+    // Build color map: topic_id -> color (index in stream array)
+    const colorByTopic = {};
+    stream.forEach((t, i) => { colorByTopic[t.topic_id] = COLORS[i % COLORS.length]; });
+
+    const grid = document.getElementById('decade-grid');
+
+    decades.forEach(dec => {
+      const topics = decade_top[String(dec)];
+      if (!topics || topics.length === 0) return;
+
+      const maxPct = topics[0].pct;
+
+      const card = document.createElement('div');
+      card.className = 'decade-card';
+      card.innerHTML = `<h3>${dec}s</h3>`;
+
+      topics.forEach((t, rank) => {
+        const color = colorByTopic[t.topic_id] || '#999';
+        const barW = maxPct > 0 ? Math.round(100 * t.pct / maxPct) : 0;
+        const row = document.createElement('div');
+        row.className = 'decade-topic-row';
+        row.title = t.keywords.join(', ');
+        row.innerHTML = `
+          <span class="decade-rank">${rank + 1}</span>
+          <div style="flex:1;min-width:0">
+            <div class="decade-bar-wrap">
+              <div class="decade-bar" style="width:${barW}%;background:${color}"></div>
+            </div>
+            <div class="decade-topic-label">${t.label}</div>
+          </div>
+          <span class="decade-pct">${t.pct}%</span>`;
+        card.appendChild(row);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+})();
+</script>
+{% endblock %}

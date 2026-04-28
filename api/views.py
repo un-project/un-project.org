@@ -210,6 +210,100 @@ def topic_timeline(request):
     return JsonResponse({'years': years, 'countries': countries, 'cells': cells})
 
 
+def topic_decades(request):
+    """
+    Return per-decade topic weights for the LDA topic model.
+    Excludes filler/noise topics. Used by the /topics/decades/ page.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                (EXTRACT(YEAR FROM d.date)::int / 10) * 10 AS decade,
+                st.topic_id,
+                SUM(st.weight) AS total_weight
+            FROM speech_topics st
+            JOIN speeches s ON st.speech_id = s.id
+            JOIN documents d ON s.document_id = d.id
+            JOIN topics t ON st.topic_id = t.id
+            WHERE d.date IS NOT NULL
+              AND EXTRACT(YEAR FROM d.date) > 1900
+              AND t.label NOT ILIKE '%%filler%%'
+            GROUP BY decade, st.topic_id
+            ORDER BY decade, total_weight DESC
+        """)
+        weight_rows = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT id, topic_num, label, keywords
+            FROM topics
+            WHERE label NOT ILIKE '%%filler%%'
+            ORDER BY topic_num
+        """)
+        topic_rows = cursor.fetchall()
+
+    # Build topic metadata keyed by id
+    topics = {
+        row[0]: {'id': row[0], 'topic_num': row[1], 'label': row[2], 'keywords': row[3][:6]}
+        for row in topic_rows
+    }
+
+    # Accumulate weights by decade and topic
+    from collections import defaultdict
+    by_decade = defaultdict(dict)
+    topic_totals = defaultdict(float)
+    for decade, topic_id, weight in weight_rows:
+        if decade is None:
+            continue
+        by_decade[int(decade)][topic_id] = float(weight)
+        topic_totals[topic_id] += float(weight)
+
+    # Keep top 15 topics by total weight across all time for the streamgraph
+    top_topic_ids = [tid for tid, _ in sorted(topic_totals.items(), key=lambda x: -x[1])[:15]]
+
+    decades_sorted = sorted(by_decade.keys())
+
+    # Per-decade: top 8 topics (from all non-filler topics)
+    decade_top = {}
+    for decade, weights in by_decade.items():
+        ranked = sorted(weights.items(), key=lambda x: -x[1])[:8]
+        decade_total = sum(weights.values())
+        decade_top[str(decade)] = [
+            {
+                'topic_id': tid,
+                'label': topics[tid]['label'],
+                'keywords': topics[tid]['keywords'],
+                'weight': round(w, 1),
+                'pct': round(100 * w / decade_total, 1) if decade_total else 0,
+            }
+            for tid, w in ranked
+            if tid in topics
+        ]
+
+    # Streamgraph data: proportion of each top topic per decade
+    stream = []
+    for tid in top_topic_ids:
+        if tid not in topics:
+            continue
+        values = []
+        for decade in decades_sorted:
+            dw = by_decade[decade]
+            decade_total = sum(dw.values())
+            w = dw.get(tid, 0.0)
+            values.append(round(100 * w / decade_total, 2) if decade_total else 0)
+        stream.append({
+            'topic_id': tid,
+            'label': topics[tid]['label'],
+            'keywords': topics[tid]['keywords'],
+            'values': values,
+        })
+
+    return JsonResponse({
+        'decades': decades_sorted,
+        'stream': stream,
+        'decade_top': decade_top,
+    })
+
+
 def suggest(request):
     """Autocomplete suggestions: countries + speakers matching a query."""
     q = request.GET.get('q', '').strip()
