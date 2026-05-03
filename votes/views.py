@@ -948,8 +948,8 @@ def country_votes_json(request, iso3):
 
     qs = (
         CountryVote.objects
-        .filter(country=country, vote__resolution__date__year__gt=1900)
-        .order_by('-vote__resolution__date')
+        .filter(country=country, vote__document__date__year__gt=1900)
+        .order_by('-vote__document__date')
     )
     if session:
         qs = qs.filter(vote__document__session=session)
@@ -961,21 +961,21 @@ def country_votes_json(request, iso3):
     for row in qs.values(
         'pk', 'vote_position',
         'vote__yes_count', 'vote__no_count', 'vote__abstain_count',
-        'vote__document__symbol',
+        'vote__document__symbol', 'vote__document__date',
         'vote__resolution__date', 'vote__resolution__session',
         'vote__resolution__category',
         'vote__resolution__title', 'vote__resolution__adopted_symbol',
         'vote__resolution__draft_symbol',
         *[f'vote__resolution__issue_{c}' for c in _ISSUE_FIELDS],
     ):
-        date = row['vote__resolution__date']
+        doc_date = row['vote__document__date']
         res_symbol = row['vote__resolution__adopted_symbol'] or row['vote__resolution__draft_symbol'] or ''
         doc_symbol = row['vote__document__symbol']
         records.append({
             'id': row['pk'],
             'position': row['vote_position'],
-            'year': date.year if date else None,
-            'date': date.isoformat() if date else '',
+            'year': doc_date.year if doc_date else None,
+            'date': doc_date.isoformat() if doc_date else '',
             'session': row['vote__resolution__session'],
             'category': row['vote__resolution__category'] or 'Uncategorized',
             'issues': [c for c in _ISSUE_FIELDS if row[f'vote__resolution__issue_{c}']],

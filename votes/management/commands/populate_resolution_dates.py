@@ -39,6 +39,22 @@ def _ga_expected_year(session: int) -> int:
     return 1945 + session
 
 
+def _ga_session_from_symbol(symbol: str) -> int | None:
+    """Parse GA session from resolution symbol (e.g. 'A/RES/31/127' or '31/127' → 31).
+
+    More reliable than the DB session field, which can be wrong.
+    """
+    if not symbol:
+        return None
+    m = re.search(r'(?:A/RES/|A/)(\d+)/', symbol, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    m = re.match(r'^(\d+)/', symbol)
+    if m:
+        return int(m.group(1))
+    return None
+
+
 class Command(BaseCommand):
     help = 'Populate resolutions.date from vote document dates or session inference'
 
@@ -87,11 +103,18 @@ class Command(BaseCommand):
             symbol = adopted_sym or draft_sym or ''
             resolved = None
 
-            if body == 'GA' and session:
-                expected_year = _ga_expected_year(session)
+            # Prefer session derived from the symbol over the DB field, which
+            # can be wrong (e.g. "31/127" has session=13 in old imports).
+            sym_session = _ga_session_from_symbol(symbol) if body == 'GA' else None
+            effective_session = sym_session if sym_session is not None else session
+
+            if body == 'GA' and effective_session:
+                expected_year = _ga_expected_year(effective_session)
+                # Session N opens September of expected_year; resolutions are
+                # adopted in expected_year or expected_year+1 (never before).
                 plausible = [
                     d for d in doc_dates.get(res_id, [])
-                    if abs(d.year - expected_year) <= 1
+                    if 0 <= d.year - expected_year <= 1
                 ]
                 if plausible:
                     resolved = min(plausible)
