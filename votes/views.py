@@ -1493,6 +1493,14 @@ def vote_predict(request):
             SELECT COALESCE(c.short_name, c.name), c.iso3
             FROM countries c
             WHERE c.iso3 IN (SELECT DISTINCT iso3 FROM canonical_ideal_points)
+              AND EXISTS (
+                SELECT 1
+                FROM country_votes cv
+                JOIN votes v ON v.id = cv.vote_id
+                JOIN documents d ON d.id = v.document_id
+                WHERE cv.country_id = c.id
+                  AND EXTRACT(YEAR FROM d.date) >= 2005
+              )
             ORDER BY COALESCE(c.short_name, c.name)
         """)
         countries = [{'name': r[0], 'iso3': r[1]} for r in cur.fetchall()]
