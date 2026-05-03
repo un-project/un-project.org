@@ -249,6 +249,66 @@ HISTORICAL_ISO2 = {
 }
 
 
+# Preferred display names — override pycountry's comma-inverted format with
+# the natural UN-style names used throughout the codebase.
+PREFERRED_NAMES = {
+    'BOL': 'Plurinational State of Bolivia',
+    'COD': 'Democratic Republic of the Congo',
+    'FSM': 'Micronesia (Federated States of)',
+    'GBR': 'United Kingdom of Great Britain and Northern Ireland',
+    'IRN': 'Islamic Republic of Iran',
+    'KOR': 'Republic of Korea',
+    'MDA': 'Moldova',
+    'PRK': "Democratic People's Republic of Korea",
+    'PSE': 'State of Palestine',
+    'TZA': 'United Republic of Tanzania',
+    'USA': 'United States of America',
+    'VAT': 'Holy See',
+    'VEN': 'Bolivarian Republic of Venezuela',
+}
+
+HISTORICAL_CANONICAL_NAMES = {
+    'YUG': 'Yugoslavia',
+    'SUN': 'Union of Soviet Socialist Republics',
+    'CSK': 'Czechoslovakia',
+    'DDR': 'German Democratic Republic',
+    'ZAR': 'Zaire',
+    'ANT': 'Netherlands Antilles',
+    'SCG': 'Serbia and Montenegro',
+    'VDR': 'Democratic Republic of Viet-Nam',
+    'YMD': 'Democratic Yemen',
+    'HVO': 'Upper Volta',
+    'DHY': 'Dahomey',
+    'RHO': 'Southern Rhodesia',
+    'BUR': 'Burma',
+    'BYS': 'Byelorussian Soviet Socialist Republic',
+    'GER': 'Germany, Federal Republic of',
+    'EAT': 'Tanganyika',
+    'EAZ': 'Zanzibar',
+    'UAR': 'United Arab Republic',
+}
+
+
+def get_canonical_name(iso3):
+    """Return the canonical country name for a given ISO 3166 alpha-3 code.
+
+    Checks PREFERRED_NAMES first so the natural UN-style format wins over
+    pycountry's comma-inverted form (e.g. "United Republic of Tanzania" not
+    "Tanzania, United Republic of").
+    """
+    if iso3 in PREFERRED_NAMES:
+        return PREFERRED_NAMES[iso3]
+    if iso3 in HISTORICAL_CANONICAL_NAMES:
+        return HISTORICAL_CANONICAL_NAMES[iso3]
+    c = pycountry.countries.get(alpha_3=iso3)
+    if c:
+        return c.name
+    hc = pycountry.historic_countries.get(alpha_3=iso3)
+    if hc:
+        return hc.name
+    return None
+
+
 def lookup_iso3(name):
     if name in OVERRIDES:
         return OVERRIDES[name]
@@ -394,6 +454,16 @@ def main():
                         iso2 = None  # iso3 also taken; flag will use existing file
                 else:
                     iso2 = None
+
+        # Normalize the stored name to the canonical pycountry name so garbled
+        # OCR names (e.g. "Alger ia") are fixed to their proper form ("Algeria").
+        canonical_name = get_canonical_name(iso3)
+        if canonical_name and country.name != canonical_name:
+            try:
+                Country.objects.filter(pk=country.pk).update(name=canonical_name)
+                country.name = canonical_name
+            except Exception:
+                pass  # another row already has this canonical name; fix_country_duplicates will merge
 
         # Download flag (also attempt when iso2 is absent but a Wikimedia URL exists)
         if iso2 or iso3 in WIKIMEDIA_FLAG_URLS:

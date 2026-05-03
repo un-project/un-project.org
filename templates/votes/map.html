@@ -176,7 +176,7 @@
   </select>
   <span class="map-filter-sep">|</span>
   <label style="display:flex; align-items:center; gap:0.3rem; text-transform:none; letter-spacing:normal; font-weight:400; cursor:pointer;">
-    <input type="checkbox" id="map-current-only"> Current countries only
+    <input type="checkbox" id="map-current-only" checked> Current countries only
   </label>
 </div>
 
@@ -383,7 +383,7 @@
   var selectedIso3 = null;
   var simScores    = {};   /* iso3 → score for every country returned by API */
   var tomSelect    = null;
-  var mapFilters   = { body: '', yearFrom: '{{ year_min }}', yearTo: '{{ year_max }}', category: '', currentOnly: false };
+  var mapFilters   = { body: '', yearFrom: '{{ year_min }}', yearTo: '{{ year_max }}', category: '', currentOnly: true };
   var _lastAllCountries = [];
   var _fetchController = null;  /* AbortController for in-flight similarity fetch */
 

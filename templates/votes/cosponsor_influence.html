@@ -130,12 +130,6 @@
       <h2>Top 20 by PageRank <span style="font-weight:400; text-transform:none;">— overall co-sponsorship influence</span></h2>
       <div id="ci-pr-chart"></div>
     </div>
-  </div>
-  <div id="ci-right">
-    <div id="bt-chart-wrap">
-      <h2>Top brokers <span style="font-weight:400; text-transform:none;">— betweenness centrality</span></h2>
-      <div id="ci-bt-chart"></div>
-    </div>
 
     <div style="margin-top:1.25rem;">
       <div style="background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem;">
@@ -149,6 +143,12 @@
           </table>
         </div>
       </div>
+    </div>
+  </div>
+  <div id="ci-right">
+    <div id="bt-chart-wrap">
+      <h2>Top brokers <span style="font-weight:400; text-transform:none;">— betweenness centrality</span></h2>
+      <div id="ci-bt-chart"></div>
     </div>
   </div>
 </div>
@@ -205,10 +205,20 @@ function barRow(iso3, name, fillPct, valStr, color) {
   return row;
 }
 
+/* ── no-data placeholder ────────────────────────────────────────── */
+var NO_DATA_MSG = '<p class="meta" style="margin:0.5rem 0; color:var(--muted);">No data — UNBench co-sponsorship coverage may not include this year yet.</p>';
+
 /* ── render ─────────────────────────────────────────────────────── */
 function render(countries, yr) {
   yearDisp.textContent = yr;
-  metaEl.textContent   = countries.length + ' countries';
+  metaEl.textContent   = countries.length ? countries.length + ' countries' : 'no data';
+
+  if (!countries.length) {
+    prChart.innerHTML  = NO_DATA_MSG;
+    btChart.innerHTML  = NO_DATA_MSG;
+    tableBody.innerHTML = '<tr><td colspan="5" style="color:var(--muted); padding:0.5rem;">No data available for ' + yr + '.</td></tr>';
+    return;
+  }
 
   /* PageRank bars */
   var prTop  = countries.slice(0, PR_TOP);

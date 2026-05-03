@@ -155,7 +155,8 @@
       {% endif %}
     </div>
 
-    <!-- Session filter -->
+    <!-- Session filter (GA only — SC has no formal sessions) -->
+    {% if current_body != 'SC' %}
     <div class="filter-section">
       <h3>Session</h3>
       <ul class="filter-list">
@@ -188,6 +189,7 @@
       {% endif %}
       {% endif %}
     </div>
+    {% endif %}
 
   </aside>
 
@@ -205,7 +207,7 @@
         <a href="{{ doc.get_absolute_url }}"><strong>{{ doc.symbol }}</strong></a>
         <span class="badge badge-{{ doc.body|lower }}">{{ doc.body }}</span>
         {% if doc.date %}<span class="meta">{{ doc.date|date:"N j, Y" }}</span>{% endif %}
-        <span class="meta">Session {{ doc.session }}</span>
+        {% if doc.body == 'GA' and doc.session %}<span class="meta">Session {{ doc.session }}</span>{% endif %}
         <span class="meta">Meeting {{ doc.meeting_number }}</span>
         {% if doc.ods_used %}<span class="ocr-badge ods" title="Transcript sourced from the UN Official Document System (structured text — high fidelity)">ODS</span>{% endif %}
         {% if doc.ocr_quality_label == 'good' %}<span class="ocr-badge ocr-good" title="OCR quality: good (score {{ doc.ocr_quality_score|floatformat:2 }})">OCR ✓</span>
