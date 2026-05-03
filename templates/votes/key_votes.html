@@ -173,7 +173,7 @@
       <td style="color:var(--muted); max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ v.resolution.title }}">
         {{ v.resolution.title|default:""|truncatechars:80 }}
       </td>
-      <td style="color:var(--muted);">{% if v.document.date %}{{ v.document.date|date:"Y" }}{% endif %}</td>
+      <td style="color:var(--muted);">{% if v.resolution.date %}{{ v.resolution.date|date:"Y" }}{% endif %}</td>
       <td style="text-align:center;" class="vote-yes">{{ v.yes_count }}</td>
       <td style="text-align:center;" class="vote-no">{{ v.no_count }}</td>
       <td style="text-align:center;" class="vote-abstain">{{ v.abstain_count }}</td>
@@ -240,7 +240,7 @@
         {{ v.resolution.title|default:""|truncatechars:70 }}
       </td>
       <td style="white-space:nowrap; color:var(--muted);">
-        {% if v.document.date %}{{ v.document.date|date:"Y-m-d" }}{% endif %}
+        {% if v.resolution.date %}{{ v.resolution.date|date:"Y-m-d" }}{% endif %}
       </td>
       <td style="text-align:center;" class="vote-yes">{{ v.yes_count }}</td>
       <td style="text-align:center;" class="vote-no">{{ v.no_count }}</td>

@@ -34,8 +34,8 @@ def voting_map(request):
         .values_list('category', flat=True).distinct().order_by('category')
     )
     year_range = (
-        Resolution.objects.aggregate(min_year=Min('votes__document__date__year'),
-                                     max_year=Max('votes__document__date__year'))
+        Resolution.objects.aggregate(min_year=Min('date__year'),
+                                     max_year=Max('date__year'))
     )
     historical_iso3_json = json.dumps(sorted(HISTORICAL_ISO3))
     return render(request, 'votes/map.html', {
@@ -70,7 +70,7 @@ def resolution_list(request):
     if session and session.isdigit():
         qs = qs.filter(session=int(session))
     if year and year.isdigit():
-        qs = qs.filter(votes__document__date__year=int(year)).distinct()
+        qs = qs.filter(date__year=int(year)).distinct()
     if category:
         qs = qs.filter(category=category)
     if important_only:
@@ -100,26 +100,26 @@ def resolution_list(request):
         filter_qs = filter_qs.filter(body=body)
 
     # Years sidebar: filtered to current session if one is selected
-    year_qs = filter_qs.filter(votes__document__date__isnull=False)
+    year_qs = filter_qs.filter(date__isnull=False)
     if session and session.isdigit():
         year_qs = year_qs.filter(session=int(session))
     years = (
         year_qs
-        .values_list('votes__document__date__year', flat=True)
+        .values_list('date__year', flat=True)
         .distinct()
-        .order_by('-votes__document__date__year')
+        .order_by('-date__year')
     )
 
     # Sessions sidebar: filtered to current year if one is selected
     session_qs = filter_qs
     if year and year.isdigit():
-        session_qs = session_qs.filter(votes__document__date__year=int(year))
+        session_qs = session_qs.filter(date__year=int(year))
     session_rows = (
         session_qs
-        .filter(session__isnull=False, votes__document__date__isnull=False)
+        .filter(session__isnull=False, date__isnull=False)
         .values('session')
-        .annotate(year_min=Min('votes__document__date__year'),
-                  year_max=Max('votes__document__date__year'))
+        .annotate(year_min=Min('date__year'),
+                  year_max=Max('date__year'))
         .order_by('-session')
     )
     sessions = [
@@ -324,9 +324,9 @@ def resolution_detail(request, slug):
     # Anomalous vote detection — one batch query per distinct year
     needed_iso3s = {}   # year -> set of iso3
     for vote in votes:
-        if not vote.document.date:
+        if not vote.resolution.date:
             continue
-        yr = vote.document.date.year
+        yr = vote.resolution.date.year
         needed_iso3s.setdefault(yr, set())
         for cv in vote.country_votes.all():
             if cv.country and cv.country.iso3:
@@ -345,9 +345,9 @@ def resolution_detail(request, slug):
 
     anomalous_by_vote = {}  # vote_pk -> set of country PKs
     for vote in votes:
-        if not vote.document.date:
+        if not vote.resolution.date:
             continue
-        yr = vote.document.date.year
+        yr = vote.resolution.date.year
         triples = []
         for cv in vote.country_votes.all():
             if cv.country and cv.country.iso3 and cv.vote_position in ('yes', 'no'):
@@ -492,7 +492,7 @@ def _get_entity_vote_positions(entity):
     if entity['type'] == 'country':
         return dict(
             CountryVote.objects
-            .filter(country__iso3=entity['iso3'], vote__document__date__year__gt=1900)
+            .filter(country__iso3=entity['iso3'], vote__resolution__date__year__gt=1900)
             .exclude(vote_position='absent')
             .values_list('vote_id', 'vote_position')
         )
@@ -501,7 +501,7 @@ def _get_entity_vote_positions(entity):
         rows = (
             CountryVote.objects
             .filter(country__iso3__in=entity['iso3_list'],
-                    vote__document__date__year__gt=1900)
+                    vote__resolution__date__year__gt=1900)
             .exclude(vote_position='absent')
             .values('vote_id', 'vote_position')
             .annotate(n=Count('id'))
@@ -568,9 +568,9 @@ def country_compare(request):
         vote_map = {}
         for v in shared_vote_qs:
             vote_map[v.id] = v
-            if not v.document.date:
+            if not v.resolution.date:
                 continue
-            year = v.document.date.year
+            year = v.resolution.date.year
             year_stats[year]['total'] += 1
             if votes_a[v.id] == votes_b[v.id]:
                 year_stats[year]['agree'] += 1
@@ -598,8 +598,8 @@ def country_compare(request):
                 }
                 for vid in shared_ids
                 if vid in vote_map
-                and vote_map[vid].document.date
-                and vote_map[vid].document.date.year == selected_year
+                and vote_map[vid].resolution.date
+                and vote_map[vid].resolution.date.year == selected_year
             ]
             year_rows.sort(key=lambda x: (x['agree'], str(x['vote'].resolution)))
             year_votes = year_rows
@@ -711,7 +711,7 @@ def votes_page(request):
         most_contested = list(
             Vote.objects
             .filter(vote_type='recorded', no_count__isnull=False, no_count__gt=0,
-                    document__date__year__gt=1900)
+                    resolution__date__year__gt=1900)
             .select_related('resolution', 'document')
             .order_by('-no_count')[:6]
         )
@@ -756,9 +756,9 @@ def votes_page(request):
         recent_votes = list(
             Vote.objects
             .filter(vote_type='recorded', yes_count__isnull=False,
-                    document__date__year__gt=1900)
+                    resolution__date__year__gt=1900)
             .select_related('resolution', 'document')
-            .order_by('-document__date')[:8]
+            .order_by('-resolution__date')[:8]
         )
 
         # Countries casting the most No votes
@@ -948,8 +948,8 @@ def country_votes_json(request, iso3):
 
     qs = (
         CountryVote.objects
-        .filter(country=country, vote__document__date__year__gt=1900)
-        .order_by('-vote__document__date')
+        .filter(country=country, vote__resolution__date__year__gt=1900)
+        .order_by('-vote__resolution__date')
     )
     if session:
         qs = qs.filter(vote__document__session=session)
@@ -961,13 +961,14 @@ def country_votes_json(request, iso3):
     for row in qs.values(
         'pk', 'vote_position',
         'vote__yes_count', 'vote__no_count', 'vote__abstain_count',
-        'vote__document__date', 'vote__document__symbol',
-        'vote__resolution__session', 'vote__resolution__category',
+        'vote__document__symbol',
+        'vote__resolution__date', 'vote__resolution__session',
+        'vote__resolution__category',
         'vote__resolution__title', 'vote__resolution__adopted_symbol',
         'vote__resolution__draft_symbol',
         *[f'vote__resolution__issue_{c}' for c in _ISSUE_FIELDS],
     ):
-        date = row['vote__document__date']
+        date = row['vote__resolution__date']
         res_symbol = row['vote__resolution__adopted_symbol'] or row['vote__resolution__draft_symbol'] or ''
         doc_symbol = row['vote__document__symbol']
         records.append({

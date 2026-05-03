@@ -95,7 +95,7 @@
           <td style="padding:0.3rem 0.4rem;">
             <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
             {% if row.vote.resolution.title %}<div style="font-size:0.78rem; color:var(--muted);">{{ row.vote.resolution.title|truncatechars:60 }}</div>{% endif %}
-            {% if row.vote.document.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.document.date|date:"Y" }}</div>{% endif %}
+            {% if row.vote.resolution.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.resolution.date|date:"Y" }}</div>{% endif %}
           </td>
           <td style="padding:0.3rem 0.4rem; text-align:center;">
             <span style="font-weight:600; color:#e74c3c;">{{ row.cohesion }}%</span>
@@ -128,7 +128,7 @@
           <td style="padding:0.3rem 0.4rem;">
             <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
             {% if row.vote.resolution.title %}<div style="font-size:0.78rem; color:var(--muted);">{{ row.vote.resolution.title|truncatechars:60 }}</div>{% endif %}
-            {% if row.vote.document.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.document.date|date:"Y" }}</div>{% endif %}
+            {% if row.vote.resolution.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.resolution.date|date:"Y" }}</div>{% endif %}
           </td>
           <td style="padding:0.3rem 0.4rem; text-align:center;">
             <span style="font-weight:600; color:#27ae60;">{{ row.cohesion }}%</span>

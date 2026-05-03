@@ -442,7 +442,7 @@ def _resolution_summary(res):
             'no_count': v.no_count,
             'abstain_count': v.abstain_count,
             'document': v.document.symbol,
-            'date': v.document.date.isoformat() if v.document.date else None,
+            'date': v.resolution.date.isoformat() if v.resolution.date else None,
         })
     return {
         'id': res.pk,
@@ -521,7 +521,7 @@ def resolution_detail(request, slug):
             'no_count': v.no_count,
             'abstain_count': v.abstain_count,
             'document': v.document.symbol,
-            'date': v.document.date.isoformat() if v.document.date else None,
+            'date': v.resolution.date.isoformat() if v.resolution.date else None,
             'country_votes': country_votes,
         })
 

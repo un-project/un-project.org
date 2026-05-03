@@ -18,6 +18,7 @@ class Resolution(models.Model):
     title = models.TextField(null=True, blank=True)
     body = models.CharField(max_length=2)
     session = models.IntegerField(null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
     category = models.CharField(max_length=200, null=True, blank=True)
     full_text = models.TextField(null=True, blank=True)
     draft_text = models.TextField(null=True, blank=True)
@@ -33,7 +34,7 @@ class Resolution(models.Model):
     class Meta:
         managed = False
         db_table = 'resolutions'
-        ordering = ['draft_symbol']
+        ordering = ['-date', 'draft_symbol']
 
     def __str__(self):
         return self.adopted_symbol or self.draft_symbol

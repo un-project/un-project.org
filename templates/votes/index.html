@@ -152,7 +152,7 @@
       <tbody>
         {% for v in recent_votes %}
         <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:0.35rem 0.5rem; white-space:nowrap; color:var(--muted);">{{ v.document.date|date:"N j, Y" }}</td>
+          <td style="padding:0.35rem 0.5rem; white-space:nowrap; color:var(--muted);">{{ v.resolution.date|date:"N j, Y" }}</td>
           <td style="padding:0.35rem 0.5rem;">
             <a href="{{ v.resolution.get_absolute_url }}" style="font-weight:600;">{{ v.resolution }}</a>
             {% if v.resolution.title %}<div style="font-size:0.8rem; color:var(--muted); margin-top:1px;">{{ v.resolution.title|truncatechars:70 }}</div>{% endif %}
@@ -185,7 +185,7 @@
           <td style="padding:0.35rem 0.5rem;">
             <a href="{{ v.resolution.get_absolute_url }}" style="font-weight:600;">{{ v.resolution }}</a>
             {% if v.resolution.title %}<div style="font-size:0.8rem; color:var(--muted); margin-top:1px;">{{ v.resolution.title|truncatechars:70 }}</div>{% endif %}
-            {% if v.document.date %}<div style="font-size:0.78rem; color:var(--muted);">{{ v.document.date|date:"Y" }}</div>{% endif %}
+            {% if v.resolution.date %}<div style="font-size:0.78rem; color:var(--muted);">{{ v.resolution.date|date:"Y" }}</div>{% endif %}
           </td>
           <td style="padding:0.35rem 0.5rem; text-align:center; white-space:nowrap;">
             <span style="color:#27ae60; font-weight:600;">{{ v.yes_count }}</span>

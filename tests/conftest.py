@@ -50,7 +50,8 @@ ALTER TABLE public.resolutions
     ADD COLUMN IF NOT EXISTS issue_co BOOLEAN,
     ADD COLUMN IF NOT EXISTS issue_hr BOOLEAN,
     ADD COLUMN IF NOT EXISTS issue_ec BOOLEAN,
-    ADD COLUMN IF NOT EXISTS issue_di BOOLEAN;
+    ADD COLUMN IF NOT EXISTS issue_di BOOLEAN,
+    ADD COLUMN IF NOT EXISTS date DATE;
 
 CREATE TABLE IF NOT EXISTS public.resolution_sponsors (
     id            SERIAL PRIMARY KEY,

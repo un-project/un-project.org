@@ -163,7 +163,7 @@
     {% endif %}
     <span class="badge">{{ vote.get_vote_type_display }}</span>
     &mdash; <a href="{{ vote.document.get_absolute_url }}" class="meta">{{ vote.document.symbol }}</a>
-    {% if vote.document.date %}<span class="meta">{{ vote.document.date|date:"N j, Y" }}</span>{% endif %}
+    {% if vote.resolution.date %}<span class="meta">{{ vote.resolution.date|date:"N j, Y" }}</span>{% endif %}
   </h2>
 
   {% with vote_anomalous=anomalous_by_vote|get_item:vote.pk %}

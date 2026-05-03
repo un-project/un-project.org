@@ -324,7 +324,7 @@
       <td>
         <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
         {% if row.vote.resolution.title %}<div class="meta" style="font-size:0.8rem;">{{ row.vote.resolution.title|truncatechars:80 }}</div>{% endif %}
-        {% if row.vote.document.date %}<div class="meta" style="font-size:0.78rem;">{{ row.vote.document.date|date:"Y" }}</div>{% endif %}
+        {% if row.vote.resolution.date %}<div class="meta" style="font-size:0.78rem;">{{ row.vote.resolution.date|date:"Y" }}</div>{% endif %}
       </td>
       <td><span class="pos-badge pos-{{ row.pos_a }}">{{ row.pos_a }}</span></td>
       <td><span class="pos-badge pos-{{ row.pos_b }}">{{ row.pos_b }}</span></td>
@@ -357,7 +357,7 @@
       <td>
         <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
         {% if row.vote.resolution.title %}<div class="meta" style="font-size:0.8rem;">{{ row.vote.resolution.title|truncatechars:90 }}</div>{% endif %}
-        {% if row.vote.document.date %}<div class="meta" style="font-size:0.78rem;">{{ row.vote.document.date|date:"Y" }}</div>{% endif %}
+        {% if row.vote.resolution.date %}<div class="meta" style="font-size:0.78rem;">{{ row.vote.resolution.date|date:"Y" }}</div>{% endif %}
       </td>
       <td><span class="pos-badge pos-{{ row.position }}">{{ row.position }}</span></td>
       <td style="white-space:nowrap; text-align:center; font-size:0.85rem;">
