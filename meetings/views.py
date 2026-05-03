@@ -60,6 +60,9 @@ def meeting_list(request):
             ),
         }
         for row in session_rows
+        # Exclude sessions whose documents span > 2 years; those are old SC
+        # entries with garbled session values and misleading year ranges.
+        if row['year_max'] - row['year_min'] <= 2
     ]
 
     paginator = Paginator(qs.order_by('-date', '-meeting_number'), getattr(settings, 'MEETINGS_PER_PAGE', 25))

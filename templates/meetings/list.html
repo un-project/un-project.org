@@ -155,8 +155,8 @@
       {% endif %}
     </div>
 
-    <!-- Session filter (GA only — SC has no formal sessions) -->
-    {% if current_body != 'SC' %}
+    <!-- Session filter -->
+    {% if sessions %}
     <div class="filter-section">
       <h3>Session</h3>
       <ul class="filter-list">
@@ -192,6 +192,7 @@
     {% endif %}
 
   </aside>
+
 
   <!-- ── Main content ──────────────────────────────────────────── -->
   <div>
