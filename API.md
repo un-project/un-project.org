@@ -385,7 +385,7 @@ Returns the 10 most and 10 least similar countries by voting pattern (minimum 10
 
 ## Rate limiting
 
-API endpoints are rate-limited to **60 requests per minute** per IP address. Responses exceeding the limit return HTTP 429.
+API endpoints are rate-limited to **100 requests per minute** per IP address. Responses exceeding the limit return HTTP 429.
 
 ---
 

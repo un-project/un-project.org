@@ -14,7 +14,7 @@ def _get_client_ip(request):
 def ratelimit(requests_per_minute, key_prefix='rl', json=False):
     """Decorator that limits a view to `requests_per_minute` per client IP.
 
-    Uses Django's cache backend (LocMemCache by default) with a 60-second
+    Uses Django's cache backend (LocMemCache by default) with a 100-second
     sliding window. Returns HTTP 429 when the limit is exceeded.
     """
     def decorator(view_func):
@@ -27,7 +27,7 @@ def ratelimit(requests_per_minute, key_prefix='rl', json=False):
                 if json:
                     return JsonResponse({'error': 'Too many requests'}, status=429)
                 return HttpResponse('Too many requests', status=429, content_type='text/plain')
-            cache.set(cache_key, count + 1, timeout=60)
+            cache.set(cache_key, count + 1, timeout=100)
             return view_func(request, *args, **kwargs)
         return wrapped
     return decorator

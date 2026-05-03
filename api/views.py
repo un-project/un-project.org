@@ -19,7 +19,7 @@ PAGE_SIZE = 50
 
 # ── API root ────────────────────────────────────────────────────────────────────
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def api_root(request):
     base = request.build_absolute_uri('/api')
     return JsonResponse({
@@ -96,7 +96,7 @@ def _speaker_summary(s):
     }
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def speaker_list(request):
     qs = Speaker.objects.select_related('country').order_by('name')
 
@@ -110,7 +110,7 @@ def speaker_list(request):
     return _paginate(request, qs, _speaker_summary)
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def speaker_detail(request, pk):
     try:
         speaker = Speaker.objects.select_related('country').get(pk=pk)
@@ -119,7 +119,7 @@ def speaker_detail(request, pk):
     return JsonResponse(_speaker_summary(speaker))
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def speaker_search(request):
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
@@ -360,7 +360,7 @@ def _meeting_summary(doc):
     }
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def meeting_list(request):
     qs = Document.objects.all()
 
@@ -379,7 +379,7 @@ def meeting_list(request):
     return _paginate(request, qs, _meeting_summary)
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def meeting_detail(request, slug):
     document = None
     for doc in Document.objects.only('id', 'symbol', 'body', 'meeting_number', 'session', 'date', 'location'):
@@ -460,7 +460,7 @@ def _resolution_summary(res):
     }
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def resolution_list(request):
     qs = Resolution.objects.prefetch_related('votes__document')
 
@@ -493,7 +493,7 @@ def resolution_list(request):
     return _paginate(request, qs, _resolution_summary)
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def resolution_detail(request, slug):
     resolution = None
     for r in Resolution.objects.prefetch_related('votes__document', 'votes__country_votes__country'):
@@ -553,7 +553,7 @@ def resolution_detail(request, slug):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def resolution_citations(request, slug):
     """
     Return a depth-1 citation neighbourhood as nodes + edges for D3 force graph.
@@ -707,7 +707,7 @@ _WC_STOPWORDS = frozenset([
 ])
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def wordcloud(request):
     body = request.GET.get('body', '')
     session = request.GET.get('session', '')
@@ -799,7 +799,7 @@ def wordcloud(request):
     return resp
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def speaker_speeches(request, pk):
     speaker = get_object_or_404(Speaker, pk=pk)
     body = request.GET.get('body', '')
@@ -846,7 +846,7 @@ def speaker_speeches(request, pk):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_speeches(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     body = request.GET.get('body', '')
@@ -896,7 +896,7 @@ def country_speeches(request, iso3):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_representatives(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     body = request.GET.get('body', '')
@@ -948,7 +948,7 @@ def country_representatives(request, iso3):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_sc_reps(request, iso3):
     """Official SC representatives from the UNDL, with date ranges via speech history."""
     country = get_object_or_404(Country, iso3=iso3)
@@ -1005,7 +1005,7 @@ def country_sc_reps(request, iso3):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def speaker_meetings(request, pk):
     speaker = get_object_or_404(Speaker, pk=pk)
     body = request.GET.get('body', '')
@@ -1056,7 +1056,7 @@ def _country_summary(c):
     }
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_list(request):
     qs = Country.objects.all()
     q = request.GET.get('q', '')
@@ -1065,13 +1065,13 @@ def country_list(request):
     return _paginate(request, qs, _country_summary)
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_detail(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     return JsonResponse(_country_summary(country))
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_ideal_points(request, iso3):
     get_object_or_404(Country, iso3=iso3)
     with connection.cursor() as cursor:
@@ -1086,7 +1086,7 @@ def country_ideal_points(request, iso3):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_neighbours(request, iso3):
     """Return the N countries with the closest ideal point to iso3 in a given year."""
     get_object_or_404(Country, iso3=iso3)
@@ -1129,7 +1129,7 @@ def country_neighbours(request, iso3):
     })
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_issue_alignment(request, iso3):
     """Per-year yes-rate broken down by issue area, with optional rolling smoothing."""
     get_object_or_404(Country, iso3=iso3)
@@ -1208,7 +1208,7 @@ def country_issue_alignment(request, iso3):
     return JsonResponse({'iso3': iso3, 'smooth': smooth, 'series': series})
 
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def country_alignment(request, iso3):
     country = get_object_or_404(Country, iso3=iso3)
     partner = request.GET.get('partner', '')
@@ -1271,7 +1271,7 @@ def country_alignment(request, iso3):
 
 # ── Vetoes ─────────────────────────────────────────────────────────────────────
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def veto_list(request):
     qs = Veto.objects.prefetch_related('vetoing_countries').all()
 
@@ -1304,7 +1304,7 @@ def veto_list(request):
 
 # ── Resolution sponsors ────────────────────────────────────────────────────────
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def resolution_sponsors(request, slug):
     resolution = None
     for r in Resolution.objects.all():
@@ -1334,7 +1334,7 @@ def resolution_sponsors(request, slug):
 
 # ── Search ─────────────────────────────────────────────────────────────────────
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def api_search(request):
     from django.contrib.postgres.search import SearchQuery, SearchRank
     from search.models import SearchIndex
@@ -1473,7 +1473,7 @@ def voting_blocs(request):
 
 # ── Bubble chart ───────────────────────────────────────────────────────────────
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def bubble_chart_data(request):
     year = request.GET.get('year', '')
 
@@ -1605,7 +1605,7 @@ def network_stats(request):
 
 # ── Ideal-point yearly mean (for re-centring) ──────────────────────────────────
 
-@ratelimit(60, key_prefix='rl:api', json=True)
+@ratelimit(100, key_prefix='rl:api', json=True)
 def vote_predict(request):
     """
     Predict votes using a simple IRT-style threshold model.

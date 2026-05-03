@@ -141,7 +141,7 @@ def test_api_meetings_allows_requests_under_limit(client):
 
 @pytest.mark.django_db
 def test_api_meetings_returns_json_429_over_limit(client):
-    for _ in range(60):
+    for _ in range(100):
         client.get('/api/meetings/', REMOTE_ADDR='10.3.0.2')
     response = client.get('/api/meetings/', REMOTE_ADDR='10.3.0.2')
     assert response.status_code == 429
@@ -150,7 +150,7 @@ def test_api_meetings_returns_json_429_over_limit(client):
 
 @pytest.mark.django_db
 def test_api_resolutions_returns_429_over_limit(client):
-    for _ in range(60):
+    for _ in range(100):
         client.get('/api/resolutions/', REMOTE_ADDR='10.3.0.3')
     response = client.get('/api/resolutions/', REMOTE_ADDR='10.3.0.3')
     assert response.status_code == 429
