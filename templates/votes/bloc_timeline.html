@@ -6,7 +6,7 @@
 #bt-wrap {
   position: relative;
   width: 100%;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: visible;
@@ -17,7 +17,7 @@
 .bt-crosshair { stroke: #bbb; stroke-width: 1px; stroke-dasharray: 3 3; pointer-events: none; }
 #bt-tooltip {
   position: fixed;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.45rem 0.75rem;
@@ -160,14 +160,14 @@ var ySc = d3.scaleLinear().domain([0, 100]).range([H, 0]);
 var xAxisG = g.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + H + ')')
     .call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(12));
 xAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
-xAxisG.select('.domain').attr('stroke', '#ccc');
-xAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+xAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
+xAxisG.selectAll('text').style('font-size', '11px').style('fill', 'var(--chart-text)');
 
 var yAxisG = g.append('g').attr('class', 'y-axis')
     .call(d3.axisLeft(ySc).tickSize(-W).ticks(5).tickFormat(function(d){ return d + '%'; }));
 yAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
-yAxisG.select('.domain').attr('stroke', '#ccc');
-yAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+yAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
+yAxisG.selectAll('text').style('font-size', '11px').style('fill', 'var(--chart-text)');
 
 /* ── Axis labels ─────────────────────────────────────────────────── */
 g.append('text').attr('x', W/2).attr('y', H + 38)
@@ -179,7 +179,7 @@ g.append('text').attr('transform','rotate(-90)').attr('x',-(H/2)).attr('y',-36)
 g.append('line')
     .attr('x1', 0).attr('x2', W)
     .attr('y1', ySc(50)).attr('y2', ySc(50))
-    .attr('stroke', '#ccc').attr('stroke-width', 1).attr('stroke-dasharray', '5 3');
+    .attr('stroke', 'var(--chart-line)').attr('stroke-width', 1).attr('stroke-dasharray', '5 3');
 g.append('text')
     .attr('x', W + 3).attr('y', ySc(50) + 4)
     .attr('font-size', '10px').attr('fill', '#aaa').text('50%');
@@ -199,7 +199,7 @@ EVENTS.forEach(function(ev){
         .attr('stroke-dasharray', '2 4').attr('pointer-events', 'none');
     g.append('text')
         .attr('x', x0 + 3).attr('y', 11)
-        .attr('font-size', '9px').attr('fill', '#bbb')
+        .attr('font-size', '9px').attr('fill', 'var(--chart-text)')
         .attr('pointer-events', 'none')
         .text(ev.label);
 });

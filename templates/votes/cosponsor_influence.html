@@ -13,7 +13,7 @@
 #ci-right { flex: 1; min-width: 220px; }
 
 #ci-chart-wrap {
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1rem 1.1rem 0.6rem;
@@ -22,7 +22,7 @@
 #ci-chart-wrap h2 { margin: 0 0 0.6rem; font-size: 0.85rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 
 #bt-chart-wrap {
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1rem 1.1rem 0.6rem;
@@ -46,7 +46,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.ci-bar-label img { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; border: 1px solid #ddd; flex-shrink: 0; }
+.ci-bar-label img { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; border: 1px solid var(--border); flex-shrink: 0; }
 .ci-bar-track {
   flex: 1;
   background: #f0f4f8;
@@ -103,7 +103,7 @@
   vertical-align: middle;
 }
 .ci-table tr:last-child td { border-bottom: none; }
-.ci-flag { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; border: 1px solid #ddd; vertical-align: middle; }
+.ci-flag { width: 18px; height: 12px; object-fit: cover; border-radius: 1px; border: 1px solid var(--border); vertical-align: middle; }
 </style>
 {% endblock %}
 
@@ -132,7 +132,7 @@
     </div>
 
     <div style="margin-top:1.25rem;">
-      <div style="background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem;">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem;">
         <h2 style="margin:0 0 0.6rem; font-size:0.85rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Full ranking</h2>
         <div style="overflow-x:auto;">
           <table class="ci-table">

@@ -24,39 +24,39 @@
   {% if document.location %}&mdash; {{ document.location }}{% endif %}
   &mdash; <a href="{{ document.docs_un_url }}" target="_blank" rel="noopener">UN Document ↗</a>
   {% if document.ods_used %}
-  &mdash; <span title="Transcript sourced from the UN Official Document System — structured text, high fidelity" style="display:inline-flex; align-items:center; gap:0.25rem; color:#2e7d32; font-size:0.82rem; cursor:default;">
-    <span style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem; letter-spacing:0.03em;">ODS</span>
+  &mdash; <span title="Transcript sourced from the UN Official Document System — structured text, high fidelity" style="display:inline-flex; align-items:center; gap:0.25rem; color:var(--status-ods-text); font-size:0.82rem; cursor:default;">
+    <span class="status-chip ods">ODS</span>
   </span>
   {% elif document.ocr_quality_label == 'good' %}
-  &mdash; <span title="OCR quality: good — score {{ document.ocr_quality_score|floatformat:2 }}" style="display:inline-flex; align-items:center; gap:0.25rem; color:#3a5bc7; font-size:0.82rem; cursor:default;">
-    <span style="background:#f0f4ff; border:1px solid #b3c6f5; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem;">OCR ✓</span>
+  &mdash; <span title="OCR quality: good — score {{ document.ocr_quality_score|floatformat:2 }}" style="display:inline-flex; align-items:center; gap:0.25rem; color:var(--status-info-text); font-size:0.82rem; cursor:default;">
+    <span class="status-chip info">OCR ✓</span>
   </span>
   {% elif document.ocr_quality_label == 'poor' %}
-  &mdash; <span title="OCR quality: poor (score {{ document.ocr_quality_score|floatformat:2 }}) — transcript may contain errors" style="display:inline-flex; align-items:center; gap:0.25rem; color:#b8860b; font-size:0.82rem; cursor:default;">
-    <span style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem;">OCR ~</span>
+  &mdash; <span title="OCR quality: poor (score {{ document.ocr_quality_score|floatformat:2 }}) — transcript may contain errors" style="display:inline-flex; align-items:center; gap:0.25rem; color:var(--status-warn-text); font-size:0.82rem; cursor:default;">
+    <span class="status-chip warn">OCR ~</span>
     poor OCR quality
   </span>
   {% elif document.ocr_quality_label == 'unusable' %}
-  &mdash; <span title="OCR quality: unusable (score {{ document.ocr_quality_score|floatformat:2 }}) — transcript likely unreliable" style="display:inline-flex; align-items:center; gap:0.25rem; color:#c0392b; font-size:0.82rem; cursor:default;">
-    <span style="background:#fdecea; border:1px solid #f5b7b1; border-radius:3px; padding:0.05rem 0.4rem; font-weight:700; font-size:0.75rem;">⚠ unusable OCR</span>
+  &mdash; <span title="OCR quality: unusable (score {{ document.ocr_quality_score|floatformat:2 }}) — transcript likely unreliable" style="display:inline-flex; align-items:center; gap:0.25rem; color:var(--status-error-text); font-size:0.82rem; cursor:default;">
+    <span class="status-chip error">⚠ unusable OCR</span>
   </span>
   {% endif %}
   {% if unattributed_count %}
-  &mdash; <span title="{{ unattributed_count }} speech{{ unattributed_count|pluralize }} with no country or organisation attribution" style="display:inline-flex; align-items:center; gap:0.25rem; color:#b8860b; font-size:0.82rem; cursor:default;">
-    <span style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0 0.35rem; font-weight:600; font-size:0.75rem;">&#9432;</span>
+  &mdash; <span title="{{ unattributed_count }} speech{{ unattributed_count|pluralize }} with no country or organisation attribution" style="display:inline-flex; align-items:center; gap:0.25rem; color:var(--status-warn-text); font-size:0.82rem; cursor:default;">
+    <span class="status-chip warn" style="padding:0 0.35rem;">&#9432;</span>
     {{ unattributed_count }} unattributed speech{{ unattributed_count|pluralize }}
   </span>
   {% endif %}
   {% if duplicate_count %}
-  &mdash; <span title="{{ duplicate_count }} speech{{ duplicate_count|pluralize }} appear to be duplicate{{ duplicate_count|pluralize }} of an earlier speech in this meeting" style="display:inline-flex; align-items:center; gap:0.25rem; color:#c0392b; font-size:0.82rem; cursor:default;">
-    <span style="background:#fdecea; border:1px solid #f5b7b1; border-radius:3px; padding:0 0.35rem; font-weight:600; font-size:0.75rem;">&#9888;</span>
+  &mdash; <span title="{{ duplicate_count }} speech{{ duplicate_count|pluralize }} appear to be duplicate{{ duplicate_count|pluralize }} of an earlier speech in this meeting" style="display:inline-flex; align-items:center; gap:0.25rem; color:var(--status-error-text); font-size:0.82rem; cursor:default;">
+    <span class="status-chip error" style="padding:0 0.35rem;">&#9888;</span>
     {{ duplicate_count }} duplicate speech{{ duplicate_count|pluralize }}
   </span>
   {% endif %}
 </div>
 
 {# ── At a glance ───────────────────────────────────────────────── #}
-<details class="glance" style="margin-bottom:1.25rem; border:1px solid var(--border); border-radius:6px; background:#fafafa;">
+<details class="glance" style="margin-bottom:1.25rem; border:1px solid var(--border); border-radius:6px; background:var(--bg-card);">
   <summary style="cursor:pointer; padding:0.6rem 1rem; font-weight:600; font-size:0.88rem; list-style:none; display:flex; align-items:center; gap:0.5rem; user-select:none;">
     <span style="color:var(--muted); font-size:0.75rem; transition:transform 0.15s;" class="glance-arrow">▶</span>
     This meeting at a glance
@@ -158,10 +158,10 @@
           <span class="meta" style="font-size:0.82rem;">on behalf of {{ s.on_behalf_of }}</span>
           {% endif %}
           {% if not s.speaker.country and not s.speaker.organization %}
-          <span title="No country or organisation linked to this speaker" style="background:#fff8e1; border:1px solid #f0d060; border-radius:3px; padding:0.05rem 0.35rem; font-size:0.72rem; font-weight:600; color:#b8860b; white-space:nowrap;">unattributed</span>
+          <span title="No country or organisation linked to this speaker" class="status-chip warn" style="font-size:0.72rem; white-space:nowrap;">unattributed</span>
           {% endif %}
           {% if s.pk in duplicate_ids %}
-          <span title="This speech appears to be a duplicate of an earlier speech by the same speaker in this meeting" style="background:#fdecea; border:1px solid #f5b7b1; border-radius:3px; padding:0.05rem 0.35rem; font-size:0.72rem; font-weight:600; color:#c0392b; white-space:nowrap;">duplicate</span>
+          <span title="This speech appears to be a duplicate of an earlier speech by the same speaker in this meeting" class="status-chip error" style="font-size:0.72rem; white-space:nowrap;">duplicate</span>
           {% endif %}
           {% if s.language %}<span class="meta" style="font-size:0.78rem;">[{{ s.language }}]</span>{% endif %}
           <a href="#speech-{{ s.pk }}" class="meta" style="font-size:0.78rem;margin-left:auto;">#{{ s.pk }}</a>
@@ -188,9 +188,9 @@
         </div>
         {% if v.yes_count is not None %}
         <div class="vote-tally">
-          <span style="color:#27ae60;">✓ {{ v.yes_count }}</span> &nbsp;
-          <span style="color:#e74c3c;">✗ {{ v.no_count }}</span> &nbsp;
-          <span style="color:#f39c12;">{{ v.abstain_count }} abs.</span>
+          <span class="vote-yes-text">✓ {{ v.yes_count }}</span> &nbsp;
+          <span class="vote-no-text">✗ {{ v.no_count }}</span> &nbsp;
+          <span class="vote-abstain-text">{{ v.abstain_count }} abs.</span>
         </div>
         {% endif %}
         {% if v.country_votes.all %}

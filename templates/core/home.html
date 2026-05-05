@@ -50,12 +50,12 @@
 {% endif %}
 
 {% if speech_of_day %}
-<div style="margin:2rem 0; border:1px solid var(--border); border-left:4px solid var(--un-blue); border-radius:var(--radius); padding:1.25rem 1.5rem; background:#fafcff;">
+<div style="margin:2rem 0; border:1px solid var(--border); border-left:4px solid var(--un-blue); border-radius:var(--radius); padding:1.25rem 1.5rem; background:var(--bg-card);">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.9rem;">
     <span style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--un-blue);">Speech of the Day &mdash; {{ today|date:"N j, Y" }}</span>
     <a href="{{ speech_of_day.get_absolute_url }}" style="font-size:0.8rem; color:var(--muted);">Read full speech →</a>
   </div>
-  <blockquote style="margin:0 0 0.9rem; padding:0; font-family:Georgia,serif; font-size:0.95rem; line-height:1.7; color:#222;">
+  <blockquote style="margin:0 0 0.9rem; padding:0; font-family:Georgia,serif; font-size:0.95rem; line-height:1.7; color:var(--text);">
     &ldquo;{{ speech_of_day.text|truncatechars:400 }}&rdquo;
   </blockquote>
   <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; font-size:0.83rem;">

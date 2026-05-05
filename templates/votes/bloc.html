@@ -28,9 +28,9 @@
     <a href="/country/{{ member.iso3 }}/" title="{{ member.display_name }}"
        style="display:flex; align-items:center; gap:0.4rem; padding:0.3rem 0.6rem;
               border:1px solid var(--border); border-radius:5px; font-size:0.83rem;
-              color:var(--text); text-decoration:none; background:#fff;">
+              color:var(--text); text-decoration:none; background:var(--bg-card);">
       <img src="/static/flags/{{ member.iso3 }}.svg" alt=""
-           style="height:13px; width:20px; object-fit:cover; border-radius:1px; border:1px solid #e0e0e0; flex-shrink:0;">
+           style="height:13px; width:20px; object-fit:cover; border-radius:1px; border:1px solid var(--border); flex-shrink:0;">
       {{ member.display_name }}
     </a>
     {% endfor %}
@@ -42,22 +42,22 @@
   <h2 class="section-title">Overall Voting Breakdown</h2>
   <div class="bloc-stat-grid">
     <div class="bloc-stat">
-      <div class="num" style="color:#27ae60;">{{ yes_pct }}%</div>
+      <div class="num vote-yes-text">{{ yes_pct }}%</div>
       <div class="lbl">Voted Yes</div>
     </div>
     <div class="bloc-stat">
-      <div class="num" style="color:#f39c12;">{{ abstain_pct }}%</div>
+      <div class="num vote-abstain-text">{{ abstain_pct }}%</div>
       <div class="lbl">Abstained</div>
     </div>
     <div class="bloc-stat">
-      <div class="num" style="color:#e74c3c;">{{ no_pct }}%</div>
+      <div class="num vote-no-text">{{ no_pct }}%</div>
       <div class="lbl">Voted No</div>
     </div>
   </div>
-  <div style="height:12px; border-radius:4px; overflow:hidden; display:flex; background:#f0f0f0; max-width:400px;">
-    <div style="width:{{ yes_pct }}%; background:#27ae60;" title="{{ yes_pct }}% Yes"></div>
-    <div style="width:{{ abstain_pct }}%; background:#f39c12;" title="{{ abstain_pct }}% Abstain"></div>
-    <div style="width:{{ no_pct }}%; background:#e74c3c;" title="{{ no_pct }}% No"></div>
+  <div style="height:12px; border-radius:4px; overflow:hidden; display:flex; background:var(--progress-bg); max-width:400px;">
+    <div class="vote-bar-yes" style="width:{{ yes_pct }}%;" title="{{ yes_pct }}% Yes"></div>
+    <div class="vote-bar-abstain" style="width:{{ abstain_pct }}%;" title="{{ abstain_pct }}% Abstain"></div>
+    <div class="vote-bar-no" style="width:{{ no_pct }}%;" title="{{ no_pct }}% No"></div>
   </div>
 </div>
 
@@ -98,7 +98,7 @@
             {% if row.vote.resolution.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.resolution.date|date:"Y" }}</div>{% endif %}
           </td>
           <td style="padding:0.3rem 0.4rem; text-align:center;">
-            <span style="font-weight:600; color:#e74c3c;">{{ row.cohesion }}%</span>
+            <span class="vote-no-text" style="font-weight:600;">{{ row.cohesion }}%</span>
           </td>
           <td style="padding:0.3rem 0.4rem; text-align:center; color:var(--muted);">{{ row.participating }}</td>
         </tr>
@@ -131,9 +131,9 @@
             {% if row.vote.resolution.date %}<div style="font-size:0.75rem; color:var(--muted);">{{ row.vote.resolution.date|date:"Y" }}</div>{% endif %}
           </td>
           <td style="padding:0.3rem 0.4rem; text-align:center;">
-            <span style="font-weight:600; color:#27ae60;">{{ row.cohesion }}%</span>
+            <span class="vote-yes-text" style="font-weight:600;">{{ row.cohesion }}%</span>
           </td>
-          <td style="padding:0.3rem 0.4rem; text-align:center; color:#e74c3c; font-weight:600;">{{ row.no_count }}</td>
+          <td class="vote-no-text" style="padding:0.3rem 0.4rem; text-align:center; font-weight:600;">{{ row.no_count }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -153,6 +153,12 @@
   var trendData   = {{ trend_json|safe }};
   var cohesionData = {{ cohesion_json|safe }};
 
+  var cssVars = getComputedStyle(document.documentElement);
+  var chartLine  = cssVars.getPropertyValue('--chart-line').trim()  || '#ccc';
+  var voteYes    = cssVars.getPropertyValue('--vote-yes').trim()    || '#27ae60';
+  var voteNo     = cssVars.getPropertyValue('--vote-no').trim()     || '#e74c3c';
+  var voteAbstain = cssVars.getPropertyValue('--vote-abstain').trim() || '#f39c12';
+
   /* ── Voting trend stacked area ─────────────────────────────────── */
   (function () {
     var el = document.getElementById('trend-chart');
@@ -171,7 +177,7 @@
       .append('g').attr('transform','translate('+margin.left+','+margin.top+')');
 
     var keys = ['yes', 'abstain', 'no'];
-    var colors = {'yes':'#27ae60','abstain':'#f39c12','no':'#e74c3c'};
+    var colors = {'yes': voteYes, 'abstain': voteAbstain, 'no': voteNo};
 
     var stack = d3.stack().keys(keys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
     var series = stack(trendData);
@@ -231,14 +237,14 @@
     // grid lines
     svg.append('g').attr('class','grid')
       .call(d3.axisLeft(yScale).ticks(5).tickSize(-w).tickFormat(''))
-      .selectAll('line').style('stroke','#e8e8e8').style('stroke-dasharray','3,3');
+      .selectAll('line').style('stroke', chartLine).style('stroke-dasharray','3,3');
     svg.selectAll('.grid .domain').remove();
 
     // 75% reference line
     svg.append('line')
       .attr('x1',0).attr('x2',w)
       .attr('y1',yScale(75)).attr('y2',yScale(75))
-      .attr('stroke','#ccc').attr('stroke-dasharray','4,4').attr('stroke-width',1);
+      .attr('stroke', chartLine).attr('stroke-dasharray','4,4').attr('stroke-width',1);
 
     var line = d3.line()
       .x(function(d){ return xScale(d.year); })

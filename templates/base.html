@@ -31,7 +31,7 @@
     <button type="submit">Search</button>
     <div id="nav-suggest" style="
       display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
-      background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
       box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:1000; font-size:0.87rem;
       min-width:280px; max-height:360px; overflow-y:auto;
     "></div>
@@ -241,7 +241,7 @@ function flagImg(iso3) {
   if (!iso3) return '';
   return '<img src="/static/flags/' + iso3 + '.svg" alt="" ' +
     'style="height:13px;width:20px;object-fit:cover;vertical-align:middle;' +
-    'margin-right:5px;border-radius:1px;border:1px solid #e0e0e0;flex-shrink:0;">';
+    'margin-right:5px;border-radius:1px;border:1px solid var(--border);flex-shrink:0;">';
 }
 
 document.querySelectorAll('select[data-searchable]').forEach(function(el) {
@@ -313,7 +313,7 @@ document.querySelectorAll('select[data-search-url]').forEach(function(el) {
     if (!iso3) return '';
     return '<img src="/static/flags/' + iso3 + '.svg" alt="" '
       + 'style="height:12px;width:18px;object-fit:cover;vertical-align:middle;'
-      + 'margin-right:5px;border-radius:1px;border:1px solid #e0e0e0;flex-shrink:0;">';
+      + 'margin-right:5px;border-radius:1px;border:1px solid var(--border);flex-shrink:0;">';
   }
 
   function renderGroup(label, rows) {

@@ -15,7 +15,7 @@
 #cn-loading { text-align: center; padding: 3rem; color: var(--muted); }
 #cn-tooltip {
   position: absolute;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.45rem 0.7rem;
@@ -171,7 +171,7 @@
       var link = gMain.append('g')
         .selectAll('line')
         .data(edges).enter().append('line')
-          .attr('stroke', '#ccc')
+          .attr('stroke', 'var(--chart-line)')
           .attr('stroke-width', function (d) { return Math.max(1, d.weight); })
           .attr('marker-end', 'url(#cn-arrow)');
 

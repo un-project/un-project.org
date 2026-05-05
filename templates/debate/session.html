@@ -57,7 +57,7 @@
       <td style="padding:0.4rem 0.6rem;">
         {% if entry.country %}
           {% if entry.country.flag_url %}
-          <img src="{{ entry.country.flag_url }}" alt="" style="height:12px; vertical-align:middle; margin-right:4px; border-radius:1px; border:1px solid #e0e0e0;">
+          <img src="{{ entry.country.flag_url }}" alt="" style="height:12px; vertical-align:middle; margin-right:4px; border-radius:1px; border:1px solid var(--border);">
           {% endif %}
           <a href="{{ entry.country.get_absolute_url }}">{{ entry.country.display_name }}</a>
         {% else %}

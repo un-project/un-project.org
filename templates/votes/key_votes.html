@@ -39,7 +39,7 @@
   border: 1px solid var(--border);
   color: var(--text);
   text-decoration: none;
-  background: #fff;
+  background: var(--bg-card);
   white-space: nowrap;
   font-size: 0.82rem;
 }
@@ -68,11 +68,11 @@
   vertical-align: middle;
 }
 .kv-table tr:last-child td { border-bottom: none; }
-.kv-table tr:hover td { background: var(--hover-bg, #f8f9fa); }
+.kv-table tr:hover td { background: var(--un-light); }
 
-.vote-yes    { color: #2d7a2d; font-weight: 600; }
-.vote-no     { color: #b33a3a; font-weight: 600; }
-.vote-abstain { color: #8a6200; }
+.vote-yes    { color: var(--vote-yes); font-weight: 600; }
+.vote-no     { color: var(--vote-no); font-weight: 600; }
+.vote-abstain { color: var(--vote-abstain); }
 
 .margin-badge {
   display: inline-block;
@@ -80,11 +80,15 @@
   border-radius: 3px;
   font-size: 0.8rem;
   font-weight: 700;
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffc107;
+  background: var(--status-warn-bg);
+  color: var(--status-warn-text);
+  border: 1px solid var(--status-warn-border);
 }
-.margin-badge.tight { background: #f8d7da; color: #842029; border-color: #f5c2c7; }
+.margin-badge.tight {
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+  border-color: var(--status-error-border);
+}
 
 .p5-badges { display: flex; gap: 3px; }
 .p5-badge {
@@ -97,10 +101,10 @@
   font-size: 0.68rem;
   font-weight: 700;
 }
-.p5-badge.yes     { background: #d4edda; color: #155724; }
-.p5-badge.no      { background: #f8d7da; color: #721c24; }
-.p5-badge.abstain { background: #fff3cd; color: #856404; }
-.p5-badge.absent  { background: #e9ecef; color: #adb5bd; }
+.p5-badge.yes     { background: var(--status-ods-bg);   color: var(--status-ods-text); }
+.p5-badge.no      { background: var(--status-error-bg); color: var(--status-error-text); }
+.p5-badge.abstain { background: var(--status-warn-bg);  color: var(--status-warn-text); }
+.p5-badge.absent  { background: var(--un-light);        color: var(--muted); }
 
 .p5-header-row { display: flex; gap: 3px; }
 .p5-header-cell {

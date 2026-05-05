@@ -6,7 +6,7 @@
 #ip-lines-wrap {
   position: relative;
   width: 100%;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: visible;
@@ -27,7 +27,7 @@
 }
 #ip-tooltip {
   position: fixed;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.45rem 0.75rem;
@@ -53,7 +53,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.82rem;
-  background: #fff;
+  background: var(--bg-card);
   cursor: default;
 }
 .ip-legend-swatch {
@@ -134,23 +134,23 @@ var ySc = d3.scaleLinear().domain([-4, 3.5]).range([H, 0]);
 var xAxisG = g.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + H + ')')
     .call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(10));
 xAxisG.selectAll('.tick line').attr('stroke', '#eee');
-xAxisG.select('.domain').attr('stroke', '#ccc');
+xAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
 
 var yAxisG = g.append('g').attr('class', 'y-axis')
     .call(d3.axisLeft(ySc).tickSize(-W).ticks(8));
 yAxisG.selectAll('.tick line').attr('stroke', '#eee');
-yAxisG.select('.domain').attr('stroke', '#ccc');
+yAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
 
 /* ── Axis labels ───────────────────────────────────────────────── */
 g.append('text')
     .attr('x', W / 2).attr('y', H + 40)
-    .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', '#555')
+    .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', 'var(--chart-text)')
     .text('Year');
 
 g.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -(H / 2)).attr('y', -40)
-    .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', '#555')
+    .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', 'var(--chart-text)')
     .text('UN Ideal Point');
 
 /* ── Zero line ─────────────────────────────────────────────────── */
@@ -262,7 +262,7 @@ function updateXDomain() {
     xSc.domain([yMin, yMax + 1]);
     xAxisG.call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(10));
     xAxisG.selectAll('.tick line').attr('stroke', '#eee');
-    xAxisG.select('.domain').attr('stroke', '#ccc');
+    xAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
     lineGroup.selectAll('path.ip-line').attr('d', function(d){ return lineGen(seriesData[d]); });
     labelGroup.selectAll('text.ip-label')
         .attr('x', function(d){

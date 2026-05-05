@@ -15,7 +15,7 @@
 .compare-selectors .side label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
 .compare-selectors .vs { font-weight: 700; color: var(--muted); text-align: center; padding-bottom: 0.3rem; }
 .type-tabs { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: fit-content; }
-.type-tab { padding: 0.3rem 0.7rem; font-size: 0.8rem; cursor: pointer; background: #fff; border: none; color: var(--muted); }
+.type-tab { padding: 0.3rem 0.7rem; font-size: 0.8rem; cursor: pointer; background: var(--bg-card); border: none; color: var(--muted); }
 .type-tab.active { background: var(--un-blue); color: #fff; font-weight: 600; }
 .compare-submit { align-self: end; padding-bottom: 0; }
 
@@ -51,18 +51,12 @@
 .matrix-table th, .matrix-table td { padding: 0.45rem 0.75rem; text-align: center; border: 1px solid var(--border); }
 .matrix-table thead th { background: var(--un-light); font-weight: 700; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
 .matrix-table tbody th { background: var(--un-light); font-weight: 700; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; text-align: left; }
-.cell-agree    { background: #d4edda; font-weight: 700; color: #155724; }
-.cell-disagree { background: #fff3cd; color: #856404; }
+.cell-agree    { font-weight: 700; }
 .cell-zero     { color: var(--muted); }
-
 
 .compare-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
 .compare-table th { padding: 0.4rem 0.6rem; text-align: left; color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
 .compare-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-
-.rate-high { color: #27ae60; }
-.rate-mid  { color: #f39c12; }
-.rate-low  { color: #e74c3c; }
 </style>
 {% endblock %}
 
@@ -230,8 +224,8 @@
   </table>
   </div>
   <p class="meta" style="margin-top:0.5rem; font-size:0.8rem;">
-    <span style="background:#d4edda; padding:1px 6px; border-radius:2px;">green</span> = same position &nbsp;
-    <span style="background:#fff3cd; padding:1px 6px; border-radius:2px;">amber</span> = different position
+    <span class="cell-agree" style="padding:1px 6px; border-radius:2px;">green</span> = same position &nbsp;
+    <span class="cell-disagree" style="padding:1px 6px; border-radius:2px;">amber</span> = different position
   </p>
 </div>
 
@@ -244,9 +238,9 @@
     {% for ic in comparison.by_issue %}
     <div style="display:grid; grid-template-columns:110px 1fr 54px 60px; align-items:center; gap:0.5rem; font-size:0.85rem;">
       <span title="{{ ic.long }}" style="color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ ic.short }}</span>
-      <div style="position:relative; height:12px; background:#e8edf2; border-radius:3px; overflow:visible;">
-        <div style="height:100%; width:{{ ic.rate }}%; background:{% if ic.rate >= 70 %}#27ae60{% elif ic.rate >= 40 %}#f39c12{% else %}#e74c3c{% endif %}; border-radius:3px; min-width:2px;"></div>
-        <div style="position:absolute; top:-3px; bottom:-3px; left:{{ comparison.agreement_rate }}%; width:1px; background:#444; opacity:0.5;"></div>
+      <div style="position:relative; height:12px; background:var(--progress-bg); border-radius:3px; overflow:visible;">
+        <div style="height:100%; width:{{ ic.rate }}%; background:{% if ic.rate >= 70 %}var(--vote-yes){% elif ic.rate >= 40 %}var(--vote-abstain){% else %}var(--vote-no){% endif %}; border-radius:3px; min-width:2px;"></div>
+        <div style="position:absolute; top:-3px; bottom:-3px; left:{{ comparison.agreement_rate }}%; width:1px; background:var(--muted); opacity:0.7;"></div>
       </div>
       <span class="{% if ic.rate >= 70 %}rate-high{% elif ic.rate >= 40 %}rate-mid{% else %}rate-low{% endif %}" style="text-align:right; font-weight:600;">{{ ic.rate }}%</span>
       <span class="meta" style="font-size:0.75rem;">{{ ic.agree }}/{{ ic.total }}</span>
@@ -254,8 +248,8 @@
     {% endfor %}
     <div style="display:grid; grid-template-columns:110px 1fr 54px 60px; align-items:center; gap:0.5rem; font-size:0.82rem; border-top:1px solid var(--border); padding-top:0.4rem; margin-top:0.1rem;">
       <span style="color:var(--muted); font-style:italic;">Overall</span>
-      <div style="position:relative; height:12px; background:#e8edf2; border-radius:3px;">
-        <div style="height:100%; width:{{ comparison.agreement_rate }}%; background:#888; border-radius:3px; min-width:2px;"></div>
+      <div style="position:relative; height:12px; background:var(--progress-bg); border-radius:3px;">
+        <div style="height:100%; width:{{ comparison.agreement_rate }}%; background:var(--muted); border-radius:3px; min-width:2px;"></div>
       </div>
       <span style="text-align:right; font-weight:600; color:var(--muted);">{{ comparison.agreement_rate }}%</span>
       <span class="meta" style="font-size:0.75rem;">{{ comparison.agree_count }}/{{ comparison.total }}</span>
@@ -283,7 +277,7 @@
     </thead>
     <tbody>
       {% for row in comparison.year_votes %}
-      <tr{% if not row.agree %} style="background:#fffbf0;"{% endif %}>
+      <tr{% if not row.agree %} style="background:var(--status-warn-bg);"{% endif %}>
         <td>
           <a href="{{ row.vote.resolution.get_absolute_url }}" style="font-weight:600;">{{ row.vote.resolution }}</a>
           {% if row.vote.resolution.title %}<div class="meta" style="font-size:0.8rem;">{{ row.vote.resolution.title|truncatechars:80 }}</div>{% endif %}
@@ -291,9 +285,9 @@
         <td><span class="pos-badge pos-{{ row.pos_a }}">{{ row.pos_a }}</span></td>
         <td><span class="pos-badge pos-{{ row.pos_b }}">{{ row.pos_b }}</span></td>
         <td style="white-space:nowrap; text-align:center; font-size:0.85rem;">
-          <span style="color:#27ae60;">{{ row.vote.yes_count }}</span> /
-          <span style="color:#e74c3c;">{{ row.vote.no_count }}</span> /
-          <span style="color:#f39c12;">{{ row.vote.abstain_count }}</span>
+          <span class="vote-yes-text">{{ row.vote.yes_count }}</span> /
+          <span class="vote-no-text">{{ row.vote.no_count }}</span> /
+          <span class="vote-abstain-text">{{ row.vote.abstain_count }}</span>
         </td>
       </tr>
       {% endfor %}
@@ -329,9 +323,9 @@
       <td><span class="pos-badge pos-{{ row.pos_a }}">{{ row.pos_a }}</span></td>
       <td><span class="pos-badge pos-{{ row.pos_b }}">{{ row.pos_b }}</span></td>
       <td style="white-space:nowrap; text-align:center; font-size:0.85rem;">
-        <span style="color:#27ae60;">{{ row.vote.yes_count }}</span> /
-        <span style="color:#e74c3c;">{{ row.vote.no_count }}</span> /
-        <span style="color:#f39c12;">{{ row.vote.abstain_count }}</span>
+        <span class="vote-yes-text">{{ row.vote.yes_count }}</span> /
+        <span class="vote-no-text">{{ row.vote.no_count }}</span> /
+        <span class="vote-abstain-text">{{ row.vote.abstain_count }}</span>
       </td>
     </tr>
     {% endfor %}
@@ -361,9 +355,9 @@
       </td>
       <td><span class="pos-badge pos-{{ row.position }}">{{ row.position }}</span></td>
       <td style="white-space:nowrap; text-align:center; font-size:0.85rem;">
-        <span style="color:#27ae60;">{{ row.vote.yes_count }}</span> /
-        <span style="color:#e74c3c;">{{ row.vote.no_count }}</span> /
-        <span style="color:#f39c12;">{{ row.vote.abstain_count }}</span>
+        <span class="vote-yes-text">{{ row.vote.yes_count }}</span> /
+        <span class="vote-no-text">{{ row.vote.no_count }}</span> /
+        <span class="vote-abstain-text">{{ row.vote.abstain_count }}</span>
       </td>
     </tr>
     {% endfor %}
@@ -410,10 +404,10 @@
     svg.append('line')
       .attr('x1', 0).attr('x2', w)
       .attr('y1', yScale(pct)).attr('y2', yScale(pct))
-      .attr('stroke', '#e0e0e0').attr('stroke-dasharray', '4,3').attr('stroke-width', 1);
+      .attr('stroke', 'var(--chart-line)').attr('stroke-dasharray', '4,3').attr('stroke-width', 1);
     svg.append('text')
       .attr('x', w + 3).attr('y', yScale(pct) + 4)
-      .attr('font-size', '10px').attr('fill', '#bbb').text(pct + '%');
+      .attr('font-size', '10px').attr('fill', 'var(--chart-text)').text(pct + '%');
   });
 
   // Shaded area

@@ -21,10 +21,10 @@
   font-size: 0.85rem;
 }
 #map-filters label { color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-#map-filters select { font-size: 0.83rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+#map-filters select { font-size: 0.83rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); }
 #map-filters input[type=number] { width: 64px; font-size: 0.83rem; padding: 0.2rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; }
 .map-filter-sep { color: var(--border); }
-.map-body-btn { font-size: 0.83rem; padding: 0.2rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
+.map-body-btn { font-size: 0.83rem; padding: 0.2rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); cursor: pointer; }
 .map-body-btn.active { background: var(--un-blue, #1a6fa8); color: #fff; border-color: var(--un-blue, #1a6fa8); }
 #selected-display {
   display: flex;
@@ -33,12 +33,12 @@
   font-size: 0.92rem;
   flex-wrap: wrap;
 }
-#selected-display img { height: 15px; border-radius: 1px; border: 1px solid #ddd; }
+#selected-display img { height: 15px; border-radius: 1px; border: 1px solid var(--border); }
 #selected-display strong { color: var(--text); }
 
 #map-wrap {
   position: relative;
-  background: #c8e6f5;
+  background: #c8e6f5; /* ocean — updated by JS for dark mode */
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
@@ -52,7 +52,7 @@
 
 #disambiguation-popup {
   position: absolute;
-  background: #fff;
+  background: var(--bg-card);
   line-height: normal;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -82,7 +82,7 @@
 }
 #disambiguation-popup a:last-child { border-bottom: none; }
 #disambiguation-popup a:hover { color: var(--un-dark); }
-#disambiguation-popup img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+#disambiguation-popup img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid var(--border); flex-shrink: 0; }
 #disambiguation-popup .popup-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 #map-tooltip {
@@ -128,7 +128,7 @@
   margin: 0.28rem 0;
   font-size: 0.85rem;
 }
-.sim-row img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+.sim-row img { height: 13px; width: 20px; object-fit: cover; border-radius: 1px; border: 1px solid var(--border); flex-shrink: 0; }
 .sim-row a { color: var(--text); text-decoration: none; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sim-row a:hover { color: var(--un-blue); }
 .sim-bar-wrap { width: 70px; height: 7px; background: #e5e7eb; border-radius: 3px; flex-shrink: 0; }
@@ -184,16 +184,16 @@
   <svg id="world-map"></svg>
   <div id="map-tooltip"></div>
   <div id="disambiguation-popup" style="display:none;"></div>
-  <button id="map-zoom-reset" title="Reset zoom" style="position:absolute;top:8px;right:8px;padding:4px 8px;font-size:0.78rem;background:rgba(255,255,255,0.85);border:1px solid var(--border);border-radius:4px;cursor:pointer;line-height:1.4;">Reset zoom</button>
+  <button id="map-zoom-reset" title="Reset zoom" style="position:absolute;top:8px;right:8px;padding:4px 8px;font-size:0.78rem;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;cursor:pointer;line-height:1.4;color:var(--text);">Reset zoom</button>
 </div>
 
 <div id="map-legend" style="margin-top:0.4rem;">
   <span class="leg"><span class="leg-sw" style="background:#27ae60;"></span> Very similar</span>
   <span class="leg"><span class="leg-sw" style="background:#f1c40f;"></span> Neutral</span>
   <span class="leg"><span class="leg-sw" style="background:#e74c3c;"></span> Very different</span>
-  <span class="leg"><span class="leg-sw" style="background:#bbb;"></span> In DB, no shared votes</span>
-  <span class="leg"><span class="leg-sw" style="background:#ccc;"></span> In DB</span>
-  <span class="leg"><span class="leg-sw" style="background:#e8e8e8;"></span> Not in DB</span>
+  <span class="leg"><span class="leg-sw" data-map-color="no-sim" style="background:#bbb;"></span> In DB, no shared votes</span>
+  <span class="leg"><span class="leg-sw" data-map-color="in-db" style="background:#ccc;"></span> In DB</span>
+  <span class="leg"><span class="leg-sw" data-map-color="no-data" style="background:#e8e8e8;"></span> Not in DB</span>
   <span style="margin-left:auto; font-style:italic;">Scroll to zoom · drag to pan · double-click to reset</span>
 </div>
 
@@ -217,6 +217,26 @@
 <script>
 (function () {
   'use strict';
+
+  var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var MAP_NO_DATA = isDark ? '#374151' : '#e8e8e8';
+  var MAP_IN_DB   = isDark ? '#4b5563' : '#ccc';
+  var MAP_NO_SIM  = isDark ? '#64748b' : '#bbb';
+  var MAP_STROKE  = isDark ? '#1f2937' : '#fff';
+  var MAP_OCEAN   = isDark ? '#0f1e2e' : '#c8e6f5';
+
+  /* Update ocean background and legend swatches */
+  document.addEventListener('DOMContentLoaded', function () {
+    var wrap = document.getElementById('map-wrap');
+    if (wrap) wrap.style.background = MAP_OCEAN;
+    var swatches = document.querySelectorAll('.leg-sw[data-map-color]');
+    swatches.forEach(function (sw) {
+      var key = sw.dataset.mapColor;
+      if (key === 'no-data') sw.style.background = MAP_NO_DATA;
+      if (key === 'in-db')   sw.style.background = MAP_IN_DB;
+      if (key === 'no-sim')  sw.style.background = MAP_NO_SIM;
+    });
+  });
 
   /* ── Country data from Django ───────────────────────────────────── */
   var COUNTRIES = {{ countries_json|safe }};
@@ -315,7 +335,7 @@
   var H = Math.max(280, Math.min(460, Math.round(W * 0.47)));
 
   var svg = d3.select('#world-map').attr('width', W).attr('height', H);
-  svg.append('rect').attr('width', W).attr('height', H).attr('fill', '#c8e6f5');
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', MAP_OCEAN);
   var g = svg.append('g');
 
   var projection = d3.geoNaturalEarth1()
@@ -412,7 +432,7 @@
   }
 
   function countryFill(a3) {
-    if (!a3) return '#e8e8e8';
+    if (!a3) return MAP_NO_DATA;
     if (a3 === selectedIso3) return 'var(--un-blue, #1a6fa8)';
     /* Historical country selected: highlight all territories that covered it */
     if (selectedIso3 && histToCurrent[selectedIso3] &&
@@ -421,8 +441,8 @@
     }
     var ef = effectiveScore(a3);
     if (ef) return colorScale(ef.score);
-    if (countryByIso3[a3]) return '#ccc';
-    return '#e8e8e8';
+    if (countryByIso3[a3]) return MAP_IN_DB;
+    return MAP_NO_DATA;
   }
 
   function updateMap() {
@@ -443,9 +463,9 @@
           .attr('d', pathFn)
           .attr('fill', function (d) {
             var a3 = N2A[+d.id];
-            return (a3 && countryByIso3[a3]) ? '#ccc' : '#e8e8e8';
+            return (a3 && countryByIso3[a3]) ? MAP_IN_DB : MAP_NO_DATA;
           })
-          .attr('stroke', '#fff')
+          .attr('stroke', MAP_STROKE)
           .attr('stroke-width', 0.4)
           .on('click', handleClick)
           .on('mouseover', function (event, d) {
@@ -460,7 +480,7 @@
             if (a3) moveTooltip(event);
           })
           .on('mouseout', function () {
-            d3.select(this).attr('stroke', '#fff').attr('stroke-width', 0.4);
+            d3.select(this).attr('stroke', MAP_STROKE).attr('stroke-width', 0.4);
             hideTooltip();
           });
 

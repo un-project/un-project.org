@@ -6,7 +6,7 @@
 #p5-wrap {
   position: relative;
   width: 100%;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: visible;
@@ -16,7 +16,7 @@
 .p5-crosshair { stroke: #bbb; stroke-width: 1px; stroke-dasharray: 3 3; pointer-events: none; }
 #p5-tooltip {
   position: fixed;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.45rem 0.75rem;
@@ -119,14 +119,14 @@ var ySc = d3.scaleLinear().domain([-ipPad, ipPad]).range([H, 0]);
 var xAxisG = g.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + H + ')')
     .call(d3.axisBottom(xSc).tickFormat(d3.format('d')).tickSize(-H).ticks(12));
 xAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
-xAxisG.select('.domain').attr('stroke', '#ccc');
-xAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+xAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
+xAxisG.selectAll('text').style('font-size', '11px').style('fill', 'var(--chart-text)');
 
 var yAxisG = g.append('g').attr('class', 'y-axis')
     .call(d3.axisLeft(ySc).tickSize(-W).ticks(8));
 yAxisG.selectAll('.tick line').attr('stroke', '#f0f0f0');
-yAxisG.select('.domain').attr('stroke', '#ccc');
-yAxisG.selectAll('text').style('font-size', '11px').style('fill', '#666');
+yAxisG.select('.domain').attr('stroke', 'var(--chart-line)');
+yAxisG.selectAll('text').style('font-size', '11px').style('fill', 'var(--chart-text)');
 
 /* ── Axis labels ───────────────────────────────────────────────── */
 g.append('text').attr('x', W/2).attr('y', H + 38)

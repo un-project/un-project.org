@@ -48,7 +48,7 @@
   margin-bottom: 0.3rem;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-card);
   font-size: 0.88rem;
   cursor: pointer;
   color: var(--text);
@@ -379,8 +379,8 @@
       .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
       .call(function (ax) {
         ax.select('.domain').remove();
-        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
-        ax.selectAll('line').style('stroke', '#ccc');
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', 'var(--chart-text)');
+        ax.selectAll('line').style('stroke', 'var(--chart-line)');
       });
 
     var brushG = g.append('g').attr('class', 'brush');
@@ -577,8 +577,8 @@
       .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
       .call(function (ax) {
         ax.select('.domain').remove();
-        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
-        ax.selectAll('line').style('stroke', '#ccc');
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', 'var(--chart-text)');
+        ax.selectAll('line').style('stroke', 'var(--chart-line)');
       });
 
     var brushG = g.append('g').attr('class', 'brush');

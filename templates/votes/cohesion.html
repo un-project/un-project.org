@@ -8,12 +8,13 @@
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--bg-card);
 }
 #cohesion-chart { display: block; }
 #ch-tooltip {
   position: fixed;
-  background: #fff;
+  background: var(--bg-card);
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.4rem 0.7rem;
@@ -80,9 +81,17 @@
   var W = LABEL_LEFT + N * CELL;
   var H = LABEL_TOP  + N * CELL;
 
+  // Read theme colors from CSS variables
+  var cssVars = getComputedStyle(document.documentElement);
+  var bgCard      = cssVars.getPropertyValue('--bg-card').trim()      || '#fff';
+  var borderColor = cssVars.getPropertyValue('--border').trim()       || '#ccc';
+  var mutedColor  = cssVars.getPropertyValue('--muted').trim()        || '#555';
+  var textColor   = cssVars.getPropertyValue('--text').trim()         || '#1c1c1e';
+  var progressBg  = cssVars.getPropertyValue('--progress-bg').trim()  || '#e8e8e8';
+
   // ── Color: grey (0%) → yellow-green → dark green (100%) ─────────
   function colorFor(rate) {
-    if (rate === null) return '#e8e8e8';
+    if (rate === null) return progressBg;
     var t = rate / 100;
     var r, g, b;
     if (t < 0.5) {
@@ -139,7 +148,7 @@
           .attr('y', LABEL_TOP  + ai * CELL)
           .attr('width',  CELL - 0.5)
           .attr('height', CELL - 0.5)
-          .attr('fill', isDiag ? '#fff' : colorFor(rate));
+          .attr('fill', isDiag ? bgCard : colorFor(rate));
 
         if (!isDiag) {
           rect.style('cursor', rate !== null ? 'pointer' : 'default')
@@ -148,12 +157,12 @@
               rowHL.attr('y', LABEL_TOP + ai * CELL).style('display', null);
               colHL.attr('x', LABEL_LEFT + bi * CELL).style('display', null);
               // label highlight
-              if (rowLabelEls[ai]) d3.select(rowLabelEls[ai]).attr('font-weight', '700').attr('fill', '#000');
-              if (colLabelEls[bi]) d3.select(colLabelEls[bi]).attr('font-weight', '700').attr('fill', '#000');
+              if (rowLabelEls[ai]) d3.select(rowLabelEls[ai]).attr('font-weight', '700').attr('fill', textColor);
+              if (colLabelEls[bi]) d3.select(colLabelEls[bi]).attr('font-weight', '700').attr('fill', textColor);
               // tooltip
               tooltip.style.display = 'block';
               if (rate !== null) {
-                var col = rate >= 70 ? '#155724' : rate >= 40 ? '#856404' : '#721c24';
+                var col = rate >= 70 ? 'var(--vote-yes)' : rate >= 40 ? 'var(--vote-abstain)' : 'var(--vote-no)';
                 tooltip.innerHTML =
                   '<strong>' + ca.name + '</strong> &amp; <strong>' + cb.name + '</strong><br>' +
                   'Agreement: <strong style="color:' + col + ';">' + rate + '%</strong>' +
@@ -172,7 +181,7 @@
               rowHL.style('display', 'none');
               colHL.style('display', 'none');
               if (rowLabelEls[ai]) d3.select(rowLabelEls[ai]).attr('font-weight', 'normal').attr('fill', 'var(--un-blue)');
-              if (colLabelEls[bi]) d3.select(colLabelEls[bi]).attr('font-weight', 'normal').attr('fill', '#555');
+              if (colLabelEls[bi]) d3.select(colLabelEls[bi]).attr('font-weight', 'normal').attr('fill', mutedColor);
               tooltip.style.display = 'none';
             })
             .on('click', function () {
@@ -201,7 +210,7 @@
   svg.append('line')
     .attr('x1', LABEL_LEFT).attr('y1', LABEL_TOP)
     .attr('x2', LABEL_LEFT + N * CELL).attr('y2', LABEL_TOP + N * CELL)
-    .attr('stroke', '#ccc').attr('stroke-width', 0.5);
+    .attr('stroke', borderColor).attr('stroke-width', 0.5);
 
   // ── 4. Labels (on top so they stay readable over crosshair) ──────
   var colLabelEls = {};
@@ -212,7 +221,7 @@
       .attr('transform', 'translate(' + x + ',' + (LABEL_TOP - 4) + ') rotate(-65)')
       .attr('text-anchor', 'start')
       .attr('font-size', '8px')
-      .attr('fill', '#555');
+      .attr('fill', mutedColor);
     el.append('title').text(c.name);
     el.append('tspan').text(label);
     colLabelEls[c.idx] = el.node();

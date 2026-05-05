@@ -41,7 +41,7 @@
   margin-bottom: 0.3rem;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-card);
   font-size: 0.88rem;
   cursor: pointer;
   color: var(--text);
@@ -233,7 +233,7 @@
       <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem;">
         {% for s in similar_most %}
         <li style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
-          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;" onerror="this.style.display='none'">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" onerror="this.style.display='none'">
           <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}" style="flex:1; color:inherit;">{{ s.name }}</a>
           <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
         </li>
@@ -247,7 +247,7 @@
       <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.4rem;">
         {% for s in similar_least %}
         <li style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
-          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid #ddd; flex-shrink:0;" onerror="this.style.display='none'">
+          <img src="/static/flags/{{ s.iso3 }}.svg" alt="{{ s.iso3 }}" style="width:22px; height:14px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" onerror="this.style.display='none'">
           <a href="/votes/compare/?a={{ country.iso3 }}&b={{ s.iso3 }}" style="flex:1; color:inherit;">{{ s.name }}</a>
           <span style="color:var(--muted); font-variant-numeric:tabular-nums; flex-shrink:0;">{{ s.rate }}%</span>
         </li>
@@ -376,8 +376,8 @@
       .call(d3.axisBottom(x).tickValues(tickYears).tickSize(3))
       .call(function (ax) {
         ax.select('.domain').remove();
-        ax.selectAll('text').style('font-size', '0.65rem').style('fill', '#888');
-        ax.selectAll('line').style('stroke', '#ccc');
+        ax.selectAll('text').style('font-size', '0.65rem').style('fill', 'var(--chart-text)');
+        ax.selectAll('line').style('stroke', 'var(--chart-line)');
       });
 
     var brushG = g.append('g').attr('class', 'brush');
@@ -648,7 +648,7 @@
           row.style.cssText = 'display:grid;grid-template-columns:26px 1fr 84px 52px;align-items:center;column-gap:0.5rem;font-size:0.87rem;';
           var flag = document.createElement('img');
           flag.src = '/static/flags/' + nb.iso3 + '.svg'; flag.alt = nb.iso3;
-          flag.style.cssText = 'width:22px;height:15px;object-fit:cover;border:1px solid #ddd;';
+          flag.style.cssText = 'width:22px;height:15px;object-fit:cover;border:1px solid var(--border);';
           flag.onerror = function () { flag.style.display = 'none'; };
           var name = document.createElement('a');
           name.href = '/country/' + nb.iso3 + '/'; name.textContent = nb.name;

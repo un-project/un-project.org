@@ -6,7 +6,7 @@
 #bubble-wrap {
   position: relative;
   width: 100%;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -14,7 +14,7 @@
 #bubble-svg { display: block; width: 100%; height: auto; }
 #bubble-tooltip {
   position: fixed;
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.45rem 0.7rem;
@@ -163,26 +163,26 @@ var xAxis = g.append('g')
     .attr('transform', 'translate(0,' + H + ')')
     .call(d3.axisBottom(xSc).ticks(10).tickSize(-H).tickFormat(d3.format('.1f')));
 xAxis.selectAll('.tick line').attr('stroke', '#eee');
-xAxis.select('.domain').attr('stroke', '#ccc');
+xAxis.select('.domain').attr('stroke', 'var(--chart-line)');
 
 var yAxis = g.append('g')
     .attr('class', 'y-axis')
     .call(d3.axisLeft(ySc).ticks(5).tickSize(-W).tickFormat(function(d){ return d + '%'; }));
 yAxis.selectAll('.tick line').attr('stroke', '#eee');
-yAxis.select('.domain').attr('stroke', '#ccc');
+yAxis.select('.domain').attr('stroke', 'var(--chart-line)');
 
 /* ── Axis labels ───────────────────────────────────────────────── */
 g.append('text')
     .attr('x', W / 2).attr('y', H + 42)
     .attr('text-anchor', 'middle')
-    .attr('font-size', '11px').attr('fill', '#666')
+    .attr('font-size', '11px').attr('fill', 'var(--chart-text)')
     .text('← Opposing / Non-Western    Ideal Point    Liberal / Western-aligned →');
 
 g.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -(H / 2)).attr('y', -44)
     .attr('text-anchor', 'middle')
-    .attr('font-size', '11px').attr('fill', '#666')
+    .attr('font-size', '11px').attr('fill', 'var(--chart-text)')
     .text('% Agreed with Majority');
 
 /* ── Background year watermark ─────────────────────────────────── */

@@ -86,9 +86,9 @@
   border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: #fff8e1;
-  color: #b8860b;
-  border: 1px solid #f0d060;
+  background: var(--status-warn-bg);
+  color: var(--status-warn-text);
+  border: 1px solid var(--status-warn-border);
   white-space: nowrap;
 }
 </style>
@@ -333,14 +333,14 @@
         {% if resolution.session %}<span class="meta">Session {{ resolution.session }}</span>{% endif %}
         {% if resolution.category %}<a href="{% filter_url category=resolution.category issue='' %}" class="tag-badge{% if current_category == resolution.category %} active{% endif %}">{{ resolution.category }}</a>{% endif %}
         {% if resolution.important_vote %}<span class="important-badge" title="US State Dept 'important vote'">&#9733; Important</span>{% endif %}
-        {% for code, short in resolution.issue_labels %}<a href="{% filter_url issue=code %}" class="tag-badge issue-badge{% if current_issue == code %} active{% endif %}" style="background:#f0f4ff; color:#3a5a9a; border-color:#b0c4e8;">{{ short }}</a>{% endfor %}
+        {% for code, short in resolution.issue_labels %}<a href="{% filter_url issue=code %}" class="tag-badge issue-badge{% if current_issue == code %} active{% endif %}" style="background:var(--status-info-bg); color:var(--status-info-text); border-color:var(--status-info-border);">{{ short }}</a>{% endfor %}
         {% if p5v %}
         <span style="display:inline-flex; gap:3px; align-items:center;">
           {% for p in P5 %}{% with pos=p5v|get_item:p.iso3 %}
           <span title="{{ p.name }}: {{ pos|default:'—' }}"
                 style="display:inline-block; padding:1px 3px; border-radius:3px;
-                       background:{% if pos == 'yes' %}#e8f5e9{% elif pos == 'no' %}#ffebee{% elif pos == 'abstain' %}#fff8e1{% else %}#f5f5f5{% endif %};
-                       border:1px solid {% if pos == 'yes' %}#a5d6a7{% elif pos == 'no' %}#ffcdd2{% elif pos == 'abstain' %}#ffe082{% else %}#e0e0e0{% endif %};">
+                       background:{% if pos == 'yes' %}var(--status-ods-bg){% elif pos == 'no' %}var(--status-error-bg){% elif pos == 'abstain' %}var(--status-warn-bg){% else %}var(--un-light){% endif %};
+                       border:1px solid {% if pos == 'yes' %}var(--status-ods-border){% elif pos == 'no' %}var(--status-error-border){% elif pos == 'abstain' %}var(--status-warn-border){% else %}var(--border){% endif %};">
             <img src="/static/flags/{{ p.iso3 }}.svg" alt="{{ p.name }}" style="height:10px; display:block;">
           </span>
           {% endwith %}{% endfor %}

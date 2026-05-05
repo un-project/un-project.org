@@ -279,7 +279,7 @@
       row.style.cssText = 'display:flex; align-items:center; gap:0.45rem; margin-bottom:4px; font-size:0.82rem;';
       row.innerHTML =
         '<span style="min-width:18px; color:var(--muted); text-align:right;">' + (i+1) + '</span>'
-        + (c.iso3 ? '<img src="/static/flags/' + c.iso3 + '.svg" style="width:18px;height:12px;object-fit:cover;border:1px solid #ddd;border-radius:1px;" onerror="this.style.display=\'none\'">' : '')
+        + (c.iso3 ? '<img src="/static/flags/' + c.iso3 + '.svg" style="width:18px;height:12px;object-fit:cover;border:1px solid var(--border);border-radius:1px;" onerror="this.style.display=\'none\'">' : '')
         + '<a href="/country/' + c.iso3 + '/" style="flex:1; color:inherit; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">' + c.name + '</a>'
         + '<div style="width:80px; background:#f0f4f8; border-radius:3px; height:10px; overflow:hidden;">'
         + '<div style="width:' + pct + '%; height:100%; background:' + color + '; border-radius:3px;"></div></div>'
