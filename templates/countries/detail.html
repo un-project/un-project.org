@@ -16,7 +16,11 @@
   align-items: center;
   margin: 1rem 0 0;
   border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.tab-nav::-webkit-scrollbar { display: none; }
 .tab-link {
   padding: 0.55rem 1rem;
   font-size: 0.9rem;
@@ -25,6 +29,7 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab-link:hover { color: var(--un-blue); }
 .tab-link.active { color: var(--un-blue); border-bottom-color: var(--un-blue); font-weight: 600; }
@@ -295,6 +300,7 @@
       <div id="data-count" style="margin-top:1rem;"></div>
       <div class="chart-box" style="margin-top:0.5rem; padding-bottom:1rem;">
         <h3>Vote records</h3>
+        <div style="overflow-x:auto;">
         <table id="data-table">
           <thead>
             <tr>
@@ -303,6 +309,7 @@
           </thead>
           <tbody></tbody>
         </table>
+        </div>
         <div id="table-nav" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; font-size:0.85rem; color:var(--muted);"></div>
       </div>
     </div>
@@ -526,6 +533,7 @@
   <a href="/debate/" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">browse all sessions ↗</a>
 </h2>
 {% include "partials/wordcloud.html" with wc_url=debate_wc_url wc_title="Keywords in General Debate Speeches" %}
+<div style="overflow-x:auto;">
 <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:1rem;">
   <thead>
     <tr style="border-bottom:2px solid var(--border);">
@@ -560,6 +568,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div><!-- overflow-x wrapper -->
 </div><!-- /tab-debate -->
 {% endif %}
 
@@ -571,6 +580,7 @@
   {{ sponsored_count }} Security Council draft resolution{{ sponsored_count|pluralize }} co-sponsored by {{ country.display_name }}.
   Data from the <a href="https://github.com/yilunliao/unbench" target="_blank" rel="noopener">UNBench dataset</a> (Liang et al.).
 </p>
+<div style="overflow-x:auto;">
 <table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:1rem;">
   <thead>
     <tr style="border-bottom:2px solid var(--border);">
@@ -597,6 +607,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% if sponsored_page.has_other_pages %}
 <div class="pagination">
   {% if sponsored_page.has_previous %}<a href="{% url_with_param "sp_page" sponsored_page.previous_page_number %}">&laquo; Prev</a>{% endif %}

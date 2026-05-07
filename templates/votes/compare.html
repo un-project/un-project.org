@@ -266,6 +266,7 @@
     <a href="?a_type={{ a_type }}&a={{ a_val }}&b_type={{ b_type }}&b={{ b_val }}" class="meta" style="font-size:0.8rem; font-weight:400; margin-left:0.75rem;">✕ clear</a>
   </h2>
   {% if comparison.year_votes %}
+  <div style="overflow-x:auto;">
   <table class="compare-table">
     <thead>
       <tr>
@@ -293,6 +294,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <p class="meta">No shared votes found for {{ comparison.selected_year }}.</p>
   {% endif %}
@@ -303,6 +305,7 @@
 {% if comparison.divergent %}
 <h2 class="section-title">Most Divergent Votes</h2>
 <p class="meta" style="margin-bottom:0.75rem;">Resolutions where the two sides diverged most, sorted by how contested the overall vote was.</p>
+<div style="overflow-x:auto;">
 <table class="compare-table">
   <thead>
     <tr>
@@ -331,12 +334,14 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 
 <!-- ── Agreements on contested votes ──────────────────────────── -->
 {% if comparison.agreed_contested %}
 <h2 class="section-title" style="margin-top:2rem;">Agreements on Contested Votes</h2>
 <p class="meta" style="margin-bottom:0.75rem;">Resolutions where both sides voted the same way despite significant opposition from others.</p>
+<div style="overflow-x:auto;">
 <table class="compare-table">
   <thead>
     <tr>
@@ -363,6 +368,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 
 {% endif %}{# end comparison #}
